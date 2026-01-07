@@ -9,7 +9,11 @@ There will be 4 main components of this project:
 - FE (React SPA)
 - BE (NestJS with SQL based DB)
 - CI / CD (Gitlab CI pipelines ) & git management 
-- Deployment on Google Cloud 
+- Deployment on Google Cloud (development & production)
+
+### Setup
+- Monorepo with 2 packages -- BE & FE 
+- npm
 
 ### FE
 
@@ -22,22 +26,24 @@ There will be 4 main components of this project:
     - Prettier / eslint (added on git hooks)
 - Libraries 
   - React Router
-  - Tanstack query for API calls 
+  - Tanstack query for API calls
   - Few simple components with ShadCN + Tailwind for styling 
 - Authorization -- google firebase Authorization - allow only @profiq.com emails to login 
 - Features:
     - Login to the app
-    - Display a list of "items" from the DB 
-    - Navigate to a different tab 
+    - Navigate to a different tab (routing example)
+    - CRUD operations 
+- Deployment
+    - Deployed to Firebase hosting
 - Stretch goals:
     - e2e test automation with Playwright 
-- Deployment
-    - Deployed to Firebase hosting 
+    - Document testing of the app (test plan)
 
 ### BE 
 ...
 
 ### CI / CD & Git management
+
 #### Git flow 
 - main branch (we never push directly to the main branch)
   - we don't have any development branch or anything like that 
