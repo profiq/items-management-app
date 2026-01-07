@@ -8,7 +8,7 @@ And it will be inspiration for all the future projects.
 There will be 4 main components of this project:
 - FE (React SPA)
 - BE (NestJS with SQL based DB)
-- CI / CD (Gitlab CI pipelines )
+- CI / CD (Gitlab CI pipelines ) & git management 
 - Deployment on Google Cloud 
 
 ### FE
@@ -23,5 +23,25 @@ There will be 4 main components of this project:
 - Libraries 
   - React Router
   - Tanstack query for API calls 
+  - Few simple components with ShadCN + Tailwind for styling 
+- Authorization -- google firebase Authorization - allow only @profiq.com emails to login 
+- Features:
+    - Login to the app
+    - Display a list of "items" from the DB 
+    - Navigate to a different tab 
+- Stretch goals:
+    - e2e test automation with Playwright 
+- Deployment
+    - Deployed to Firebase hosting 
 
-  ...
+### BE 
+...
+
+### CI / CD & Git management
+#### Git flow 
+- main branch (we never push directly to the main branch)
+  - we don't have any development branch or anything like that 
+- Features branches 
+    - For new things we create feature branches - and then we create merge request where CI runs 
+
+
