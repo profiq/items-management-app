@@ -1,0 +1,37 @@
+{
+  "name": "profiq-reference-app",
+  "version": "1.0.0",
+  "description": "The goal of this project is to build a reference project & architecture for all our future project. Meaning we want to have everything in this project correct. And it will be inspiration for all the future projects.",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "lint": "npm run lint:eslint && npm run lint:prettier",
+    "lint:eslint": "eslint .",
+    "lint:prettier": "prettier --check .",
+    "fix": "npm run fix:eslint && npm run fix:prettier",
+    "fix:eslint": "eslint . --fix",
+    "fix:prettier": "prettier --write ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/profiq/all/infra/profiq-reference-app.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://gitlab.com/profiq/all/infra/profiq-reference-app/issues"
+  },
+  "homepage": "https://gitlab.com/profiq/all/infra/profiq-reference-app#readme",
+  "workspaces": [
+    "frontend"
+  ],
+  "dependencies": {
+    "eslint": "^9.39.2",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "typescript-eslint": "^8.52.0"
+  },
+  "devDependencies": {
+    "eslint-plugin-react": "^7.37.5",
+    "prettier": "^3.7.4"
+  }
+}
