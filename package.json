@@ -27,17 +27,17 @@
     "frontend"
   ],
   "dependencies": {
-    "eslint": "^9.39.2",
-    "eslint-plugin-react-hooks": "^7.0.1",
-    "typescript-eslint": "^8.52.0"
+    "eslint": "9.39.2",
+    "eslint-plugin-react-hooks": "7.0.1",
+    "typescript-eslint": "8.52.0"
   },
   "devDependencies": {
-    "eslint-plugin-react": "^7.37.5",
-    "prettier": "^3.7.4",
-    "eslint": "^9.39.2",
-    "husky": "^9.1.7",
-    "lint-staged": "^16.2.7",
-    "prettier": "^3.7.4"
+    "eslint-plugin-react": "7.37.5",
+    "prettier": "3.7.4",
+    "eslint": "9.39.2",
+    "husky": "9.1.7",
+    "lint-staged": "16.2.7",
+    "prettier": "3.7.4"
   },
   "lint-staged": {
     "*.{js,ts,tsx}": [
