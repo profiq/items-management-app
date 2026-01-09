@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "The goal of this project is to build a reference project & architecture for all our future project. Meaning we want to have everything in this project correct. And it will be inspiration for all the future projects.",
   "scripts": {
+    "dev:frontend": "npm run dev -w frontend",
     "test": "echo \"Error: no test specified\" && exit 1",
     "prepare": "husky",
     "lint": "npm run lint:eslint && npm run lint:prettier",
