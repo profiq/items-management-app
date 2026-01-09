@@ -4,6 +4,7 @@
   "description": "The goal of this project is to build a reference project & architecture for all our future project. Meaning we want to have everything in this project correct. And it will be inspiration for all the future projects.",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
+    "prepare": "husky",
     "lint": "npm run lint:eslint && npm run lint:prettier",
     "lint:eslint": "eslint .",
     "lint:prettier": "prettier --check .",
@@ -32,6 +33,19 @@
   },
   "devDependencies": {
     "eslint-plugin-react": "^7.37.5",
+    "prettier": "^3.7.4",
+    "eslint": "^9.39.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.2.7",
     "prettier": "^3.7.4"
+  },
+  "lint-staged": {
+    "*.{js,ts,tsx}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }
