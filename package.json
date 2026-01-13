@@ -4,14 +4,14 @@
   "description": "The goal of this project is to build a reference project & architecture for all our future project. Meaning we want to have everything in this project correct. And it will be inspiration for all the future projects.",
   "scripts": {
     "dev:frontend": "npm run dev -w frontend",
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "prepare": "husky",
+    "fix": "npm run fix:eslint && npm run fix:prettier",
+    "fix:eslint": "eslint . --fix",
+    "fix:prettier": "prettier --write .",
     "lint": "npm run lint:eslint && npm run lint:prettier",
     "lint:eslint": "eslint .",
     "lint:prettier": "prettier --check .",
-    "fix": "npm run fix:eslint && npm run fix:prettier",
-    "fix:eslint": "eslint . --fix",
-    "fix:prettier": "prettier --write ."
+    "prepare": "husky",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "repository": {
     "type": "git",
@@ -33,9 +33,8 @@
     "typescript-eslint": "8.52.0"
   },
   "devDependencies": {
-    "eslint-plugin-react": "7.37.5",
-    "prettier": "3.7.4",
     "eslint": "9.39.2",
+    "eslint-plugin-react": "7.37.5",
     "husky": "9.1.7",
     "lint-staged": "16.2.7",
     "prettier": "3.7.4"
