@@ -4,9 +4,11 @@ import {
   NavigationMenuLink,
   NavigationMenuList,
 } from '@/components/ui/navigation-menu';
+import { useAuth } from '@/lib/providers/auth/useAuth';
 import { Link } from 'react-router';
 
 export function NavigationMenuReference() {
+  const { user } = useAuth();
   return (
     <>
       <NavigationMenu>
@@ -26,6 +28,18 @@ export function NavigationMenuReference() {
               <Link to='/contact'>Contact</Link>
             </NavigationMenuLink>
           </NavigationMenuItem>
+          <NavigationMenuItem>
+            <NavigationMenuLink asChild>
+              <Link to='/login'>Login</Link>
+            </NavigationMenuLink>
+          </NavigationMenuItem>
+          {user && (
+            <NavigationMenuItem>
+              <NavigationMenuLink asChild>
+                <Link to='/protected'>Protected Page</Link>
+              </NavigationMenuLink>
+            </NavigationMenuItem>
+          )}
         </NavigationMenuList>
       </NavigationMenu>
     </>
