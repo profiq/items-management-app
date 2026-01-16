@@ -1,4 +1,11 @@
-import { Controller, Get, Param, ParseIntPipe } from '@nestjs/common';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  ParseIntPipe,
+} from '@nestjs/common';
 import { HelloService } from './hello.service';
 import {
   ApiBadRequestResponse,
@@ -35,6 +42,13 @@ export class HelloController {
   async getId(
     @Param('id', ParseIntPipe) id: number
   ): Promise<{ hello_id: number }> {
-    return this.helloService.getId(id);
+    if (id < 0) {
+      throw new BadRequestException('Id can only be a non-negative');
+    }
+    const response = await this.helloService.getId(id);
+    if (!response) {
+      throw new NotFoundException('Id not found');
+    }
+    return response;
   }
 }

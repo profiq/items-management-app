@@ -1,8 +1,4 @@
-import {
-  BadRequestException,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 
 @Injectable()
 export class HelloService {
@@ -12,12 +8,9 @@ export class HelloService {
     return { hello: 'world' };
   }
 
-  async getId(id: number): Promise<{ hello_id: number }> {
-    if (id < 0) {
-      throw new BadRequestException('Id can only be a non-negative');
-    }
+  async getId(id: number): Promise<{ hello_id: number } | null> {
     if (!this.existing_ids.includes(id)) {
-      throw new NotFoundException('Id not found');
+      return null;
     }
     return { hello_id: id };
   }

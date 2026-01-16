@@ -2,13 +2,10 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { HelloController } from './hello.controller';
 import { HelloService } from './hello.service';
 
-async function mockGetId(id: number) {
+async function mockGetId(id: number): Promise<{ hello_id: number } | null> {
   const valid_id = 1;
-  if (id < 0) {
-    throw new BadRequestException();
-  }
   if (id !== valid_id) {
-    throw new NotFoundException();
+    return null;
   }
   return { hello_id: id };
 }
@@ -29,7 +26,9 @@ describe('HelloController', () => {
         .spyOn(helloService, 'getHello')
         .mockImplementation(() => Promise.resolve(result));
 
-      expect(await helloController.getHello()).toBe(result);
+      expect.assertions(1);
+
+      await expect(helloController.getHello()).resolves.toBe(result);
     });
   });
 
@@ -38,7 +37,9 @@ describe('HelloController', () => {
       const result = { hello_id: 1 };
       jest.spyOn(helloService, 'getId').mockImplementation(id => mockGetId(id));
 
-      expect(await helloController.getId(1)).toStrictEqual(result);
+      expect.assertions(3);
+
+      await expect(helloController.getId(1)).resolves.toStrictEqual(result);
       await expect(helloController.getId(2)).rejects.toThrow(NotFoundException);
       await expect(helloController.getId(-1)).rejects.toThrow(
         BadRequestException
