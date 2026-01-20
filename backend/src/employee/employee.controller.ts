@@ -1,10 +1,12 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller, Get, UseGuards } from '@nestjs/common';
 import { EmployeeService } from './employee.service';
 import { Employee } from './interfaces/employee.interface';
 import { ApiOkResponse } from '@nestjs/swagger';
 import { EmployeeResponse } from './dto/employee.dto';
+import { AuthGuard } from '../auth/auth.guard';
 
 @Controller('employees')
+@UseGuards(AuthGuard)
 export class EmployeeController {
   constructor(private employeeService: EmployeeService) {}
 
