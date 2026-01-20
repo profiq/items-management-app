@@ -5,6 +5,8 @@ import { App } from 'supertest/types';
 import { EmployeeModule } from '../src/employee/employee.module';
 import { EmployeeService } from '../src/employee/employee.service';
 import { Employee } from '../src/employee/interfaces/employee.interface';
+import { AuthService } from '../src/auth/auth.service';
+import { DecodedIdToken } from 'firebase-admin/auth';
 
 describe('EmployeeModule', () => {
   let app: INestApplication<App>;
@@ -20,22 +22,36 @@ describe('EmployeeModule', () => {
     ],
   };
 
+  const authService = {
+    verifyToken: async (token: string): Promise<DecodedIdToken> => {
+      if (token == 'valid-token') {
+        return { email: 'valid@profiq.com' } as DecodedIdToken;
+      }
+      if (token == 'wrong-domain') {
+        return { email: 'invalid@example.com' } as DecodedIdToken;
+      }
+      return { email: undefined } as DecodedIdToken;
+    },
+  };
+
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [EmployeeModule],
     })
       .overrideProvider(EmployeeService)
       .useValue(employeeService)
+      .overrideProvider(AuthService)
+      .useValue(authService)
       .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
   });
 
-  // This is for later when tests make actual sense and for the sake of consistency
   it('/employees (GET)', () => {
     return request(app.getHttpServer())
       .get('/employees')
+      .set('Authorization', 'Bearer valid-token')
       .expect(200)
       .expect([
         {
@@ -45,6 +61,21 @@ describe('EmployeeModule', () => {
           photoUrl: 'http://example.com/img.png',
         },
       ]);
+  });
+  it('/employees (GET) (Wrong domain)', () => {
+    return request(app.getHttpServer())
+      .get('/employees')
+      .set('Authorization', 'Bearer wrong-domain')
+      .expect(403);
+  });
+  it('/employees (GET) (Invalid token)', () => {
+    return request(app.getHttpServer())
+      .get('/employees')
+      .set('Authorization', 'Bearer invalid-token')
+      .expect(403);
+  });
+  it('/employees (GET) (Missing Header)', () => {
+    return request(app.getHttpServer()).get('/employees').expect(403);
   });
 
   afterAll(async () => {
