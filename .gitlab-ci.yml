@@ -1,0 +1,30 @@
+default:
+  image: node:22.21.1
+
+stages:
+  - code_quality
+
+.rule_mr_and_main:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+.npm_ci_only_root:
+  before_script:
+    - npm ci --workspaces=false
+
+lint:
+  stage: code_quality
+  extends:
+    - .rule_mr_and_main
+    - .npm_ci_only_root
+  script:
+    - npm run lint:eslint
+
+prettier:
+  stage: code_quality
+  extends:
+    - .rule_mr_and_main
+    - .npm_ci_only_root
+  script:
+    - npm run lint:prettier
