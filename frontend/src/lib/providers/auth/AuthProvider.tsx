@@ -11,7 +11,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react';
 
 const DOMAIN = 'profiq.com';
 
-const checkDomain = (user: UserInfo): boolean => {
+export const checkDomain = (user: UserInfo): boolean => {
   const { email } = user;
   const domain = email?.split('@')[1];
   return domain?.toLowerCase() === DOMAIN;
