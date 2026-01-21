@@ -1,6 +1,10 @@
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { checkDomain } from './AuthProvider';
 import type { UserInfo } from 'firebase/auth';
+
+vi.mock(import('@/firebase'), () => ({
+  auth: null,
+}));
 
 test('Test checkDomain function', () => {
   expect(checkDomain({ email: 'abcd@profiq.com' } as UserInfo)).toBe(true);

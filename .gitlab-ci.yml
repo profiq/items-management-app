@@ -3,6 +3,7 @@ default:
 
 stages:
   - code_quality
+  - test
 
 .rule_mr_and_main:
   rules:
@@ -12,6 +13,14 @@ stages:
 .npm_ci_only_root:
   before_script:
     - npm ci --workspaces=false
+
+.npm_ci_frontend:
+  before_script:
+    - npm ci -w frontend --include-workspace-root
+
+.npm_ci_backend:
+  before_script:
+    - npm ci -w backend --include-workspace-root
 
 lint:
   stage: code_quality
@@ -28,3 +37,37 @@ prettier:
     - .npm_ci_only_root
   script:
     - npm run lint:prettier
+
+frontend-unit:
+  stage: test
+  extends:
+    - .rule_mr_and_main
+    - .npm_ci_frontend
+  script:
+    - npm run test:unit -w frontend
+
+frontend-component:
+  stage: test
+  extends:
+    - .rule_mr_and_main
+  before_script:
+    - !reference [.npm_ci_frontend, before_script]
+    - npx playwright install --with-deps --only-shell chromium
+  script:
+    - npm run test:component -w frontend
+
+backend-unit:
+  stage: test
+  extends:
+    - .rule_mr_and_main
+    - .npm_ci_backend
+  script:
+    - npm run test -w backend
+
+backend-e2e:
+  stage: test
+  extends:
+    - .rule_mr_and_main
+    - .npm_ci_backend
+  script:
+    - npm run test:e2e -w backend
