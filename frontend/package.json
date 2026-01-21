@@ -8,7 +8,8 @@
     "dev": "vite",
     "firebase:emulator": "firebase emulators:start",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest run"
   },
   "dependencies": {
     "@radix-ui/react-avatar": "1.1.11",
@@ -21,12 +22,14 @@
     "class-variance-authority": "0.7.1",
     "clsx": "2.1.1",
     "firebase": "12.7.0",
+    "http-status-codes": "2.3.0",
     "lucide-react": "0.562.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "react-router": "7.12.0",
     "tailwind-merge": "3.4.0",
-    "tailwindcss": "4.1.18"
+    "tailwindcss": "4.1.18",
+    "vitest": "4.0.17"
   },
   "devDependencies": {
     "@eslint/js": "9.39.2",
