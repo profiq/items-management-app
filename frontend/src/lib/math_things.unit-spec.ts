@@ -1,8 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { exp_in_gf, is_prime } from '@/lib/math_things';
+import { faker } from '@faker-js/faker';
 describe('Mathematics', () => {
   it('should return error', () => {
-    expect(() => exp_in_gf(1.1, 2, 3)).toThrow();
+    const float = faker.number.float();
+    expect(() => exp_in_gf(float, 2, 3)).toThrow();
   });
   it('should return 25', () => {
     expect(exp_in_gf(5, 2, 26)).toBe(25);

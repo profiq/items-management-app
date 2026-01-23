@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { NavigationMenuReference } from './navigation-menu-reference';
 import { MemoryRouter } from 'react-router';
+import { faker } from '@faker-js/faker';
 
 describe('Testing nav menu', () => {
   const mocks = vi.hoisted(() => {
@@ -27,9 +28,10 @@ describe('Testing nav menu', () => {
     expect(getByText('Protected Page')).not.toBeInTheDocument();
   });
   it('should show link to protected', async () => {
+    const email = faker.internet.email();
     mocks.useAuth.mockReturnValue({
       loading: true,
-      user: { email: 'abcd@profiq.com ' },
+      user: { email },
     });
     // MemoryRouter due to the Link in nav menu
     const { getByText } = await render(
