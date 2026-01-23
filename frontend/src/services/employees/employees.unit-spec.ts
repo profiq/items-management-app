@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { StatusCodes } from 'http-status-codes';
 import { type Employee, getEmployees } from './employees';
 import type { APIResponse } from '@/lib/api_client/api_client';
+import { faker } from '@faker-js/faker';
 
 describe('Testing getting employees', () => {
   const { mockFetch } = vi.hoisted(() => {
@@ -32,7 +33,8 @@ describe('Testing getting employees', () => {
   });
 
   it('should return array thanks to getting 200', async () => {
-    const data: Employee[] = [{ email: 'abcd@profiq.com' }];
+    const email = faker.internet.email();
+    const data: Employee[] = [{ email }];
     const result: APIResponse<Employee[]> = {
       status_code: StatusCodes.OK,
       data: data,
