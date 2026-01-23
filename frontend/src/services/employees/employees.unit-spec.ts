@@ -1,15 +1,24 @@
 import { describe, expect, it, vi } from 'vitest';
 import { StatusCodes } from 'http-status-codes';
-import { type APIResponse, type Employee } from '@/lib/apiCommunication';
-import { getEmployees } from './employees';
+import { type Employee, getEmployees } from './employees';
+import type { APIResponse } from '@/lib/api_client/api_client';
 
 describe('Testing getting employees', () => {
-  const { mockGetEmployeesFromApi } = vi.hoisted(() => {
-    return { mockGetEmployeesFromApi: vi.fn() };
+  const { mockFetch } = vi.hoisted(() => {
+    return { mockFetch: vi.fn() };
   });
 
-  vi.mock('@/lib/apiCommunication', () => {
-    return { getEmployeesFromApi: mockGetEmployeesFromApi };
+  vi.mock(import('@/lib/api_client/api_client'), async importOriginal => {
+    const actual = await importOriginal();
+    const APIClient = vi.fn(
+      class APIClient {
+        fetch = mockFetch;
+      }
+    );
+    return {
+      ...actual,
+      APIClient,
+    };
   });
 
   it('should throw due to getting 403', async () => {
@@ -18,7 +27,7 @@ describe('Testing getting employees', () => {
       data: [],
     };
 
-    mockGetEmployeesFromApi.mockResolvedValue(result);
+    mockFetch.mockResolvedValue(result);
     await expect(getEmployees()).rejects.toThrowError();
   });
 
@@ -29,7 +38,7 @@ describe('Testing getting employees', () => {
       data: data,
     };
 
-    mockGetEmployeesFromApi.mockResolvedValue(result);
+    mockFetch.mockResolvedValue(result);
     await expect(getEmployees()).resolves.toBe(data);
   });
 });
