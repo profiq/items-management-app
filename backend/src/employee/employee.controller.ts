@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards } from '@nestjs/common';
+import { Controller, Get, Header, UseGuards } from '@nestjs/common';
 import { EmployeeService } from './employee.service';
 import { Employee } from './interfaces/employee.interface';
 import { ApiOkResponse } from '@nestjs/swagger';
@@ -11,6 +11,7 @@ export class EmployeeController {
   constructor(private employeeService: EmployeeService) {}
 
   @Get()
+  @Header('Cache-Control', 'max-age=10, private')
   @ApiOkResponse({
     type: [EmployeeResponse],
     example: [
