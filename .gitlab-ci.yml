@@ -52,7 +52,7 @@ frontend-component:
     - .rule_mr_and_main
   before_script:
     - !reference [.npm_ci_frontend, before_script]
-    - npx playwright install --with-deps --only-shell chromium
+    - npm run init:playwright -w frontend
   script:
     - npm run test:component -w frontend
 
