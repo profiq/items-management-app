@@ -1,9 +1,25 @@
 default:
   image: node:22.21.1
+#  # cache is disabled due to slowdown it causes in this small pipeline
+#  # but on bigger projects, it can be beneficial to enable. The way to enable
+#  # it can be found in the comments
+#  cache: &default_cache
+#    key:
+#      files:
+#        - 'package-lock.json'
+#        - '**/package.json'
+#    paths:
+#      - .npm
+#    policy: pull
 
 stages:
   - code_quality
   - test
+
+.set_npm_config:
+  before_script:
+    - npm config set cache .npm
+    - npm config set prefer-offline true
 
 .rule_mr_and_main:
   rules:
@@ -12,15 +28,31 @@ stages:
 
 .npm_ci_only_root:
   before_script:
+    - !reference [.set_npm_config, before_script]
     - npm ci --workspaces=false
 
 .npm_ci_frontend:
   before_script:
+    - !reference [.set_npm_config, before_script]
     - npm ci -w frontend --include-workspace-root
 
 .npm_ci_backend:
   before_script:
+    - !reference [.set_npm_config, before_script]
     - npm ci -w backend --include-workspace-root
+
+## this updates the cache
+#warmup_cache:
+#  stage: .pre
+#  cache:
+#    # this is a YAML anchor.
+#    # docs: https://docs.gitlab.com/ci/yaml/yaml_optimization/#anchors
+#    <<: *default_cache
+#    policy: pull-push
+#  extends:
+#    - .rule_mr_and_main
+#  script:
+#    - npm ci --cache .npm --prefer-offline
 
 code_quality:
   stage: code_quality
