@@ -22,38 +22,26 @@ stages:
   before_script:
     - npm ci -w backend --include-workspace-root
 
-lint:
+code_quality:
   stage: code_quality
   extends:
     - .rule_mr_and_main
     - .npm_ci_only_root
   script:
     - npm run lint:eslint
-
-prettier:
-  stage: code_quality
-  extends:
-    - .rule_mr_and_main
-    - .npm_ci_only_root
-  script:
     - npm run lint:prettier
 
-frontend-unit:
+frontend-test:
   stage: test
   extends:
     - .rule_mr_and_main
     - .npm_ci_frontend
   script:
-    - npm run test:unit -w frontend
-
-frontend-component:
-  stage: test
-  extends:
-    - .rule_mr_and_main
-  before_script:
     - !reference [.npm_ci_frontend, before_script]
+    # if unit tests fail, there is no reason to waste time installing playwright
+    # so run it first
+    - npm run test:unit -w frontend
     - npm run init:playwright -w frontend
-  script:
     - npm run test:component -w frontend
 
 backend-unit:
