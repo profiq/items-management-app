@@ -1,5 +1,7 @@
 default:
   image: node:22.21.1
+  tags:
+    - profiq
 #  # cache is disabled due to slowdown it causes in this small pipeline
 #  # but on bigger projects, it can be beneficial to enable. The way to enable
 #  # it can be found in the comments
