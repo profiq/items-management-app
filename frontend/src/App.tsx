@@ -10,26 +10,31 @@ import { AuthProvider } from './lib/providers/auth/AuthProvider.tsx';
 import Login from './routes/Login.tsx';
 import Protected from './routes/Protected.tsx';
 import ProtectedRoute from './components/ProtectedRoute.tsx';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+const queryClient = new QueryClient();
 
 function App() {
   return (
     <>
-      <AuthProvider>
-        <BrowserRouter>
-          <NavigationMenuReference></NavigationMenuReference>
-          <div id='content'>
-            <Routes>
-              <Route path='/' element={<Home />} />
-              <Route path='/about' element={<About />} />
-              <Route path='/contact' element={<Contact />} />
-              <Route path='/login' element={<Login />} />
-              <Route element={<ProtectedRoute />}>
-                <Route path='/protected' element={<Protected />} />
-              </Route>
-            </Routes>
-          </div>
-        </BrowserRouter>
-      </AuthProvider>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <BrowserRouter>
+            <NavigationMenuReference></NavigationMenuReference>
+            <div id='content'>
+              <Routes>
+                <Route path='/' element={<Home />} />
+                <Route path='/about' element={<About />} />
+                <Route path='/contact' element={<Contact />} />
+                <Route path='/login' element={<Login />} />
+                <Route element={<ProtectedRoute />}>
+                  <Route path='/protected' element={<Protected />} />
+                </Route>
+              </Routes>
+            </div>
+          </BrowserRouter>
+        </AuthProvider>
+      </QueryClientProvider>
     </>
   );
 }
