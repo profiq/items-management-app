@@ -2,7 +2,7 @@ import type { UserInfo } from 'firebase/auth';
 import { createContext } from 'react';
 
 // This is dynamically added at runtime by Firebase to UserInfo
-type User = {
+export type User = {
   getIdToken?: (forceRefresh?: boolean) => Promise<string>;
 } & UserInfo;
 
