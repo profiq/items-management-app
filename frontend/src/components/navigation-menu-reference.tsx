@@ -34,11 +34,18 @@ export function NavigationMenuReference() {
             </NavigationMenuLink>
           </NavigationMenuItem>
           {user && (
-            <NavigationMenuItem>
-              <NavigationMenuLink asChild>
-                <Link to='/protected'>Protected Page</Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
+            <>
+              <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                  <Link to='/protected'>Protected Page</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                  <Link to='/employees'>List of Employees</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
+            </>
           )}
         </NavigationMenuList>
       </NavigationMenu>

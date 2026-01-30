@@ -1,5 +1,5 @@
 import type { StatusCodes } from 'http-status-codes';
-import { useAuth } from '../providers/auth/useAuth';
+import type { User } from '@/lib/contexts';
 export type APIResponse<T> = { status_code: StatusCodes; data: T };
 
 export const HttpMethod = {
@@ -21,15 +21,19 @@ type Headers = {
 };
 
 export class APIClient {
+  user?: User;
+
+  constructor(user?: User) {
+    this.user = user;
+  }
   async fetch<T>(
     method: HttpMethodType,
     path: string
   ): Promise<APIResponse<T>> {
     const url = import.meta.env.VITE_API_URL + path;
-    const { user } = useAuth();
     const headers: Headers = {};
-    if (user && user.getIdToken) {
-      const token = await user.getIdToken();
+    if (this.user && this.user.getIdToken) {
+      const token = await this.user.getIdToken();
       headers.Authorization = `Bearer ${token}`;
     }
     const response = await fetch(url, {

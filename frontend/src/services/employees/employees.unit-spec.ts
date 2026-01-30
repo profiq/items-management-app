@@ -34,7 +34,10 @@ describe('Testing getting employees', () => {
 
   it('should return array thanks to getting 200', async () => {
     const email = faker.internet.email();
-    const data: Employee[] = [{ email }];
+    const id = faker.string.uuid();
+    const name = faker.person.fullName();
+    const photoUrl = faker.internet.url();
+    const data: Employee[] = [{ email, id, name, photoUrl }];
     const result: APIResponse<Employee[]> = {
       status_code: StatusCodes.OK,
       data: data,

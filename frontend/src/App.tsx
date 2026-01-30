@@ -11,6 +11,7 @@ import Login from './routes/Login.tsx';
 import Protected from './routes/Protected.tsx';
 import ProtectedRoute from './components/ProtectedRoute.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import Employees from './routes/Employees.tsx';
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ function App() {
                 <Route path='/login' element={<Login />} />
                 <Route element={<ProtectedRoute />}>
                   <Route path='/protected' element={<Protected />} />
+                  <Route path='/employees' element={<Employees />} />
                 </Route>
               </Routes>
             </div>
