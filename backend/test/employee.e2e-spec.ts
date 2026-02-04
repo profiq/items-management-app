@@ -7,6 +7,7 @@ import { EmployeeService } from '@/employee/employee.service';
 import { Employee } from '@/employee/interfaces/employee.interface';
 import { AuthService } from '@/auth/auth.service';
 import { DecodedIdToken } from 'firebase-admin/auth';
+import { TypeOrmModule } from '@nestjs/typeorm';
 
 describe('EmployeeModule', () => {
   let app: INestApplication<App>;
@@ -36,7 +37,16 @@ describe('EmployeeModule', () => {
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [EmployeeModule],
+      imports: [
+        EmployeeModule,
+        TypeOrmModule.forRoot({
+          type: 'sqlite',
+          database: ':memory:',
+          autoLoadEntities: true,
+          synchronize: true,
+          dropSchema: true,
+        }),
+      ],
     })
       .overrideProvider(EmployeeService)
       .useValue(employeeService)

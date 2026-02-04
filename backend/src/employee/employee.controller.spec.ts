@@ -1,6 +1,6 @@
 import { EmployeeService } from './employee.service';
 import { EmployeeController } from './employee.controller';
-import { Employee } from './interfaces/employee.interface';
+import { IEmployee } from './interfaces/employee.interface';
 
 describe('EmployeeController', () => {
   let employeeController: EmployeeController;
@@ -13,7 +13,7 @@ describe('EmployeeController', () => {
 
   describe('getEmployees', () => {
     it('should return object key employee after resolving', async () => {
-      const result: Employee[] = [
+      const result: IEmployee[] = [
         {
           id: '1',
           email: 'test@example.com',
