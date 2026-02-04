@@ -11,6 +11,7 @@ import { PetVisit } from '@/pet_visit/pet_visit.entity';
 import { PetVisitModule } from '@/pet_visit/pet_visit.module';
 import { setupAuth } from './auth';
 import { TimeDuration } from '@/lib/time';
+import { StatusCodes } from 'http-status-codes';
 
 describe('PetVisitModule', () => {
   let app: INestApplication<App>;
@@ -68,7 +69,7 @@ describe('PetVisitModule', () => {
     return request(app.getHttpServer())
       .get('/visits')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200)
+      .expect(StatusCodes.OK)
       .expect([
         {
           id: 1,
@@ -89,18 +90,20 @@ describe('PetVisitModule', () => {
     return request(app.getHttpServer())
       .get('/visits')
       .set('Authorization', `Bearer ${invalidToken}`)
-      .expect(403);
+      .expect(StatusCodes.FORBIDDEN);
   });
 
   it('/visits (GET) (Invalid token)', () => {
     return request(app.getHttpServer())
       .get('/visits')
       .set('Authorization', 'Bearer invalid-token')
-      .expect(403);
+      .expect(StatusCodes.FORBIDDEN);
   });
 
   it('/visits (GET) (Missing Header)', () => {
-    return request(app.getHttpServer()).get('/visits').expect(403);
+    return request(app.getHttpServer())
+      .get('/visits')
+      .expect(StatusCodes.FORBIDDEN);
   });
 
   it('/visits (POST)', async () => {
@@ -113,12 +116,12 @@ describe('PetVisitModule', () => {
       })
       .set('Authorization', `Bearer ${validToken}`)
       .set('Content-Type', 'application/json')
-      .expect(201);
+      .expect(StatusCodes.CREATED);
 
     return request(app.getHttpServer())
       .get('/visits')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200)
+      .expect(StatusCodes.OK)
       .expect([
         {
           id: 1,
