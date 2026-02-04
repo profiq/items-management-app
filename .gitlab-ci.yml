@@ -95,4 +95,4 @@ backend-e2e:
     - .rule_mr_and_main
     - .npm_ci_backend
   script:
-    - npm run test:e2e -w backend
+    - npm run test:e2e-emulator -w backend

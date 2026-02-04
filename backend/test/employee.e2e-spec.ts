@@ -4,13 +4,17 @@ import { INestApplication } from '@nestjs/common';
 import { App } from 'supertest/types';
 import { EmployeeModule } from '@/employee/employee.module';
 import { EmployeeService } from '@/employee/employee.service';
-import { Employee } from '@/employee/interfaces/employee.interface';
+import { IEmployee } from '@/employee/interfaces/employee.interface';
 import { AuthService } from '@/auth/auth.service';
-import { DecodedIdToken } from 'firebase-admin/auth';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { TimeDuration } from '@/lib/time';
+import { setupAuth } from './auth';
 
 describe('EmployeeModule', () => {
   let app: INestApplication<App>;
+  let authService: AuthService;
+  let validToken: string;
+  let invalidToken: string;
 
   const employeeService = {
     getEmployees: async () => [
@@ -19,21 +23,16 @@ describe('EmployeeModule', () => {
         name: 'abcd abcd',
         email: 'mail@example.com',
         photoUrl: 'http://example.com/img.png',
-      } as Employee,
+      } as IEmployee,
     ],
   };
 
-  const authService = {
-    verifyToken: async (token: string): Promise<DecodedIdToken> => {
-      if (token == 'valid-token') {
-        return { email: 'valid@profiq.com' } as DecodedIdToken;
-      }
-      if (token == 'wrong-domain') {
-        return { email: 'invalid@example.com' } as DecodedIdToken;
-      }
-      return { email: undefined } as DecodedIdToken;
-    },
-  };
+  beforeAll(async () => {
+    const authSetup = await setupAuth();
+    authService = authSetup.authService;
+    validToken = authSetup.validToken;
+    invalidToken = authSetup.invalidToken;
+  }, 30 * TimeDuration.Second);
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -58,10 +57,10 @@ describe('EmployeeModule', () => {
     await app.init();
   });
 
-  it('/employees (GET)', () => {
+  it('/employees (GET)', async () => {
     return request(app.getHttpServer())
       .get('/employees')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200)
       .expect([
         {
@@ -72,10 +71,10 @@ describe('EmployeeModule', () => {
         },
       ]);
   });
-  it('/employees (GET) (Wrong domain)', () => {
+  it('/employees (GET) (Wrong domain)', async () => {
     return request(app.getHttpServer())
       .get('/employees')
-      .set('Authorization', 'Bearer wrong-domain')
+      .set('Authorization', `Bearer ${invalidToken}`)
       .expect(403);
   });
   it('/employees (GET) (Invalid token)', () => {

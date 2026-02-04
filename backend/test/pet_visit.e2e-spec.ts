@@ -3,28 +3,27 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { App } from 'supertest/types';
 import { AuthService } from '@/auth/auth.service';
-import { DecodedIdToken } from 'firebase-admin/auth';
 import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '@/user/user.entity';
 import { OfficePet } from '@/office_pet/office_pet.entity';
 import { DataSource } from 'typeorm';
 import { PetVisit } from '@/pet_visit/pet_visit.entity';
 import { PetVisitModule } from '@/pet_visit/pet_visit.module';
+import { setupAuth } from './auth';
+import { TimeDuration } from '@/lib/time';
 
 describe('PetVisitModule', () => {
   let app: INestApplication<App>;
+  let authService: AuthService;
+  let validToken: string;
+  let invalidToken: string;
 
-  const authService = {
-    verifyToken: async (token: string): Promise<DecodedIdToken> => {
-      if (token == 'valid-token') {
-        return { email: 'valid@profiq.com' } as DecodedIdToken;
-      }
-      if (token == 'wrong-domain') {
-        return { email: 'invalid@example.com' } as DecodedIdToken;
-      }
-      return { email: undefined } as DecodedIdToken;
-    },
-  };
+  beforeAll(async () => {
+    const authSetup = await setupAuth();
+    authService = authSetup.authService;
+    validToken = authSetup.validToken;
+    invalidToken = authSetup.invalidToken;
+  }, 30 * TimeDuration.Second);
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -65,10 +64,10 @@ describe('PetVisitModule', () => {
     ]);
   });
 
-  it('/visits (GET)', () => {
+  it('/visits (GET)', async () => {
     return request(app.getHttpServer())
       .get('/visits')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200)
       .expect([
         {
@@ -86,10 +85,10 @@ describe('PetVisitModule', () => {
       ]);
   });
 
-  it('/visits (GET) (Wrong domain)', () => {
+  it('/visits (GET) (Wrong domain)', async () => {
     return request(app.getHttpServer())
       .get('/visits')
-      .set('Authorization', 'Bearer wrong-domain')
+      .set('Authorization', `Bearer ${invalidToken}`)
       .expect(403);
   });
 
@@ -112,13 +111,13 @@ describe('PetVisitModule', () => {
         pet_id: 1,
         date: date,
       })
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .set('Content-Type', 'application/json')
       .expect(201);
 
     return request(app.getHttpServer())
       .get('/visits')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200)
       .expect([
         {

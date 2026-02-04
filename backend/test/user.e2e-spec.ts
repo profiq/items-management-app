@@ -4,26 +4,27 @@ import { INestApplication } from '@nestjs/common';
 import { App } from 'supertest/types';
 import { UserModule } from '@/user/user.module';
 import { AuthService } from '@/auth/auth.service';
-import { DecodedIdToken } from 'firebase-admin/auth';
 import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '@/user/user.entity';
 import { OfficePet } from '@/office_pet/office_pet.entity';
 import { DataSource } from 'typeorm';
+import { TimeDuration } from '@/lib/time';
+import { setupAuth } from './auth';
 
 describe('UserModule', () => {
   let app: INestApplication<App>;
+  let authService: AuthService;
+  let validToken: string;
+  let invalidToken: string;
 
-  const authService = {
-    verifyToken: async (token: string): Promise<DecodedIdToken> => {
-      if (token == 'valid-token') {
-        return { email: 'valid@profiq.com' } as DecodedIdToken;
-      }
-      if (token == 'wrong-domain') {
-        return { email: 'invalid@example.com' } as DecodedIdToken;
-      }
-      return { email: undefined } as DecodedIdToken;
-    },
-  };
+  // Auth emulator is lazy loaded and not particularly fast at that,
+  // so load AuthModule only once per test suite
+  beforeAll(async () => {
+    const authSetup = await setupAuth();
+    authService = authSetup.authService;
+    validToken = authSetup.validToken;
+    invalidToken = authSetup.invalidToken;
+  }, 30 * TimeDuration.Second);
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -68,10 +69,10 @@ describe('UserModule', () => {
     await petRepository.save(pet2);
   });
 
-  it('/users (GET)', () => {
+  it('/users (GET)', async () => {
     return request(app.getHttpServer())
       .get('/users')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200)
       .expect([
         {
@@ -87,10 +88,10 @@ describe('UserModule', () => {
       ]);
   });
 
-  it('/users (GET) (Wrong domain)', () => {
+  it('/users (GET) (Wrong domain)', async () => {
     return request(app.getHttpServer())
       .get('/users')
-      .set('Authorization', 'Bearer wrong-domain')
+      .set('Authorization', `Bearer ${invalidToken}`)
       .expect(403);
   });
   it('/users (GET) (Invalid token)', () => {
@@ -102,10 +103,10 @@ describe('UserModule', () => {
   it('/users (GET) (Missing Header)', () => {
     return request(app.getHttpServer()).get('/users').expect(403);
   });
-  it('/users/:id (GET)', () => {
+  it('/users/:id (GET)', async () => {
     return request(app.getHttpServer())
       .get('/users/1')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200)
       .expect({
         id: 1,
@@ -114,32 +115,32 @@ describe('UserModule', () => {
       });
   });
 
-  it('/users/:id (GET) (Non-existant)', () => {
+  it('/users/:id (GET) (Non-existant)', async () => {
     return request(app.getHttpServer())
       .get('/users/3')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(404);
   });
 
-  it('/users/:id/pets (GET) (Non-existant user)', () => {
+  it('/users/:id/pets (GET) (Non-existant user)', async () => {
     return request(app.getHttpServer())
       .get('/users/3/pets')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(404);
   });
 
-  it('/users/:id/pets (GET) (No pets)', () => {
+  it('/users/:id/pets (GET) (No pets)', async () => {
     return request(app.getHttpServer())
       .get('/users/2/pets')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200)
       .expect([]);
   });
 
-  it('/users/:id/pets (GET) (Pets)', () => {
+  it('/users/:id/pets (GET) (Pets)', async () => {
     return request(app.getHttpServer())
       .get('/users/1/pets')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200)
       .expect([
         {
@@ -160,7 +161,7 @@ describe('UserModule', () => {
   it('/users/:id (DELETE)', async () => {
     await request(app.getHttpServer())
       .get('/users')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200)
       .expect([
         {
@@ -177,12 +178,12 @@ describe('UserModule', () => {
 
     await request(app.getHttpServer())
       .delete('/users/2')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200);
 
     return request(app.getHttpServer())
       .get('/users')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200)
       .expect([
         {

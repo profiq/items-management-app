@@ -3,28 +3,27 @@ import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { App } from 'supertest/types';
 import { AuthService } from '@/auth/auth.service';
-import { DecodedIdToken } from 'firebase-admin/auth';
 import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '@/user/user.entity';
 import { OfficePet } from '@/office_pet/office_pet.entity';
 import { DataSource } from 'typeorm';
 import { OfficePetModule } from '@/office_pet/office_pet.module';
 import { PetVisit } from '@/pet_visit/pet_visit.entity';
+import { setupAuth } from './auth';
+import { TimeDuration } from '@/lib/time';
 
 describe('OfficePetModule', () => {
   let app: INestApplication<App>;
+  let authService: AuthService;
+  let validToken: string;
+  let invalidToken: string;
 
-  const authService = {
-    verifyToken: async (token: string): Promise<DecodedIdToken> => {
-      if (token == 'valid-token') {
-        return { email: 'valid@profiq.com' } as DecodedIdToken;
-      }
-      if (token == 'wrong-domain') {
-        return { email: 'invalid@example.com' } as DecodedIdToken;
-      }
-      return { email: undefined } as DecodedIdToken;
-    },
-  };
+  beforeAll(async () => {
+    const authSetup = await setupAuth();
+    authService = authSetup.authService;
+    validToken = authSetup.validToken;
+    invalidToken = authSetup.invalidToken;
+  }, 30 * TimeDuration.Second);
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -64,10 +63,10 @@ describe('OfficePetModule', () => {
     ]);
   });
 
-  it('/pets (GET)', () => {
+  it('/pets (GET)', async () => {
     return request(app.getHttpServer())
       .get('/pets')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200)
       .expect([
         {
@@ -85,10 +84,10 @@ describe('OfficePetModule', () => {
       ]);
   });
 
-  it('/pets (GET) (Wrong domain)', () => {
+  it('/pets (GET) (Wrong domain)', async () => {
     return request(app.getHttpServer())
       .get('/pets')
-      .set('Authorization', 'Bearer wrong-domain')
+      .set('Authorization', `Bearer ${invalidToken}`)
       .expect(403);
   });
   it('/pets (GET) (Invalid token)', () => {
@@ -100,10 +99,10 @@ describe('OfficePetModule', () => {
   it('/pets (GET) (Missing Header)', () => {
     return request(app.getHttpServer()).get('/pets').expect(403);
   });
-  it('/pets/:id (GET)', () => {
+  it('/pets/:id (GET)', async () => {
     return request(app.getHttpServer())
       .get('/pets/1')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200)
       .expect({
         id: 1,
@@ -112,32 +111,32 @@ describe('OfficePetModule', () => {
         species: 'dog',
       });
   });
-  it('/pets/:id (GET) (Non-existant)', () => {
+  it('/pets/:id (GET) (Non-existant)', async () => {
     return request(app.getHttpServer())
       .get('/pets/3')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(404);
   });
 
-  it('/pets/:id/visits (GET) (Non-existant pet)', () => {
+  it('/pets/:id/visits (GET) (Non-existant pet)', async () => {
     return request(app.getHttpServer())
       .get('/pets/3/visits')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(404);
   });
 
-  it('/pets/:id/visits (GET) (No visits)', () => {
+  it('/pets/:id/visits (GET) (No visits)', async () => {
     return request(app.getHttpServer())
       .get('/pets/2/visits')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200)
       .expect([]);
   });
 
-  it('/pets/:id/visits (GET) (Visits)', () => {
+  it('/pets/:id/visits (GET) (Visits)', async () => {
     return request(app.getHttpServer())
       .get('/pets/1/visits')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200)
       .expect([
         {
@@ -156,12 +155,12 @@ describe('OfficePetModule', () => {
         name: 'rem',
         species: 'pin',
       })
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .set('Content-Type', 'application/json')
       .expect(201);
     return request(app.getHttpServer())
       .get('/pets')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200)
       .expect([
         {
@@ -192,13 +191,13 @@ describe('OfficePetModule', () => {
         owner_id: '2',
         name: 'harhar',
       })
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .set('Content-Type', 'application/json')
       .expect(200);
 
     return request(app.getHttpServer())
       .get('/pets')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200)
       .expect([
         {
@@ -219,12 +218,12 @@ describe('OfficePetModule', () => {
   it('/pets/:id (DELETE)', async () => {
     await request(app.getHttpServer())
       .delete('/pets/1')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200);
 
     return request(app.getHttpServer())
       .get('/pets')
-      .set('Authorization', 'Bearer valid-token')
+      .set('Authorization', `Bearer ${validToken}`)
       .expect(200)
       .expect([
         {

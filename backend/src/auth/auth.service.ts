@@ -8,15 +8,21 @@ import { Auth } from 'firebase-admin/auth';
 export class AuthService {
   private authApp: Auth;
   constructor(private configService: ConfigService) {
-    this.authApp = admin
-      .initializeApp({
-        credential: credential.cert({
-          projectId: this.configService.get<string>('google.project_id'),
-          clientEmail: this.configService.get<string>('google.client_email'),
-          privateKey: this.configService.get<string>('google.private_key'),
-        }),
-      })
-      .auth();
+    if (process.env.FIREBASE_AUTH_EMULATOR_HOST) {
+      this.authApp = admin
+        .initializeApp({ projectId: 'demo-no-project' })
+        .auth();
+    } else {
+      this.authApp = admin
+        .initializeApp({
+          credential: credential.cert({
+            projectId: this.configService.get<string>('google.project_id'),
+            clientEmail: this.configService.get<string>('google.client_email'),
+            privateKey: this.configService.get<string>('google.private_key'),
+          }),
+        })
+        .auth();
+    }
   }
 
   getAuthApp(): Auth {
