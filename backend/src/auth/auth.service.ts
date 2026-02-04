@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import * as admin from 'firebase-admin';
 import { credential } from 'firebase-admin';
 import { Auth } from 'firebase-admin/auth';
@@ -6,15 +7,13 @@ import { Auth } from 'firebase-admin/auth';
 @Injectable()
 export class AuthService {
   private authApp: Auth;
-  constructor() {
+  constructor(private configService: ConfigService) {
     this.authApp = admin
       .initializeApp({
         credential: credential.cert({
-          projectId:
-            process.env.FIREBASE_PROJECT_ID ||
-            process.env.VITE_FIREBASE_PROJECT_ID,
-          clientEmail: process.env.GOOGLE_CLIENT_EMAIL,
-          privateKey: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+          projectId: this.configService.get<string>('google.project_id'),
+          clientEmail: this.configService.get<string>('google.client_email'),
+          privateKey: this.configService.get<string>('google.private_key'),
         }),
       })
       .auth();
