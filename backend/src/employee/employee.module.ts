@@ -3,9 +3,10 @@ import { EmployeeService } from './employee.service';
 import { EmployeeController } from './employee.controller';
 import { AuthModule } from '@/auth/auth.module';
 import { UserModule } from '@/user/user.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [AuthModule, forwardRef(() => UserModule)],
+  imports: [AuthModule, forwardRef(() => UserModule), ConfigModule],
   providers: [EmployeeService],
   controllers: [EmployeeController],
   exports: [EmployeeService],

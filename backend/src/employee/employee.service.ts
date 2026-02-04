@@ -2,10 +2,12 @@ import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { admin_directory_v1, google } from 'googleapis';
 import { IEmployee } from './interfaces/employee.interface';
 import { UserService } from '@/user/user.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class EmployeeService {
   constructor(
+    private configService: ConfigService,
     @Inject(forwardRef(() => UserService))
     private userService: UserService
   ) {}
@@ -13,8 +15,8 @@ export class EmployeeService {
   private async getAdmin(): Promise<admin_directory_v1.Admin> {
     const jwtAuth = new google.auth.JWT({
       scopes: ['https://www.googleapis.com/auth/admin.directory.user.readonly'],
-      email: process.env.GOOGLE_CLIENT_EMAIL,
-      key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+      email: this.configService.get<string>('google.client_email'),
+      key: this.configService.get<string>('google.private_key'),
       subject: 'admin@profiq.com',
     });
     const admin = google.admin({ version: 'directory_v1', auth: jwtAuth });
