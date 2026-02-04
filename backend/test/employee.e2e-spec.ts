@@ -9,6 +9,7 @@ import { AuthService } from '@/auth/auth.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { TimeDuration } from '@/lib/time';
 import { setupAuth } from './auth';
+import { StatusCodes } from 'http-status-codes';
 
 describe('EmployeeModule', () => {
   let app: INestApplication<App>;
@@ -61,7 +62,7 @@ describe('EmployeeModule', () => {
     return request(app.getHttpServer())
       .get('/employees')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200)
+      .expect(StatusCodes.OK)
       .expect([
         {
           id: '1',
@@ -75,16 +76,18 @@ describe('EmployeeModule', () => {
     return request(app.getHttpServer())
       .get('/employees')
       .set('Authorization', `Bearer ${invalidToken}`)
-      .expect(403);
+      .expect(StatusCodes.FORBIDDEN);
   });
   it('/employees (GET) (Invalid token)', () => {
     return request(app.getHttpServer())
       .get('/employees')
       .set('Authorization', 'Bearer invalid-token')
-      .expect(403);
+      .expect(StatusCodes.FORBIDDEN);
   });
   it('/employees (GET) (Missing Header)', () => {
-    return request(app.getHttpServer()).get('/employees').expect(403);
+    return request(app.getHttpServer())
+      .get('/employees')
+      .expect(StatusCodes.FORBIDDEN);
   });
 
   afterAll(async () => {

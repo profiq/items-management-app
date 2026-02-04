@@ -11,6 +11,7 @@ import { OfficePetModule } from '@/office_pet/office_pet.module';
 import { PetVisit } from '@/pet_visit/pet_visit.entity';
 import { setupAuth } from './auth';
 import { TimeDuration } from '@/lib/time';
+import { StatusCodes } from 'http-status-codes';
 
 describe('OfficePetModule', () => {
   let app: INestApplication<App>;
@@ -67,7 +68,7 @@ describe('OfficePetModule', () => {
     return request(app.getHttpServer())
       .get('/pets')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200)
+      .expect(StatusCodes.OK)
       .expect([
         {
           id: 1,
@@ -103,7 +104,7 @@ describe('OfficePetModule', () => {
     return request(app.getHttpServer())
       .get('/pets/1')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200)
+      .expect(StatusCodes.OK)
       .expect({
         id: 1,
         name: 'Alex',
@@ -115,21 +116,21 @@ describe('OfficePetModule', () => {
     return request(app.getHttpServer())
       .get('/pets/3')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(404);
+      .expect(StatusCodes.NOT_FOUND);
   });
 
   it('/pets/:id/visits (GET) (Non-existant pet)', async () => {
     return request(app.getHttpServer())
       .get('/pets/3/visits')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(404);
+      .expect(StatusCodes.NOT_FOUND);
   });
 
   it('/pets/:id/visits (GET) (No visits)', async () => {
     return request(app.getHttpServer())
       .get('/pets/2/visits')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200)
+      .expect(StatusCodes.OK)
       .expect([]);
   });
 
@@ -137,7 +138,7 @@ describe('OfficePetModule', () => {
     return request(app.getHttpServer())
       .get('/pets/1/visits')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200)
+      .expect(StatusCodes.OK)
       .expect([
         {
           id: 1,
@@ -161,7 +162,7 @@ describe('OfficePetModule', () => {
     return request(app.getHttpServer())
       .get('/pets')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200)
+      .expect(StatusCodes.OK)
       .expect([
         {
           id: 1,
@@ -193,12 +194,12 @@ describe('OfficePetModule', () => {
       })
       .set('Authorization', `Bearer ${validToken}`)
       .set('Content-Type', 'application/json')
-      .expect(200);
+      .expect(StatusCodes.OK);
 
     return request(app.getHttpServer())
       .get('/pets')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200)
+      .expect(StatusCodes.OK)
       .expect([
         {
           id: 1,
@@ -219,12 +220,12 @@ describe('OfficePetModule', () => {
     await request(app.getHttpServer())
       .delete('/pets/1')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200);
+      .expect(StatusCodes.OK);
 
     return request(app.getHttpServer())
       .get('/pets')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200)
+      .expect(StatusCodes.OK)
       .expect([
         {
           id: 2,

@@ -10,6 +10,7 @@ import { OfficePet } from '@/office_pet/office_pet.entity';
 import { DataSource } from 'typeorm';
 import { TimeDuration } from '@/lib/time';
 import { setupAuth } from './auth';
+import { StatusCodes } from 'http-status-codes';
 
 describe('UserModule', () => {
   let app: INestApplication<App>;
@@ -73,7 +74,7 @@ describe('UserModule', () => {
     return request(app.getHttpServer())
       .get('/users')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200)
+      .expect(StatusCodes.OK)
       .expect([
         {
           id: 1,
@@ -92,22 +93,24 @@ describe('UserModule', () => {
     return request(app.getHttpServer())
       .get('/users')
       .set('Authorization', `Bearer ${invalidToken}`)
-      .expect(403);
+      .expect(StatusCodes.FORBIDDEN);
   });
   it('/users (GET) (Invalid token)', () => {
     return request(app.getHttpServer())
       .get('/users')
       .set('Authorization', 'Bearer invalid-token')
-      .expect(403);
+      .expect(StatusCodes.FORBIDDEN);
   });
   it('/users (GET) (Missing Header)', () => {
-    return request(app.getHttpServer()).get('/users').expect(403);
+    return request(app.getHttpServer())
+      .get('/users')
+      .expect(StatusCodes.FORBIDDEN);
   });
   it('/users/:id (GET)', async () => {
     return request(app.getHttpServer())
       .get('/users/1')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200)
+      .expect(StatusCodes.OK)
       .expect({
         id: 1,
         name: 'abcd abcd',
@@ -119,21 +122,21 @@ describe('UserModule', () => {
     return request(app.getHttpServer())
       .get('/users/3')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(404);
+      .expect(StatusCodes.NOT_FOUND);
   });
 
   it('/users/:id/pets (GET) (Non-existant user)', async () => {
     return request(app.getHttpServer())
       .get('/users/3/pets')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(404);
+      .expect(StatusCodes.NOT_FOUND);
   });
 
   it('/users/:id/pets (GET) (No pets)', async () => {
     return request(app.getHttpServer())
       .get('/users/2/pets')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200)
+      .expect(StatusCodes.OK)
       .expect([]);
   });
 
@@ -141,7 +144,7 @@ describe('UserModule', () => {
     return request(app.getHttpServer())
       .get('/users/1/pets')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200)
+      .expect(StatusCodes.OK)
       .expect([
         {
           id: 1,
@@ -162,7 +165,7 @@ describe('UserModule', () => {
     await request(app.getHttpServer())
       .get('/users')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200)
+      .expect(StatusCodes.OK)
       .expect([
         {
           id: 1,
@@ -179,12 +182,12 @@ describe('UserModule', () => {
     await request(app.getHttpServer())
       .delete('/users/2')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200);
+      .expect(StatusCodes.OK);
 
     return request(app.getHttpServer())
       .get('/users')
       .set('Authorization', `Bearer ${validToken}`)
-      .expect(200)
+      .expect(StatusCodes.OK)
       .expect([
         {
           id: 1,
