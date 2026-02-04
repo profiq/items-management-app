@@ -1,6 +1,6 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { Employee } from '../interfaces/employee.interface';
-export class EmployeeResponse implements Employee {
+import { IEmployee } from '../interfaces/employee.interface';
+export class EmployeeResponse implements IEmployee {
   @ApiProperty()
   id: string;
   @ApiProperty()

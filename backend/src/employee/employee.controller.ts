@@ -1,11 +1,12 @@
-import { Controller, Get, Header, UseGuards } from '@nestjs/common';
+import { Controller, Get, Header, Post, UseGuards } from '@nestjs/common';
 import { EmployeeService } from './employee.service';
-import { Employee } from './interfaces/employee.interface';
-import { ApiOkResponse } from '@nestjs/swagger';
+import { IEmployee } from './interfaces/employee.interface';
+import { ApiBearerAuth, ApiOkResponse } from '@nestjs/swagger';
 import { EmployeeResponse } from './dto/employee.dto';
 import { AuthGuard } from '@/auth/auth.guard';
 
 @Controller('employees')
+@ApiBearerAuth()
 @UseGuards(AuthGuard)
 export class EmployeeController {
   constructor(private employeeService: EmployeeService) {}
@@ -23,7 +24,12 @@ export class EmployeeController {
       },
     ],
   })
-  getEmployees(): Promise<Employee[]> {
+  getEmployees(): Promise<IEmployee[]> {
     return this.employeeService.getEmployees();
+  }
+
+  @Post('sync')
+  syncEmployees() {
+    return this.employeeService.syncEmployeeNames();
   }
 }

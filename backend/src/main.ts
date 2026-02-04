@@ -13,6 +13,7 @@ async function bootstrap() {
       'API description of the reference app of Profiq for future student pool members'
     )
     .setVersion('0.0.1')
+    .addBearerAuth()
     .build();
   app.enableCors();
   app.disable('x-powered-by');
