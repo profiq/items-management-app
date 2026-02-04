@@ -18,6 +18,9 @@ stages:
   - code_quality
   - test
 
+variables:
+  GIT_DEPTH: 1
+
 .set_npm_config:
   before_script:
     - npm config set cache .npm
