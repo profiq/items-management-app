@@ -2,10 +2,10 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { App } from 'supertest/types';
-import { EmployeeModule } from '../src/employee/employee.module';
-import { EmployeeService } from '../src/employee/employee.service';
-import { Employee } from '../src/employee/interfaces/employee.interface';
-import { AuthService } from '../src/auth/auth.service';
+import { EmployeeModule } from '@/employee/employee.module';
+import { EmployeeService } from '@/employee/employee.service';
+import { Employee } from '@/employee/interfaces/employee.interface';
+import { AuthService } from '@/auth/auth.service';
 import { DecodedIdToken } from 'firebase-admin/auth';
 
 describe('EmployeeModule', () => {
