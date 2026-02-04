@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { App } from 'supertest/types';
-import { HelloModule } from '../src/hello/hello.module';
+import { HelloModule } from '@/hello/hello.module';
 
 describe('HelloModule', () => {
   let app: INestApplication<App>;

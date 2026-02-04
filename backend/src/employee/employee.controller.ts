@@ -3,7 +3,7 @@ import { EmployeeService } from './employee.service';
 import { Employee } from './interfaces/employee.interface';
 import { ApiOkResponse } from '@nestjs/swagger';
 import { EmployeeResponse } from './dto/employee.dto';
-import { AuthGuard } from '../auth/auth.guard';
+import { AuthGuard } from '@/auth/auth.guard';
 
 @Controller('employees')
 @UseGuards(AuthGuard)
