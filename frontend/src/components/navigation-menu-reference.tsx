@@ -45,6 +45,11 @@ export function NavigationMenuReference() {
                   <Link to='/employees'>List of Employees</Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
+              <NavigationMenuItem>
+                <NavigationMenuLink asChild>
+                  <Link to='/pets'>List of Pets</Link>
+                </NavigationMenuLink>
+              </NavigationMenuItem>
             </>
           )}
         </NavigationMenuList>

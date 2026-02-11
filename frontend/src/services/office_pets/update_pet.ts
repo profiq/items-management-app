@@ -7,7 +7,7 @@ import type { User } from '@/lib/contexts';
 import { StatusCodes } from 'http-status-codes';
 import type { OfficePetType } from './office_pets';
 
-type OfficePetUpdateType = {
+export type OfficePetUpdateType = {
   owner_id: number;
   name: string;
 };

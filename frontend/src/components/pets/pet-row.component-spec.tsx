@@ -3,6 +3,7 @@ import { render } from 'vitest-browser-react';
 import { faker } from '@faker-js/faker';
 import PetRow from './pet-row';
 import type { OfficePetType } from '@/services/office_pets/office_pets';
+import { MemoryRouter } from 'react-router';
 
 describe('Testing pet row', () => {
   it('should show pet row', async () => {
@@ -14,11 +15,13 @@ describe('Testing pet row', () => {
 
     // table and tbody are here due to vitest complaining about <tr> being child of <div>
     const { getByText } = await render(
-      <table>
-        <tbody>
-          <PetRow pet={pet}></PetRow>
-        </tbody>
-      </table>
+      <MemoryRouter>
+        <table>
+          <tbody>
+            <PetRow pet={pet}></PetRow>
+          </tbody>
+        </table>
+      </MemoryRouter>
     );
     expect(getByText(name)).toBeInTheDocument();
     expect(getByText(species)).toBeInTheDocument();

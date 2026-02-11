@@ -12,6 +12,11 @@ import Protected from './routes/Protected.tsx';
 import ProtectedRoute from './components/ProtectedRoute.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Employees from './routes/Employees.tsx';
+import PetList from './routes/PetList.tsx';
+import PetCreate from './routes/PetCreate.tsx';
+import PetUpdate from './routes/PetUpdate.tsx';
+import PetDetailPage from './routes/PetDetail.tsx';
+import PetDeletePage from './routes/PetDelete.tsx';
 
 const queryClient = new QueryClient();
 
@@ -31,6 +36,11 @@ function App() {
                 <Route element={<ProtectedRoute />}>
                   <Route path='/protected' element={<Protected />} />
                   <Route path='/employees' element={<Employees />} />
+                  <Route path='/pets' element={<PetList />} />
+                  <Route path='/pets/:id' element={<PetDetailPage />} />
+                  <Route path='/create-pet' element={<PetCreate />} />
+                  <Route path='/pets/:id/update' element={<PetUpdate />} />
+                  <Route path='/pets/:id/delete' element={<PetDeletePage />} />
                 </Route>
               </Routes>
             </div>
