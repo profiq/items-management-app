@@ -157,6 +157,51 @@ All the secrets are kept in environment variables loaded from `.env` file in the
 
 ---
 
+# Tech Stack
+
+## Global
+
+- [Node.js](https://nodejs.org/en) - JavaScript runtime for servers and CLI.
+- [npm](https://docs.npmjs.com/) - Node.js default package manager.
+- [TypeScript](https://www.typescriptlang.org/) - JavaScript with added type safety and checking.
+- [Prettier](https://prettier.io/docs/) - JavaScript formatter.
+- [ESLint](https://eslint.org/docs/latest/) - A JavaScript linter.
+- [Husky](https://typicode.github.io/husky/) - A git hook software ensuring both prettier and ESLint run and pass before any commit.
+
+## Frontend
+
+- [React SPA (Single page application)](https://react.dev/reference/react) - A JavaScript library allowing for state sync, context and rendering.
+- [Vite](https://vite.dev/guide/) - Node.js build tool for setup and buiding of the resulting file.
+- [ShadCN](https://ui.shadcn.com/docs) - React library for reusable components.
+- [Vitest](https://vitest.dev/guide/) - Testing library for unit and component tests.
+- [Tailwind](https://tailwindcss.com/docs/styling-with-utility-classes) - We Tailwind for styling.
+- [Tanstack Query](https://tanstack.com/query/latest/docs/framework/react/overview) - Backend data fetching and caching library.
+- [React Router](https://reactrouter.com/start/declarative/routing) - React library for routing. We use declarative mode.
+- [Firebase](https://firebase.google.com/docs/auth) - For getting the auth token using Google OAuth2.
+
+## Backend
+
+- [NestJS](https://docs.nestjs.com/) - Node.js web framework. We use Express as the backend.
+- [OpenAPI](https://swagger.io/specification/) - Rest API specification, used to define and specify each endpoint and its response using a JSON schema.
+- [Swagger UI](https://swagger.io/docs/) - Helps us vizualize and send out requests to the backend according to the OpenAPI specification.
+- [TypeORM](https://docs.nestjs.com/techniques/database) or [here](https://typeorm.io/docs/getting-started/) - An ORM system with first-class support from NestJS.
+- Database - We use an SQL database.
+  - [SQLite](https://www.sqlite.org/) - For development; a local embedded (single-file/in-memory) database.
+  - [PostgreSQl](https://www.postgresql.org/) - For production; a highly scalable client-server RDBMS.
+- [Jest](https://jestjs.io/docs/getting-started) - Testing library for Node.js.
+- [Supertest](https://www.npmjs.com/package/supertest) - Library for simulating HTTP requests and testing HTTP responses. Used in E2E tests.
+- [Google Local Emulator Suite](https://firebase.google.com/docs/emulator-suite) - For creating emulated accounts during e2e testing.
+- [Firebase Admin SDK](https://firebase.google.com/docs/reference/admin) - Allows validation of JWT tokens signed by Google.
+- [Google Workspace API](https://developers.google.com/workspace) - For obtaining the employee data.
+
+## CI/CD, Deployment
+
+- GitLab CI - for CI/CD we use GitLab's native `.gitlab-ci.yml`.
+- Firebase Hosting - for hosting the frontend, we use Google's Firebase Hosting
+- ... - for hosting the backend, we use ...
+
+---
+
 ## Goal
 
 The goal of this project is to build a reference project & architecture for all our future project. Meaning we want to have everything in this project correct.
