@@ -8,7 +8,7 @@ export default tseslint.config(
   eslint.configs.recommended,
   tseslint.configs.recommended,
   {
-    ignores: ['**/*.{js,mjs}'],
+    ignores: ['**/*.{js,mjs}', 'backend/dist/'],
   },
   {
     files: ['frontend/**/*.ts', 'frontend/**/*.tsx'],

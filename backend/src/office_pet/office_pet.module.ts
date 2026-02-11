@@ -7,6 +7,7 @@ import { OfficePetController } from './office_pet.controller';
 import { AuthModule } from '@/auth/auth.module';
 import { UserModule } from '@/user/user.module';
 import { PetVisitModule } from '@/pet_visit/pet_visit.module';
+import { EmployeeHydrationModule } from '@/employee_hydration/employee_hydration.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { PetVisitModule } from '@/pet_visit/pet_visit.module';
     AuthModule,
     forwardRef(() => UserModule),
     forwardRef(() => PetVisitModule),
+    EmployeeHydrationModule,
   ],
   providers: [OfficePetService],
   controllers: [OfficePetController],

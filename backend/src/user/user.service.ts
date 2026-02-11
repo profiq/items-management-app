@@ -28,6 +28,12 @@ export class UserService {
     });
   }
 
+  async getUserByEmployeeId(employee_id: string): Promise<User | null> {
+    return this.userRepository.findOne({
+      where: { employee_id },
+    });
+  }
+
   async createUser(data: CreateUserRequest): Promise<User | null> {
     const employee = await this.employeeService.getEmployee(data.workspace_id);
     if (!employee) {
