@@ -146,6 +146,17 @@ The first runs the unit tests and the second runs the e2e tests.
 
 # Architecture
 
+There are four components in the architecture of the project:
+
+- FE - React SPA
+- BE - NestJS + SQL-based DB
+- CI / CD - GitLab CI pipelines
+- Google Cloud deployment - one project for dev, one for prod
+
+All the secrets are kept in environment variables loaded from `.env` file in the root on startup.
+
+---
+
 ## Goal
 
 The goal of this project is to build a reference project & architecture for all our future project. Meaning we want to have everything in this project correct.
