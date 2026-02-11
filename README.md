@@ -349,6 +349,27 @@ TODO: add a diagram
 
 ---
 
+# Integrations
+
+## Auth
+
+- For authentication we used [Firebase Auth](https://firebase.google.com/docs/auth)
+- We obtain a JWT token signed by google, and add it to the headers of requests sent out to the backend
+- Implementation:
+  - [backend/src/auth/auth.guard.ts](backend/src/auth/auth.guard.ts)
+  - [frontend/src/lib/providers/auth/AuthProvider.tsx](frontend/src/lib/providers/auth/AuthProvider.tsx)
+  - [frontend/src/lib/api_client/api_client.ts](frontend/src/lib/api_client/api_client.ts)
+
+## Google Workspace Api
+
+- We use Google Workspace API to get list of a employees and to get information about a specific employee of the company.
+- For security, we use a service account with delegation and read-only permissions for the [users methods](https://developers.google.com/workspace/admin/directory/reference/rest/v1/users).
+- Implementation:
+  - [backend/src/employee/employee.service.ts](backend/src/employee/employee.service.ts)
+- For general information about integration in projects, see the [Infrastructure wiki](https://gitlab.com/profiq/all/infra/infra/-/wikis/Integrations/Google-Workspace-Integration)
+
+---
+
 ## Goal
 
 The goal of this project is to build a reference project & architecture for all our future project. Meaning we want to have everything in this project correct.
