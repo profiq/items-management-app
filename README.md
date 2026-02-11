@@ -202,6 +202,153 @@ All the secrets are kept in environment variables loaded from `.env` file in the
 
 ---
 
+# CI/CD
+
+## GitLab CI
+
+For CI/CD purposes we use GitLab CI using `.gitlab-ci.yml`.
+
+## Defaults
+
+We use the following defaults:
+
+```yaml
+default:
+  image: node:22.21.1
+  tags:
+    - profiq
+#  # cache is disabled due to slowdown it causes in this small pipeline
+#  # but on bigger projects, it can be beneficial to enable. The way to enable
+#  # it can be found in the comments
+#  cache: &default_cache
+#    key:
+#      files:
+#        - 'package-lock.json'
+#        - '**/package.json'
+#    paths:
+#      - .npm
+#    policy: pull
+```
+
+- `image` - default OCI (/Docker) image
+- `tags` - run jobs on profiq runners
+- `cache` - commented out due to low performance, uses zip and download/upload
+- `&default_cache` - [YAML anchor](https://docs.gitlab.com/ci/yaml/yaml_optimization/#anchors), allows part to be used elsewhere with merge
+
+## Globals
+
+```yaml
+stages:
+  - code_quality
+  - test
+
+variables:
+  GIT_DEPTH: 1
+```
+
+- `stages` - specify order, run sequentially, jobs in one stage run in parallel
+- `GIT_DEPTH` - how many commits should the runner clone
+
+## Reusable blocks
+
+```yaml
+.set_npm_config:
+  before_script:
+    - npm config set cache .npm
+    - npm config set prefer-offline true
+
+.rule_mr_and_main:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+
+.npm_ci_only_root:
+  before_script:
+    - !reference [.set_npm_config, before_script]
+    - npm ci --workspaces=false
+
+.npm_ci_frontend:
+  before_script:
+    - !reference [.set_npm_config, before_script]
+    - npm ci -w frontend --include-workspace-root
+
+.npm_ci_backend:
+  before_script:
+    - !reference [.set_npm_config, before_script]
+    - npm ci -w backend --include-workspace-root
+```
+
+This part specifies multiple blocks that are used elsewhere using extends, so that their change happens in only one place instead of in multiple spaces. `!reference` allows to reference a part of another block and merge it instead of overwriting it.
+
+## Code Quality
+
+```yaml
+code_quality:
+  stage: code_quality
+  extends:
+    - .rule_mr_and_main
+    - .npm_ci_only_root
+  script:
+    - npm run lint:eslint
+    - npm run lint:prettier
+```
+
+This job ensures code quality. As it extends `.rule_mr_and_main` and `.npm_ci_only_root`, it inherits their properties. After resolving it would look like the following code
+
+```yaml
+code_quality:
+  stage: code_quality
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH == "main"
+  before_script:
+    - npm config set cache .npm
+    - npm config set prefer-offline true
+    - npm ci --workspaces=false
+  script:
+    - npm run lint:eslint
+    - npm run lint:prettier
+```
+
+## Tests
+
+```yaml
+frontend-test:
+  stage: test
+  extends:
+    - .rule_mr_and_main
+    - .npm_ci_frontend
+  script:
+    - !reference [.npm_ci_frontend, before_script]
+    # if unit tests fail, there is no reason to waste time installing playwright
+    # so run it first
+    - npm run test:unit -w frontend
+    - npm run init:playwright -w frontend
+    - npm run test:component -w frontend
+
+backend-unit:
+  stage: test
+  extends:
+    - .rule_mr_and_main
+    - .npm_ci_backend
+  script:
+    - npm run test -w backend
+
+backend-e2e:
+  stage: test
+  extends:
+    - .rule_mr_and_main
+    - .npm_ci_backend
+  script:
+    - npm run test:e2e-emulator -w backend
+```
+
+All the tests are in the same stage, so they run in parallel, thus ensuring higher performance. As you can see, `!reference` can be used directly in the script.
+
+TODO: add a diagram
+
+---
+
 ## Goal
 
 The goal of this project is to build a reference project & architecture for all our future project. Meaning we want to have everything in this project correct.
