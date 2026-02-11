@@ -18,6 +18,7 @@ export type HttpMethodType = (typeof HttpMethod)[keyof typeof HttpMethod];
 
 type Headers = {
   Authorization?: string;
+  'Content-Type'?: string;
 };
 
 export class APIClient {
@@ -28,17 +29,22 @@ export class APIClient {
   }
   async fetch<T>(
     method: HttpMethodType,
-    path: string
+    path: string,
+    data?: object
   ): Promise<APIResponse<T>> {
     const url = import.meta.env.VITE_API_URL + path;
     const headers: Headers = {};
     if (this.user && this.user.getIdToken) {
       const token = await this.user.getIdToken();
       headers.Authorization = `Bearer ${token}`;
+      if (data) {
+        headers['Content-Type'] = 'application/json';
+      }
     }
     const response = await fetch(url, {
       method,
       headers,
+      ...(data && { body: JSON.stringify(data) }),
     });
     const { status } = response;
     const result = await response.json();
