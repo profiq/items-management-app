@@ -46,7 +46,7 @@ export class OfficePetService {
       pet.name = pet_data.name;
       pet.race = pet_data.race;
       const owner = await runner.manager.findOneByOrFail(User, {
-        id: pet_data.owner_id,
+        employee_id: pet_data.owner_id,
       });
       pet.owner = owner;
       pet.species = pet_data.species;
@@ -82,7 +82,7 @@ export class OfficePetService {
       });
       pet.name = update_data.name;
       const owner = await runner.manager.findOneOrFail(User, {
-        where: { id: update_data.owner_id },
+        where: { employee_id: update_data.owner_id },
       });
       pet.owner = owner;
       await runner.manager.save(pet);
