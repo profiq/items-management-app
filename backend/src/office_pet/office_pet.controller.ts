@@ -12,6 +12,7 @@ import {
   Post,
   Put,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { AuthGuard } from '@/auth/auth.guard';
 import { OfficePetService } from './office_pet.service';
@@ -26,6 +27,7 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { PetVisitService } from '@/pet_visit/pet_visit.service';
+import { EmployeeHydrationInterceptor } from '@/employee_hydration/employee_hydration.interceptor';
 
 @ApiBearerAuth()
 @Controller('pets')
@@ -38,6 +40,7 @@ export class OfficePetController {
   ) {}
 
   @Post()
+  @UseInterceptors(EmployeeHydrationInterceptor)
   @ApiCreatedResponse({
     type: OfficePet,
   })
@@ -71,6 +74,7 @@ export class OfficePetController {
   }
 
   @Put(':id')
+  @UseInterceptors(EmployeeHydrationInterceptor)
   @ApiOkResponse({
     type: OfficePet,
   })
