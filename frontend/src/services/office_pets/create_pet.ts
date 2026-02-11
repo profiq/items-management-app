@@ -8,7 +8,7 @@ import { StatusCodes } from 'http-status-codes';
 import type { OfficePetType } from './office_pets';
 
 export type OfficePetCreateType = {
-  owner_id: number;
+  owner_id: string;
   name: string;
   species: string;
   race: string;

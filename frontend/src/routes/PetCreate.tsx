@@ -21,7 +21,7 @@ const formSchema = z.object({
     .string()
     .min(2, "Pet's name must be at least two characters long.")
     .max(20, "Pet's name must be at most twenty characters long."),
-  owner_id: z.coerce.number<number>().int().positive(),
+  owner_id: z.string().nonempty('Write the ID'),
   species: z.string().min(2, 'Write a species'),
   race: z.string().min(2, 'Write a race'),
 });
@@ -32,7 +32,7 @@ export default function PetCreate() {
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
-      owner_id: 0,
+      owner_id: '',
       species: '',
       race: '',
     },
@@ -79,7 +79,7 @@ export default function PetCreate() {
                   <FieldLabel htmlFor='form-pet-create-owner'>
                     Pet owner ID
                   </FieldLabel>
-                  <Input {...field} type='number' id='form-pet-create-owner' />
+                  <Input {...field} id='form-pet-create-owner' />
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
