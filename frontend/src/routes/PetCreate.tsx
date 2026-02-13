@@ -8,13 +8,22 @@ import {
 import * as z from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/lib/providers/auth/useAuth';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import {
   createPet,
   type OfficePetCreateType,
 } from '@/services/office_pets/create_pet';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from '@/components/ui/combobox';
+import { getEmployees, type Employee } from '@/services/employees/employees';
 
 const formSchema = z.object({
   name: z
@@ -41,6 +50,11 @@ export default function PetCreate() {
     mutationKey: ['pet-create'],
     mutationFn: async (data: OfficePetCreateType) => createPet(data, user),
   });
+  const query = useQuery({
+    queryKey: ['employees'],
+    queryFn: async () => getEmployees(user),
+  });
+  const employees: Employee[] = query.data ?? [];
 
   return (
     <>
@@ -79,7 +93,29 @@ export default function PetCreate() {
                   <FieldLabel htmlFor='form-pet-create-owner'>
                     Pet owner ID
                   </FieldLabel>
-                  <Input {...field} id='form-pet-create-owner' />
+                  <Combobox
+                    onValueChange={(employee: Employee | null) => {
+                      field.onChange(employee ? employee.id : '');
+                    }}
+                    items={employees}
+                    itemToStringValue={(employee: Employee) => employee.name}
+                    itemToStringLabel={(employee: Employee) => employee.name}
+                  >
+                    <ComboboxInput
+                      placeholder='Please select an employee'
+                      id='form-pet-create-owner'
+                    />
+                    <ComboboxContent>
+                      <ComboboxEmpty>No employees found</ComboboxEmpty>
+                      <ComboboxList>
+                        {(employee: Employee) => (
+                          <ComboboxItem key={employee.id} value={employee}>
+                            {employee.name}
+                          </ComboboxItem>
+                        )}
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
                   )}
