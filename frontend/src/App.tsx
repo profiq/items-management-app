@@ -17,6 +17,7 @@ import PetCreate from './routes/PetCreate.tsx';
 import PetUpdate from './routes/PetUpdate.tsx';
 import PetDetailPage from './routes/PetDetail.tsx';
 import PetDeletePage from './routes/PetDelete.tsx';
+import { Toaster } from './components/ui/sonner.tsx';
 
 const queryClient = new QueryClient();
 
@@ -44,6 +45,7 @@ function App() {
                 </Route>
               </Routes>
             </div>
+            <Toaster />
           </BrowserRouter>
         </AuthProvider>
       </QueryClientProvider>

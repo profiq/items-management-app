@@ -48,7 +48,7 @@ export class OfficePetController {
   async addPet(@Body() data: AddPetRequest): Promise<OfficePet> {
     const pet = await this.officePetService.addPet(data);
     if (!pet) {
-      throw new NotFoundException();
+      throw new NotFoundException(`Could not add a pet due to invalid owner.`);
     }
     return pet;
   }
@@ -69,7 +69,7 @@ export class OfficePetController {
   async getPetId(@Param('id', ParseIntPipe) id: number): Promise<OfficePet> {
     const pet = await this.officePetService.getPet(id);
     if (!pet) {
-      throw new NotFoundException();
+      throw new NotFoundException(`Could not find pet with id ${id}`);
     }
     return pet;
   }
@@ -85,7 +85,9 @@ export class OfficePetController {
   ): Promise<OfficePet> {
     const pet = await this.officePetService.updatePet(id, data);
     if (pet === null) {
-      throw new NotFoundException();
+      throw new NotFoundException(
+        `Could not find pet with id ${id} or the owner was invalid`
+      );
     }
     if (pet === undefined) {
       throw new BadRequestException();
@@ -100,7 +102,7 @@ export class OfficePetController {
   async deletePet(@Param('id', ParseIntPipe) id: number): Promise<number> {
     const affected = await this.officePetService.deletePet(id);
     if (!affected) {
-      throw new NotFoundException();
+      throw new NotFoundException(`Could not find pet with id ${id}`);
     }
     return affected;
   }
@@ -112,7 +114,7 @@ export class OfficePetController {
   async getVisits(@Param('id', ParseIntPipe) id: number): Promise<PetVisit[]> {
     const visits = await this.petVisitService.getPetVisitsForPet(id);
     if (!visits) {
-      throw new NotFoundException();
+      throw new NotFoundException(`Could not find pet with id ${id}`);
     }
     return visits;
   }
@@ -124,7 +126,7 @@ export class OfficePetController {
   async getOwner(@Param('id', ParseIntPipe) id: number): Promise<User> {
     const pet = await this.officePetService.getPet(id, false, true);
     if (!pet) {
-      throw new NotFoundException();
+      throw new NotFoundException(`Could not find pet with id ${id}`);
     }
     return pet.owner;
   }

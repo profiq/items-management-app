@@ -203,6 +203,8 @@ describe('OfficePetModule', () => {
       .send({
         owner_id: '2',
         name: 'harhar',
+        race: 'gggggg',
+        species: 'gfgfmgf',
       })
       .set('Authorization', `Bearer ${validToken}`)
       .set('Content-Type', 'application/json')
@@ -216,8 +218,8 @@ describe('OfficePetModule', () => {
         {
           id: 1,
           name: 'harhar',
-          race: 'big',
-          species: 'dog',
+          race: 'gggggg',
+          species: 'gfgfmgf',
         },
         {
           id: 2,

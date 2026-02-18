@@ -15,7 +15,7 @@ import {
   updatePet,
   type OfficePetUpdateType,
 } from '@/services/office_pets/update_pet';
-import { useParams } from 'react-router';
+import { useNavigate, useParams } from 'react-router';
 import { getEmployees, type Employee } from '@/services/employees/employees';
 import {
   Combobox,
@@ -25,6 +25,11 @@ import {
   ComboboxItem,
   ComboboxList,
 } from '@/components/ui/combobox';
+import { StatusSpinning } from '@/components/status/status-spinning';
+import { toast } from 'sonner';
+import { getOfficePet } from '@/services/office_pets/office_pet';
+import { getOfficePetOwner } from '@/services/office_pets/pet_owner';
+import { useEffect, useMemo, useState } from 'react';
 
 const formSchema = z.object({
   name: z
@@ -32,6 +37,8 @@ const formSchema = z.object({
     .min(2, "Pet's name must be at least two characters long.")
     .max(20, "Pet's name must be at most twenty characters long."),
   owner_id: z.string().nonempty('Write an ID'),
+  species: z.string().min(2, 'Write a species'),
+  race: z.string().min(2, 'Write a race'),
 });
 
 export default function PetUpdate() {
@@ -45,98 +52,199 @@ export default function PetUpdate() {
   });
   const params = useParams();
   const id: number = Number(params.id);
+  const navigate = useNavigate();
   const mutation = useMutation({
     mutationKey: [`pet-detail-${id}`],
     mutationFn: async (data: OfficePetUpdateType) => updatePet(id, data, user),
+    onSuccess: data => {
+      toast.success('Successfully updated pet', { position: 'bottom-right' });
+      navigate(`/pets/${data.id}`);
+    },
+    onError: error => {
+      toast.error(`Could not update pet: ${error.message}`, {
+        position: 'bottom-right',
+      });
+    },
   });
-  const query = useQuery({
+  const employees_query = useQuery({
     queryKey: ['employees'],
     queryFn: async () => getEmployees(user),
   });
-  const employees = query.data ?? [];
+
+  const employees = useMemo(
+    () => employees_query.data ?? [],
+    [employees_query.data]
+  );
+
+  const pet_query = useQuery({
+    queryKey: [`pet-detail-${id}`],
+    queryFn: async () => getOfficePet(id, user),
+  });
+  const pet = pet_query.data;
+
+  const pet_owner_query = useQuery({
+    queryKey: [`pet-owner-${id}`],
+    queryFn: async () => getOfficePetOwner(id, user),
+  });
+  const pet_owner = pet_owner_query.data;
+
+  const [defaultOwner, setDefaultOwner] = useState<Employee>();
+
+  useEffect(() => {
+    if (pet && pet_owner) {
+      form.setValue('name', pet.name);
+      form.setValue('owner_id', pet_owner.employee_id);
+      form.setValue('species', pet.species);
+      form.setValue('race', pet.race);
+      (async () =>
+        setDefaultOwner(
+          employees.find(el => el.id == pet_owner.employee_id)
+        ))();
+    }
+  }, [pet_owner, pet, employees, form]);
+
   return (
     <>
-      <h1 className='p-3'>Update a Pet</h1>
-      <div className='w-full border-solid border-2 p-3'>
-        <form
-          id='form-pet-update'
-          onSubmit={form.handleSubmit(data => mutation.mutate(data))}
-        >
-          <FieldGroup>
-            <Controller
-              name='name'
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor='form-pet-update-name'>
-                    Pet Name
-                  </FieldLabel>
-                  <Input
-                    {...field}
-                    id='form-pet-update-name'
-                    aria-invalid={fieldState.invalid}
-                    autoComplete='off'
-                  />
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-            <Controller
-              name='owner_id'
-              control={form.control}
-              render={({ field, fieldState }) => (
-                <Field data-invalid={fieldState.invalid}>
-                  <FieldLabel htmlFor='form-pet-update-owner'>
-                    Pet Owner ID
-                  </FieldLabel>
-                  <Combobox
-                    onValueChange={(employee: Employee | null) => {
-                      field.onChange(employee ? employee.id : '');
-                    }}
-                    items={employees}
-                    itemToStringValue={(employee: Employee) => employee.name}
-                    itemToStringLabel={(employee: Employee) => employee.name}
-                  >
-                    <ComboboxInput
-                      placeholder='Please select an employee'
-                      id='form-pet-create-owner'
-                    />
-                    <ComboboxContent>
-                      <ComboboxEmpty>No employees found</ComboboxEmpty>
-                      <ComboboxList>
-                        {(employee: Employee) => (
-                          <ComboboxItem key={employee.id} value={employee}>
-                            {employee.name}
-                          </ComboboxItem>
-                        )}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
-                  {fieldState.invalid && (
-                    <FieldError errors={[fieldState.error]} />
-                  )}
-                </Field>
-              )}
-            />
-          </FieldGroup>
-        </form>
-        <FieldGroup>
-          <Field orientation='horizontal'>
-            <Button
-              type='button'
-              variant='outline'
-              onClick={() => form.reset()}
+      {((mutation.isPending || !defaultOwner) && <StatusSpinning />) || (
+        <>
+          <h1 className='p-3'>Update a Pet</h1>
+          <div className='w-full border-solid border-2 p-3'>
+            <form
+              id='form-pet-update'
+              onSubmit={form.handleSubmit(data => mutation.mutate(data))}
             >
-              Reset
-            </Button>
-            <Button type='submit' form='form-pet-update' variant='outline'>
-              Submit
-            </Button>
-          </Field>
-        </FieldGroup>
-      </div>
+              <FieldGroup>
+                <Controller
+                  name='name'
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor='form-pet-update-name'>
+                        Pet Name
+                      </FieldLabel>
+                      <Input
+                        {...field}
+                        id='form-pet-update-name'
+                        aria-invalid={fieldState.invalid}
+                        autoComplete='off'
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+                <Controller
+                  name='owner_id'
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor='form-pet-update-owner'>
+                        Pet Owner ID
+                      </FieldLabel>
+                      <Combobox
+                        defaultInputValue={defaultOwner?.name}
+                        onValueChange={(employee: Employee | null) => {
+                          field.onChange(employee ? employee.id : '');
+                        }}
+                        items={employees}
+                        itemToStringValue={(employee: Employee) =>
+                          employee.name
+                        }
+                        itemToStringLabel={(employee: Employee) =>
+                          employee.name
+                        }
+                      >
+                        <ComboboxInput
+                          placeholder='Please select an employee'
+                          id='form-pet-create-owner'
+                        />
+                        <ComboboxContent>
+                          <ComboboxEmpty>
+                            {employees_query.isLoading
+                              ? 'Loading employees'
+                              : 'No employees found'}
+                          </ComboboxEmpty>
+                          <ComboboxList>
+                            {(employee: Employee) => (
+                              <ComboboxItem key={employee.id} value={employee}>
+                                {employee.name}
+                              </ComboboxItem>
+                            )}
+                          </ComboboxList>
+                        </ComboboxContent>
+                      </Combobox>
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+                <Controller
+                  name='species'
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor='form-pet-update-name'>
+                        Pet species
+                      </FieldLabel>
+                      <Input
+                        {...field}
+                        id='form-pet-update-name'
+                        aria-invalid={fieldState.invalid}
+                        autoComplete='off'
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+                <Controller
+                  name='race'
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor='form-pet-update-name'>
+                        Pet Race
+                      </FieldLabel>
+                      <Input
+                        {...field}
+                        id='form-pet-update-name'
+                        aria-invalid={fieldState.invalid}
+                        autoComplete='off'
+                      />
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
+              </FieldGroup>
+            </form>
+            <FieldGroup>
+              <Field orientation='horizontal'>
+                <Button
+                  className='cursor-pointer'
+                  type='button'
+                  variant='destructive'
+                  onClick={() => form.reset()}
+                >
+                  Reset
+                </Button>
+                <Button
+                  className='cursor-pointer'
+                  type='submit'
+                  form='form-pet-update'
+                  variant='default'
+                >
+                  Submit
+                </Button>
+              </Field>
+            </FieldGroup>
+          </div>
+        </>
+      )}
     </>
   );
 }

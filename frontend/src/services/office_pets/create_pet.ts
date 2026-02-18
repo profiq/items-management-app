@@ -4,8 +4,8 @@ import {
   type APIResponse,
 } from '@/lib/api_client/api_client';
 import type { User } from '@/lib/contexts';
-import { StatusCodes } from 'http-status-codes';
 import type { OfficePetType } from './office_pets';
+import { createError } from '@/lib/errors';
 
 export type OfficePetCreateType = {
   owner_id: string;
@@ -21,8 +21,8 @@ export async function createPet(data: OfficePetCreateType, user?: User) {
     `/pets/`,
     data
   );
-  if (result.status_code != StatusCodes.CREATED) {
-    return Promise.reject(`Could not create the pet! An error occured`);
+  if (!result.success) {
+    throw createError(result.status_code, result.error.message);
   }
   return result.data;
 }

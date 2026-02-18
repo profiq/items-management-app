@@ -1,6 +1,14 @@
-import type { StatusCodes } from 'http-status-codes';
+import { StatusCodes } from 'http-status-codes';
 import type { User } from '@/lib/contexts';
-export type APIResponse<T> = { status_code: StatusCodes; data: T };
+
+export type ErrorResponseType = {
+  statusCode: StatusCodes;
+  message: string;
+  error: string;
+};
+export type APIResponse<T> =
+  | { success: true; status_code: StatusCodes; data: T }
+  | { success: false; status_code: StatusCodes; error: ErrorResponseType };
 
 export const HttpMethod = {
   Get: 'GET',
@@ -48,6 +56,9 @@ export class APIClient {
     });
     const { status } = response;
     const result = await response.json();
-    return { status_code: status, data: result };
+    if (status == StatusCodes.OK || status == StatusCodes.CREATED) {
+      return { success: true, status_code: status, data: result };
+    }
+    return { success: false, status_code: status, error: result };
   }
 }

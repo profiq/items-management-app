@@ -5,4 +5,10 @@ export class UpdatePetRequest {
 
   @ApiProperty()
   name: string;
+
+  @ApiProperty()
+  species: string;
+
+  @ApiProperty()
+  race: string;
 }

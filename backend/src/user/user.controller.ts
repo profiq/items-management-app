@@ -52,7 +52,7 @@ export class UserController {
   async getUserId(@Param('id', ParseIntPipe) id: number): Promise<User> {
     const user = await this.userService.getUserById(id);
     if (!user) {
-      throw new NotFoundException();
+      throw new NotFoundException(`Could not find any user with id ${id}`);
     }
     return user;
   }
@@ -77,7 +77,7 @@ export class UserController {
   async getUserPets(@Param('id') id: number): Promise<OfficePet[]> {
     const pets = await this.officePetService.getUserPets(id);
     if (!pets) {
-      throw new NotFoundException();
+      throw new NotFoundException(`Could not find any user with id ${id}`);
     }
     return pets;
   }
@@ -87,7 +87,7 @@ export class UserController {
   async deleteUser(@Param('id') id: number) {
     const deleted = await this.userService.deleteUser(id);
     if (!deleted) {
-      throw new NotFoundException();
+      throw new NotFoundException(`Could not find any user with id ${id}`);
     }
     return;
   }

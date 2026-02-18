@@ -24,6 +24,9 @@ import {
   ComboboxList,
 } from '@/components/ui/combobox';
 import { getEmployees, type Employee } from '@/services/employees/employees';
+import { StatusSpinning } from '@/components/status/status-spinning';
+import { toast } from 'sonner';
+import { useNavigate } from 'react-router';
 
 const formSchema = z.object({
   name: z
@@ -46,18 +49,30 @@ export default function PetCreate() {
       race: '',
     },
   });
+  const navigate = useNavigate();
   const mutation = useMutation({
     mutationKey: ['pet-create'],
     mutationFn: async (data: OfficePetCreateType) => createPet(data, user),
+    onSuccess: data => {
+      toast.success('Pet created successfully', { position: 'bottom-right' });
+      navigate(`/pets/${data.id}`);
+    },
+    onError: error => {
+      toast.error(`Failed at creating pet: ${error.message}`, {
+        position: 'bottom-right',
+      });
+    },
   });
   const query = useQuery({
     queryKey: ['employees'],
     queryFn: async () => getEmployees(user),
   });
+
   const employees: Employee[] = query.data ?? [];
 
   return (
     <>
+      {mutation.isPending && <StatusSpinning />}
       <h1 className='p-3'>Create a Pet</h1>
       <div className='w-full border-solid border-2 p-3'>
         <form
@@ -106,7 +121,11 @@ export default function PetCreate() {
                       id='form-pet-create-owner'
                     />
                     <ComboboxContent>
-                      <ComboboxEmpty>No employees found</ComboboxEmpty>
+                      <ComboboxEmpty>
+                        {query.isLoading
+                          ? 'Loading employees'
+                          : 'No employees found'}
+                      </ComboboxEmpty>
                       <ComboboxList>
                         {(employee: Employee) => (
                           <ComboboxItem key={employee.id} value={employee}>
@@ -167,13 +186,19 @@ export default function PetCreate() {
         <FieldGroup>
           <Field orientation='horizontal'>
             <Button
+              className='cursor-pointer'
               type='button'
-              variant='outline'
+              variant='destructive'
               onClick={() => form.reset()}
             >
               Reset
             </Button>
-            <Button type='submit' form='form-pet-create' variant='outline'>
+            <Button
+              className='cursor-pointer'
+              type='submit'
+              form='form-pet-create'
+              variant='default'
+            >
               Submit
             </Button>
           </Field>

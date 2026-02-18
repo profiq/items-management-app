@@ -4,7 +4,7 @@ import {
   type APIResponse,
 } from '@/lib/api_client/api_client';
 import type { User } from '@/lib/contexts';
-import { StatusCodes } from 'http-status-codes';
+import { createError } from '@/lib/errors';
 
 export type Employee = {
   id: string;
@@ -18,8 +18,8 @@ export async function getEmployees(user?: User) {
     HttpMethod.Get,
     '/employees'
   );
-  if (result.status_code != StatusCodes.OK) {
-    return Promise.reject(`Could not fetch the data! An error occured`);
+  if (!result.success) {
+    throw createError(result.status_code, result.error.message);
   }
   return result.data;
 }

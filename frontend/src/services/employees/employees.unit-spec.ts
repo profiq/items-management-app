@@ -1,7 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { StatusCodes } from 'http-status-codes';
 import { type Employee, getEmployees } from './employees';
-import type { APIResponse } from '@/lib/api_client/api_client';
+import type {
+  APIResponse,
+  ErrorResponseType,
+} from '@/lib/api_client/api_client';
 import { faker } from '@faker-js/faker';
 
 describe('Testing getting employees', () => {
@@ -23,9 +26,15 @@ describe('Testing getting employees', () => {
   });
 
   it('should throw due to getting 403', async () => {
+    const error: ErrorResponseType = {
+      statusCode: StatusCodes.FORBIDDEN,
+      error: '',
+      message: '',
+    };
     const result: APIResponse<Employee[]> = {
+      success: false,
       status_code: StatusCodes.FORBIDDEN,
-      data: [],
+      error,
     };
 
     mockFetch.mockResolvedValue(result);
@@ -39,6 +48,7 @@ describe('Testing getting employees', () => {
     const photoUrl = faker.internet.url();
     const data: Employee[] = [{ email, id, name, photoUrl }];
     const result: APIResponse<Employee[]> = {
+      success: true,
       status_code: StatusCodes.OK,
       data: data,
     };

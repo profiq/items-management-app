@@ -37,7 +37,9 @@ export class PetVisitController {
   async addVisit(@Body() data: AddVisitRequest): Promise<PetVisit> {
     const visit = await this.petVisitService.addPetVisit(data);
     if (!visit) {
-      throw new NotFoundException();
+      throw new NotFoundException(
+        `Could not add a visit. An invalid pet was specified.`
+      );
     }
     return visit;
   }

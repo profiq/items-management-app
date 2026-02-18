@@ -4,8 +4,8 @@ import {
   type APIResponse,
 } from '@/lib/api_client/api_client';
 import type { User } from '@/lib/contexts';
-import { StatusCodes } from 'http-status-codes';
 import type { UserType } from '@/services/users/users';
+import { createError } from '@/lib/errors';
 
 export async function getOfficePetOwner(id: number, user?: User) {
   const client = new APIClient(user);
@@ -13,8 +13,8 @@ export async function getOfficePetOwner(id: number, user?: User) {
     HttpMethod.Get,
     `/pets/${id}/owner`
   );
-  if (result.status_code != StatusCodes.OK) {
-    return Promise.reject(`Could not fetch the owner! An error occured`);
+  if (!result.success) {
+    throw createError(result.status_code, result.error.message);
   }
   return result.data;
 }

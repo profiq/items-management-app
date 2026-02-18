@@ -1,4 +1,5 @@
 import EmployeeRow from '@/components/employee-row';
+import { StatusSpinning } from '@/components/status/status-spinning';
 import {
   Table,
   TableBody,
@@ -17,8 +18,10 @@ function Employees() {
     queryKey: ['employees'],
     queryFn: async () => getEmployees(user),
   });
+
   return (
     <>
+      {query.isLoading && <StatusSpinning />}
       <div>
         <h1>List of employees</h1>
         <Table>
