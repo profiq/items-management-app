@@ -27,7 +27,12 @@ function Login() {
     return (
       <>
         <div>
-          <Button variant='outline' onClick={handleLogin} disabled={signingIn}>
+          <Button
+            className='cursor-pointer'
+            variant='outline'
+            onClick={handleLogin}
+            disabled={signingIn}
+          >
             Login With Google
           </Button>
           <div className='text-red-500'>{error}</div>
@@ -42,7 +47,7 @@ function Login() {
         <div>
           Logged in as {user.email}, {user.displayName}
         </div>
-        <Button variant='outline' onClick={logout}>
+        <Button className='cursor-pointer' variant='outline' onClick={logout}>
           Logout
         </Button>
       </div>

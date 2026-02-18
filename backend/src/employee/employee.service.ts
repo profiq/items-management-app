@@ -61,23 +61,27 @@ export class EmployeeService {
     // viewType domain_public provides the public information,
     // for more Administrative info, set this to 'admin_view'
     const viewType = 'domain_public';
-    const res = await admin.users.get({
-      userKey: id,
-      viewType,
-    });
-    if (!res.data.id) {
+    try {
+      const res = await admin.users.get({
+        userKey: id,
+        viewType,
+      });
+      if (!res.data.id) {
+        return null;
+      }
+      if (!res.data.primaryEmail?.endsWith('@profiq.com')) {
+        return null;
+      }
+      const employee: IEmployee = {
+        id: res.data.id,
+        email: res.data.primaryEmail || '',
+        name: res.data.name?.fullName || '',
+        photoUrl: res.data.thumbnailPhotoUrl || '',
+      };
+      return employee;
+    } catch {
       return null;
     }
-    if (!res.data.primaryEmail?.endsWith('@profiq.com')) {
-      return null;
-    }
-    const employee: IEmployee = {
-      id: res.data.id,
-      email: res.data.primaryEmail || '',
-      name: res.data.name?.fullName || '',
-      photoUrl: res.data.thumbnailPhotoUrl || '',
-    };
-    return employee;
   }
 
   async syncEmployeeNames() {

@@ -4,7 +4,7 @@ import {
   type APIResponse,
 } from '@/lib/api_client/api_client';
 import type { User } from '@/lib/contexts';
-import { StatusCodes } from 'http-status-codes';
+import { createError } from '@/lib/errors';
 
 export type OfficePetType = {
   id: number;
@@ -19,8 +19,8 @@ export async function getOfficePets(user?: User) {
     HttpMethod.Get,
     '/pets'
   );
-  if (result.status_code != StatusCodes.OK) {
-    return Promise.reject(`Could not fetch the data! An error occured`);
+  if (!result.success) {
+    throw createError(result.status_code, result.error.message);
   }
   return result.data;
 }

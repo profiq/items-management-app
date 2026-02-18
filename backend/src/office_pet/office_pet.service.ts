@@ -1,9 +1,4 @@
-import {
-  forwardRef,
-  Inject,
-  Injectable,
-  NotFoundException,
-} from '@nestjs/common';
+import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { OfficePet } from './office_pet.entity';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -64,9 +59,6 @@ export class OfficePetService {
 
   async deletePet(id: number): Promise<number | null | undefined> {
     const result = await this.officePetRepository.delete({ id });
-    if (!result) {
-      throw new NotFoundException();
-    }
     return result.affected;
   }
 
@@ -86,6 +78,8 @@ export class OfficePetService {
         where: { employee_id: update_data.owner_id },
       });
       pet.owner = owner;
+      pet.species = update_data.species;
+      pet.race = update_data.race;
       await runner.manager.save(pet);
       runner.commitTransaction();
       return pet;

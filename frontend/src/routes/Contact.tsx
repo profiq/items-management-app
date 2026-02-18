@@ -41,10 +41,18 @@ function Contact() {
               </FieldGroup>
             </FieldSet>
             <Field orientation='responsive'>
-              <Button type='submit' variant='outline'>
+              <Button
+                className='cursor-pointer'
+                type='submit'
+                variant='default'
+              >
                 Submit
               </Button>
-              <Button variant='outline' type='button'>
+              <Button
+                className='cursor-pointer'
+                variant='secondary'
+                type='button'
+              >
                 Cancel
               </Button>
             </Field>

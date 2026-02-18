@@ -1,6 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { StatusCodes } from 'http-status-codes';
-import type { APIResponse } from '@/lib/api_client/api_client';
+import type {
+  APIResponse,
+  ErrorResponseType,
+} from '@/lib/api_client/api_client';
 import { faker } from '@faker-js/faker';
 import type { OfficePetType } from './office_pets';
 import { getOfficePet } from './office_pet';
@@ -25,13 +28,15 @@ describe('Testing getting employees', () => {
 
   it('should throw due to getting 403', async () => {
     const id = faker.number.int();
-    const name = faker.person.firstName();
-    const species = faker.string.alpha();
-    const race = faker.string.alpha();
-    const data: OfficePetType = { id, name, race, species };
+    const error: ErrorResponseType = {
+      statusCode: StatusCodes.FORBIDDEN,
+      error: '',
+      message: '',
+    };
     const result: APIResponse<OfficePetType> = {
+      success: false,
       status_code: StatusCodes.FORBIDDEN,
-      data,
+      error,
     };
 
     mockFetch.mockResolvedValue(result);
@@ -46,6 +51,7 @@ describe('Testing getting employees', () => {
 
     const data: OfficePetType = { id, name, race, species };
     const result: APIResponse<OfficePetType> = {
+      success: true,
       status_code: StatusCodes.OK,
       data,
     };

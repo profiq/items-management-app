@@ -6,6 +6,7 @@ import {
 import type { User } from '@/lib/contexts';
 import { StatusCodes } from 'http-status-codes';
 import type { UserType } from './users';
+import { createError, type MessageOverride } from '@/lib/errors';
 
 export type CreateUserType = {
   name: string;
@@ -20,7 +21,13 @@ export async function createUser(data: CreateUserType, user?: User) {
     data
   );
   if (result.status_code != StatusCodes.CREATED) {
-    return Promise.reject(`Could not create the user! An error occured`);
+    const overrides: MessageOverride[] = [
+      {
+        status_code: StatusCodes.NOT_FOUND,
+        message: 'The specified pet was not found',
+      },
+    ];
+    throw createError(result.status_code, overrides);
   }
   return result.data;
 }

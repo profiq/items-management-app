@@ -19,8 +19,9 @@ describe('Testing pet table', () => {
         <PetTable pets={pets}></PetTable>
       </MemoryRouter>
     );
-    expect(getByText(pet.name)).toBeInTheDocument();
-    expect(getByText(pet.species)).toBeInTheDocument();
-    expect(getByText(pet.race)).toBeInTheDocument();
+    // one of the pet names is "Ace" and it finds "Race"...
+    expect(getByText(pet.name, { exact: true })).toBeInTheDocument();
+    expect(getByText(pet.species, { exact: true })).toBeInTheDocument();
+    expect(getByText(pet.race, { exact: true })).toBeInTheDocument();
   });
 });
