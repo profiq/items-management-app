@@ -74,7 +74,6 @@ frontend-test:
     - .rule_mr_and_main
     - .npm_ci_frontend
   script:
-    - !reference [.npm_ci_frontend, before_script]
     # if unit tests fail, there is no reason to waste time installing playwright
     # so run it first
     - npm run test:unit -w frontend
