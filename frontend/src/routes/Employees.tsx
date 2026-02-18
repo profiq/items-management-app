@@ -1,4 +1,5 @@
 import EmployeeRow from '@/components/employee-row';
+import Paging from '@/components/paging';
 import { StatusSpinning } from '@/components/status/status-spinning';
 import {
   Table,
@@ -10,14 +11,32 @@ import {
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import { getEmployees } from '@/services/employees/employees';
 import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useSearchParams } from 'react-router';
 
 function Employees() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [maxPerPage, setMaxPerPage] = useState<number>(25);
+
+  const page = searchParams.get('page');
+  if (!page) {
+    setSearchParams({ page: '1' });
+  }
+
   // use query Key for cache purposes
   const { user } = useAuth();
   const query = useQuery({
     queryKey: ['employees'],
     queryFn: async () => getEmployees(user),
   });
+
+  const employees = query.data ?? [];
+
+  const pageNumber = parseInt(page || '1') || 1;
+  const maxPages = Math.ceil(employees.length / maxPerPage);
+  if (pageNumber > maxPages) {
+    setSearchParams({ page: maxPages.toString() });
+  }
 
   return (
     <>
@@ -33,8 +52,19 @@ function Employees() {
               <TableHead>Photo</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>{query.data?.map(EmployeeRow)}</TableBody>
+          <TableBody>
+            {employees
+              .slice(maxPerPage * (pageNumber - 1), maxPerPage * pageNumber)
+              .map(EmployeeRow)}
+          </TableBody>
         </Table>
+        <Paging
+          currentPage={pageNumber}
+          setSearchParams={setSearchParams}
+          maxPage={maxPages}
+          setMaxPerPage={setMaxPerPage}
+          buttonCount={5}
+        />
       </div>
     </>
   );
