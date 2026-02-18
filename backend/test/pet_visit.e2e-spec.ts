@@ -12,6 +12,7 @@ import { PetVisitModule } from '@/pet_visit/pet_visit.module';
 import { setupAuth } from './auth';
 import { TimeDuration } from '@/lib/time';
 import { StatusCodes } from 'http-status-codes';
+import { dbConfig } from './database';
 
 describe('PetVisitModule', () => {
   let app: INestApplication<App>;
@@ -28,16 +29,7 @@ describe('PetVisitModule', () => {
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        PetVisitModule,
-        TypeOrmModule.forRoot({
-          type: 'sqlite',
-          database: ':memory:',
-          entities: [OfficePet, User, PetVisit],
-          synchronize: true,
-          dropSchema: true,
-        }),
-      ],
+      imports: [PetVisitModule, TypeOrmModule.forRoot(dbConfig)],
     })
       .overrideProvider(AuthService)
       .useValue(authService)

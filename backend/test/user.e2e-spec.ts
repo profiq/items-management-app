@@ -11,6 +11,7 @@ import { DataSource } from 'typeorm';
 import { TimeDuration } from '@/lib/time';
 import { setupAuth } from './auth';
 import { StatusCodes } from 'http-status-codes';
+import { dbConfig } from './database';
 
 describe('UserModule', () => {
   let app: INestApplication<App>;
@@ -29,16 +30,7 @@ describe('UserModule', () => {
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        UserModule,
-        TypeOrmModule.forRoot({
-          type: 'sqlite',
-          database: ':memory:',
-          autoLoadEntities: true,
-          synchronize: true,
-          dropSchema: true,
-        }),
-      ],
+      imports: [UserModule, TypeOrmModule.forRoot(dbConfig)],
     })
       .overrideProvider(AuthService)
       .useValue(authService)

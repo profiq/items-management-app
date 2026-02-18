@@ -10,6 +10,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { TimeDuration } from '@/lib/time';
 import { setupAuth } from './auth';
 import { StatusCodes } from 'http-status-codes';
+import { dbConfig } from './database';
 
 describe('EmployeeModule', () => {
   let app: INestApplication<App>;
@@ -37,16 +38,7 @@ describe('EmployeeModule', () => {
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        EmployeeModule,
-        TypeOrmModule.forRoot({
-          type: 'sqlite',
-          database: ':memory:',
-          autoLoadEntities: true,
-          synchronize: true,
-          dropSchema: true,
-        }),
-      ],
+      imports: [EmployeeModule, TypeOrmModule.forRoot(dbConfig)],
     })
       .overrideProvider(EmployeeService)
       .useValue(employeeService)
