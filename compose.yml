@@ -1,0 +1,12 @@
+services:
+  backend:
+    image: pq-reference-app-be
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    ports:
+      - 3000:3000
+    environment:
+      - FIREBASE_PROJECT_ID=${VITE_FIREBASE_PROJECT_ID}
+      - GOOGLE_CLIENT_EMAIL=${GOOGLE_CLIENT_EMAIL}
+      - GOOGLE_PRIVATE_KEY=${GOOGLE_PRIVATE_KEY}
