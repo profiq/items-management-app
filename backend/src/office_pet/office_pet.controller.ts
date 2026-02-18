@@ -28,6 +28,7 @@ import {
 } from '@nestjs/swagger';
 import { PetVisitService } from '@/pet_visit/pet_visit.service';
 import { EmployeeHydrationInterceptor } from '@/employee_hydration/employee_hydration.interceptor';
+import { User } from '@/user/user.entity';
 
 @ApiBearerAuth()
 @Controller('pets')
@@ -114,5 +115,17 @@ export class OfficePetController {
       throw new NotFoundException();
     }
     return visits;
+  }
+
+  @Get(':id/owner')
+  @ApiOkResponse({
+    type: User,
+  })
+  async getOwner(@Param('id', ParseIntPipe) id: number): Promise<User> {
+    const pet = await this.officePetService.getPet(id, false, true);
+    if (!pet) {
+      throw new NotFoundException();
+    }
+    return pet.owner;
   }
 }
