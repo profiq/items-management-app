@@ -147,6 +147,18 @@ describe('OfficePetModule', () => {
       ]);
   });
 
+  it('/pets/:id/owner (GET) (Owner)', async () => {
+    return request(app.getHttpServer())
+      .get('/pets/1/owner')
+      .set('Authorization', `Bearer ${validToken}`)
+      .expect(StatusCodes.OK)
+      .expect({
+        id: 1,
+        name: 'abcd abcd',
+        employee_id: '1',
+      });
+  });
+
   it('/pets (POST)', async () => {
     await request(app.getHttpServer())
       .post('/pets')

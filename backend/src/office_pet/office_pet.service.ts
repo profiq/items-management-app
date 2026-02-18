@@ -29,11 +29,12 @@ export class OfficePetService {
 
   async getPet(
     id: number,
-    include_visits: boolean = false
+    include_visits: boolean = false,
+    include_owner: boolean = false
   ): Promise<OfficePet | null> {
     return this.officePetRepository.findOne({
       where: { id },
-      relations: { visits: include_visits },
+      relations: { visits: include_visits, owner: include_owner },
     });
   }
 
