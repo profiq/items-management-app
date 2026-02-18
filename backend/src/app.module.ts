@@ -7,6 +7,7 @@ import { OfficePetModule } from './office_pet/office_pet.module';
 import { UserModule } from './user/user.module';
 import configuration from './config/configuration';
 import { ConfigModule } from '@nestjs/config';
+import { dataSourceOptions } from './datasource';
 
 @Module({
   imports: [
@@ -15,12 +16,7 @@ import { ConfigModule } from '@nestjs/config';
     UserModule,
     PetVisitModule,
     OfficePetModule,
-    TypeOrmModule.forRoot({
-      type: 'sqlite',
-      database: 'database.db',
-      autoLoadEntities: true,
-      synchronize: true,
-    }),
+    TypeOrmModule.forRoot(dataSourceOptions),
     ConfigModule.forRoot({
       load: [configuration],
       envFilePath: '../.env',
