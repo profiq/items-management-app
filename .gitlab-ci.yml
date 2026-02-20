@@ -169,3 +169,25 @@ frontend-deploy-dev:
     - export GOOGLE_APPLICATION_CREDENTIALS="$CI_PROJECT_DIR"/gcloud-service-key.json
     - npm run deploy -w frontend -- --non-interactive
   environment: dev
+
+backend-deploy-dev:
+  stage: deploy
+  image: gcr.io/google.com/cloudsdktool/google-cloud-cli:557.0.0-stable
+  needs:
+    - backend-build
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+      allow_failure: true
+      variables:
+        IMAGE_TAG: ${CI_MERGE_REQUEST_ID}
+    - if: $CI_COMMIT_BRANCH == "main"
+      variables:
+        IMAGE_TAG: ${CI_COMMIT_SHA}
+  before_script:
+    - echo "$GOOGLE_APPLICATION_CREDENTIALS_BASE64" | base64 -d > "$CI_PROJECT_DIR"/gcloud-service-key.json
+    - export GOOGLE_APPLICATION_CREDENTIALS="$CI_PROJECT_DIR"/gcloud-service-key.json
+    - gcloud auth login --cred-file="$CI_PROJECT_DIR"/gcloud-service-key.json
+  script:
+    - gcloud run services --project $VITE_FIREBASE_PROJECT_ID --region europe-west1 update pq-reference-backend-dev --image $IMAGE_NAME:$IMAGE_TAG
+  environment: dev
