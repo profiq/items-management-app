@@ -370,6 +370,35 @@ TODO: add a diagram
 
 ---
 
+# Database diagram
+
+```mermaid
+erDiagram
+    User ||--o{OfficePet: has
+    User {
+        int id PK
+        string name "The employee's name"
+        string employee_id UK "The employee's ID in Google Workspace"
+    }
+
+    OfficePet || --o{PetVisit: does
+    OfficePet {
+        int id PK
+        string name "The pet's name"
+        string species "The pet's species"
+        string race "The pet's race"
+        int ownerId FK "The owner user's id"
+    }
+
+    PetVisit {
+        int id PK
+        date date "The date of the pet's visit"
+        int petId FK "Pet's id; UNIQUE(date, petId)"
+    }
+```
+
+---
+
 ## Goal
 
 The goal of this project is to build a reference project & architecture for all our future project. Meaning we want to have everything in this project correct.
