@@ -18,6 +18,7 @@ stages:
   - code_quality
   - test
   - build
+  - deploy
 
 variables:
   GIT_DEPTH: 1
@@ -137,3 +138,34 @@ backend-build:
         --local context=. \
         --local dockerfile=backend/ \
         --output type=image,\"name=${IMAGE_NAME}:${IMAGE_TAG},${IMAGE_NAME}:latest\",push=true
+
+frontend-build-dev:
+  stage: build
+  extends:
+    - .rule_mr_and_main
+  artifacts:
+    expire_in: '1 hour'
+    paths:
+      - frontend/dist
+  before_script:
+    - npm ci -w frontend --include-workspace-root
+  script:
+    - npm run build -w frontend
+  environment: dev
+
+frontend-deploy-dev:
+  stage: deploy
+  needs:
+    - frontend-build-dev
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: manual
+      allow_failure: true
+    - if: $CI_COMMIT_BRANCH == "main"
+  before_script:
+    - npm ci -w frontend --include-workspace-root
+  script:
+    - echo "$GOOGLE_APPLICATION_CREDENTIALS_BASE64" | base64 -d > "$CI_PROJECT_DIR"/gcloud-service-key.json
+    - export GOOGLE_APPLICATION_CREDENTIALS="$CI_PROJECT_DIR"/gcloud-service-key.json
+    - npm run deploy -w frontend -- --non-interactive
+  environment: dev
