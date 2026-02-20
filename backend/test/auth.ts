@@ -35,7 +35,7 @@ export async function setupAuth(): Promise<setupAuthType> {
     });
   }
   const firebaseApp = initializeApp({
-    projectId: 'demo-no-project',
+    projectId: 'pq-reference-app-dev',
     apiKey: 'example-key',
     authDomain: 'example-auth',
   });

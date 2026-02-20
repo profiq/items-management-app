@@ -10,7 +10,7 @@ export class AuthService {
   constructor(private configService: ConfigService) {
     if (process.env.FIREBASE_AUTH_EMULATOR_HOST) {
       this.authApp = admin
-        .initializeApp({ projectId: 'demo-no-project' })
+        .initializeApp({ projectId: 'pq-reference-app-dev' })
         .auth();
     } else {
       this.authApp = admin
