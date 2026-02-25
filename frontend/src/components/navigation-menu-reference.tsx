@@ -25,11 +25,6 @@ export function NavigationMenuReference() {
           </NavigationMenuItem>
           <NavigationMenuItem>
             <NavigationMenuLink asChild>
-              <Link to='/contact'>Contact</Link>
-            </NavigationMenuLink>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuLink asChild>
               <Link to='/login'>Login</Link>
             </NavigationMenuLink>
           </NavigationMenuItem>
