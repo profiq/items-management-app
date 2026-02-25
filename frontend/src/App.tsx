@@ -3,7 +3,6 @@ import './App.css';
 import { BrowserRouter, Route, Routes } from 'react-router';
 import './index.css';
 import About from './routes/About.tsx';
-import Contact from './routes/Contact.tsx';
 import { NavigationMenuReference } from './components/navigation-menu-reference.tsx';
 import Home from './routes/Home.tsx';
 import { AuthProvider } from './lib/providers/auth/AuthProvider.tsx';
@@ -32,7 +31,6 @@ function App() {
               <Routes>
                 <Route path='/' element={<Home />} />
                 <Route path='/about' element={<About />} />
-                <Route path='/contact' element={<Contact />} />
                 <Route path='/login' element={<Login />} />
                 <Route element={<ProtectedRoute />}>
                   <Route path='/protected' element={<Protected />} />
