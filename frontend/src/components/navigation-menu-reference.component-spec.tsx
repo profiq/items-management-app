@@ -41,6 +41,6 @@ describe('Testing nav menu', () => {
     );
 
     expect(getByText('Main page')).toBeInTheDocument();
-    expect(getByText('Protected Page')).toBeInTheDocument();
+    expect(getByText('Profile Page')).toBeInTheDocument();
   });
 });

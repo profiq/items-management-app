@@ -1,12 +1,12 @@
 import { HoverInfo } from '@/components/hover-info';
 import UserInfo from '@/components/user-info';
 
-function Protected() {
+export default function Profile() {
   return (
     <>
       <div>
         <h1>
-          Protected page{' '}
+          Profile{' '}
           <HoverInfo
             text='This is an example "protected" page and is unavailable without logging in to an account. This is ensured using the ProtectedRoute component.'
             readmeSection={{ label: 'Protected page', id: 'protected-page' }}
@@ -24,4 +24,3 @@ function Protected() {
     </>
   );
 }
-export default Protected;

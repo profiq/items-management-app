@@ -7,7 +7,6 @@ import { NavigationMenuReference } from './components/navigation-menu-reference.
 import Home from './routes/Home.tsx';
 import { AuthProvider } from './lib/providers/auth/AuthProvider.tsx';
 import Login from './routes/Login.tsx';
-import Protected from './routes/Protected.tsx';
 import ProtectedRoute from './components/ProtectedRoute.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Employees from './routes/Employees.tsx';
@@ -17,6 +16,7 @@ import PetUpdate from './routes/PetUpdate.tsx';
 import PetDetailPage from './routes/PetDetail.tsx';
 import PetDeletePage from './routes/PetDelete.tsx';
 import { Toaster } from './components/ui/sonner.tsx';
+import Profile from './routes/Profile.tsx';
 
 const queryClient = new QueryClient();
 
@@ -33,7 +33,7 @@ function App() {
                 <Route path='/about' element={<About />} />
                 <Route path='/login' element={<Login />} />
                 <Route element={<ProtectedRoute />}>
-                  <Route path='/protected' element={<Protected />} />
+                  <Route path='/profile' element={<Profile />} />
                   <Route path='/employees' element={<Employees />} />
                   <Route path='/pets' element={<PetList />} />
                   <Route path='/pets/:id' element={<PetDetailPage />} />

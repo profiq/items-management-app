@@ -33,9 +33,9 @@ export function NavigationMenuReference() {
             <>
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link to='/protected'>
+                  <Link to='/profile'>
                     <div className='flex items-center gap-1'>
-                      Protected Page
+                      Profile Page
                       <HoverProtected />
                     </div>
                   </Link>
