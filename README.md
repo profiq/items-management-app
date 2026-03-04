@@ -142,6 +142,41 @@ npm run test:e2e-emulator -w backend
 
 The first runs the unit tests and the second runs the e2e tests.
 
+## Secrets
+
+The following environment variables are considered "secrets" and are stored in GCP Secrets Manager
+
+```
+DB_PASSWORD
+DB_USERNAME
+DB_HOST
+DB_DATABASE
+GOOGLE_CLIENT_EMAIL
+GOOGLE_PRIVATE_KEY
+```
+
+To add a new value of any of these you can use
+
+```shell
+echo "new-value" | gcloud secrets versions add <SECRET_NAME> --data-file=-
+```
+
+You also need to destroy the old secret version due to billing
+
+First list the versions
+
+```shell
+gcloud secrets versions list <SECRET_NAME>
+```
+
+Then destroy the non-latest one:
+
+```shell
+gcloud secrets versions destroy <VERSION> --secret=<SECRET_NAME>
+```
+
+You can use the [GCP console](https://console.cloud.google.com) instead. There, select the project, search for "Secret Manager". Then, click on the secret you want to add a version to (or "Create secret" if creating a new secret and fill out the form) and click on "New version". After filling out the form, select the old secret and destroy it.
+
 ---
 
 # Architecture
