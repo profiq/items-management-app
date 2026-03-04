@@ -8,8 +8,8 @@ import type {
 import { faker } from '@faker-js/faker';
 
 describe('Testing getting employees', () => {
-  const { mockFetch } = vi.hoisted(() => {
-    return { mockFetch: vi.fn() };
+  const { mockFetch, mockCreateWithImage } = vi.hoisted(() => {
+    return { mockFetch: vi.fn(), mockCreateWithImage: vi.fn() };
   });
 
   vi.mock(import('@/lib/api_client/api_client'), async importOriginal => {
@@ -17,6 +17,7 @@ describe('Testing getting employees', () => {
     const APIClient = vi.fn(
       class APIClient {
         fetch = mockFetch;
+        create_with_image = mockCreateWithImage;
       }
     );
     return {

@@ -61,4 +61,40 @@ export class APIClient {
     }
     return { success: false, status_code: status, error: result };
   }
+
+  async create_with_image<T>(
+    method: HttpMethodType,
+    path: string,
+    data?: object
+  ): Promise<APIResponse<T>> {
+    const url = import.meta.env.VITE_API_URL + path;
+    const headers: Headers = {};
+
+    if (this.user && this.user.getIdToken) {
+      const token = await this.user.getIdToken();
+      headers.Authorization = `Bearer ${token}`;
+    }
+
+    const formData = new FormData();
+    if (data) {
+      for (const [key, value] of Object.entries(data)) {
+        formData.set(key, value);
+      }
+    }
+
+    const response = await fetch(url, {
+      method,
+      headers,
+      body: formData,
+    });
+
+    const { status } = response;
+    const result = await response.json();
+
+    if (status == StatusCodes.OK || status == StatusCodes.CREATED) {
+      return { success: true, status_code: status, data: result };
+    }
+
+    return { success: false, status_code: status, error: result };
+  }
 }

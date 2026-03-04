@@ -17,7 +17,7 @@ export default function PetList() {
     if (!page) {
       setSearchParams({ page: '1' });
     }
-  }, []);
+  }, [page, setSearchParams]);
 
   const { user } = useAuth();
   const query = useQuery({
@@ -46,7 +46,7 @@ export default function PetList() {
         />
       </div>
       <Link to={`/create-pet`}>
-        <Button className='cursor-pointer' variant='secondary'>
+        <Button className='cursor-pointer mt-3' variant='secondary'>
           Create a new pet
         </Button>
       </Link>

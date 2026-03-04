@@ -7,6 +7,8 @@ import {
   type Auth,
 } from 'firebase/auth';
 import { faker } from '@faker-js/faker';
+import { FirebaseService } from '@/firebase/firebase.service';
+import { ConfigService } from '@nestjs/config';
 
 type setupAuthType = {
   authService: AuthService;
@@ -15,7 +17,9 @@ type setupAuthType = {
 };
 
 export async function setupAuth(): Promise<setupAuthType> {
-  const authService = new AuthService();
+  const configService = new ConfigService();
+  const firebaseService = new FirebaseService(configService);
+  const authService = new AuthService(firebaseService);
   const valid_email = faker.internet.email({ provider: 'profiq.com' });
   const invalid_email = faker.internet.email({});
   const password = faker.internet.password();

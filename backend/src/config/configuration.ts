@@ -14,6 +14,7 @@ export default () => ({
       process.env.FIREBASE_PROJECT_ID || process.env.VITE_FIREBASE_PROJECT_ID,
     client_email: process.env.GOOGLE_CLIENT_EMAIL,
     private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    storage_bucket: process.env.GOOGLE_STORAGE_BUCKET,
   },
   database: {
     type: process.env.NODE_ENV == 'production' ? 'mariadb' : 'sqlite',

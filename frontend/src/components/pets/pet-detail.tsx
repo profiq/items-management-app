@@ -2,6 +2,7 @@ import type { OfficePetType } from '@/services/office_pets/office_pets';
 import type { PetVisitType } from '@/services/pet_visits/pet_visits';
 import type { UserType } from '@/services/users/users';
 import PetVisitsTable from '@/components/visits/visits-table';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 type PetDetailProps = {
   pet: OfficePetType;
@@ -11,6 +12,12 @@ type PetDetailProps = {
 export default function PetDetail({ pet, owner, visits }: PetDetailProps) {
   return (
     <>
+      {pet.image_url && (
+        <Avatar className='mr-auto ml-auto size-44'>
+          <AvatarImage src={pet.image_url} />
+          <AvatarFallback>Pet Image</AvatarFallback>
+        </Avatar>
+      )}
       <div>ID: {pet.id}</div>
       <div>Name: {pet.name}</div>
       <div>Species: {pet.species}</div>

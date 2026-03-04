@@ -10,6 +10,7 @@ import { createError } from '@/lib/errors';
 export type OfficePetUpdateType = {
   owner_id: string;
   name: string;
+  image_file?: File | FileList;
 };
 
 export async function updatePet(
@@ -18,7 +19,10 @@ export async function updatePet(
   user?: User
 ) {
   const client = new APIClient(user);
-  const result: APIResponse<OfficePetType> = await client.fetch(
+  if (data.image_file instanceof FileList) {
+    data.image_file = data.image_file.item(0) ?? undefined;
+  }
+  const result: APIResponse<OfficePetType> = await client.create_with_image(
     HttpMethod.Put,
     `/pets/${id}`,
     data

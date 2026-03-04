@@ -3,14 +3,18 @@ import {
   Body,
   Controller,
   Delete,
+  FileTypeValidator,
   forwardRef,
   Get,
   Inject,
+  MaxFileSizeValidator,
   NotFoundException,
   Param,
+  ParseFilePipe,
   ParseIntPipe,
   Post,
   Put,
+  UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -29,6 +33,10 @@ import {
 import { PetVisitService } from '@/pet_visit/pet_visit.service';
 import { EmployeeHydrationInterceptor } from '@/employee_hydration/employee_hydration.interceptor';
 import { User } from '@/user/user.entity';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { ByteSize } from '@/lib/size';
+
+const MAX_UPLOAD_SIZE = 1 * ByteSize.MB;
 
 @ApiBearerAuth()
 @Controller('pets')
@@ -41,12 +49,24 @@ export class OfficePetController {
   ) {}
 
   @Post()
-  @UseInterceptors(EmployeeHydrationInterceptor)
+  @UseInterceptors(FileInterceptor('image_file'), EmployeeHydrationInterceptor)
   @ApiCreatedResponse({
     type: OfficePet,
   })
-  async addPet(@Body() data: AddPetRequest): Promise<OfficePet> {
-    const pet = await this.officePetService.addPet(data);
+  async addPet(
+    @Body() data: AddPetRequest,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: MAX_UPLOAD_SIZE }),
+          new FileTypeValidator({ fileType: /^image\/(png|jpeg)/ }),
+        ],
+        fileIsRequired: false,
+      })
+    )
+    image_file?: Express.Multer.File
+  ): Promise<OfficePet> {
+    const pet = await this.officePetService.addPet(data, image_file);
     if (!pet) {
       throw new NotFoundException(`Could not add a pet due to invalid owner.`);
     }
@@ -75,15 +95,25 @@ export class OfficePetController {
   }
 
   @Put(':id')
-  @UseInterceptors(EmployeeHydrationInterceptor)
+  @UseInterceptors(FileInterceptor('image_file'), EmployeeHydrationInterceptor)
   @ApiOkResponse({
     type: OfficePet,
   })
   async updatePet(
     @Param('id', ParseIntPipe) id: number,
-    @Body() data: UpdatePetRequest
+    @Body() data: UpdatePetRequest,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: MAX_UPLOAD_SIZE }),
+          new FileTypeValidator({ fileType: /^image\/(png|jpeg)/ }),
+        ],
+        fileIsRequired: false,
+      })
+    )
+    image_file?: Express.Multer.File
   ): Promise<OfficePet> {
-    const pet = await this.officePetService.updatePet(id, data);
+    const pet = await this.officePetService.updatePet(id, data, image_file);
     if (pet === null) {
       throw new NotFoundException(
         `Could not find pet with id ${id} or the owner was invalid`

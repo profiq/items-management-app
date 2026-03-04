@@ -7,6 +7,7 @@ import { DataSource } from 'typeorm';
 import { UpdatePetRequest } from './dto/update_pet';
 import { User } from '@/user/user.entity';
 import { UserService } from '@/user/user.service';
+import { FirebaseService } from '@/firebase/firebase.service';
 
 @Injectable()
 export class OfficePetService {
@@ -15,7 +16,8 @@ export class OfficePetService {
     private officePetRepository: Repository<OfficePet>,
     private dataSource: DataSource,
     @Inject(forwardRef(() => UserService))
-    private userService: UserService
+    private userService: UserService,
+    private firebaseService: FirebaseService
   ) {}
 
   async getPets(): Promise<OfficePet[]> {
@@ -33,7 +35,10 @@ export class OfficePetService {
     });
   }
 
-  async addPet(pet_data: AddPetRequest): Promise<OfficePet | null> {
+  async addPet(
+    pet_data: AddPetRequest,
+    image_file?: Express.Multer.File
+  ): Promise<OfficePet | null> {
     const runner = this.dataSource.createQueryRunner();
     await runner.connect();
     await runner.startTransaction();
@@ -44,9 +49,19 @@ export class OfficePetService {
       const owner = await runner.manager.findOneByOrFail(User, {
         employee_id: pet_data.owner_id,
       });
+
       pet.owner = owner;
       pet.species = pet_data.species;
-      await runner.manager.save(pet);
+      const new_pet = await runner.manager.save(pet);
+
+      if (image_file) {
+        new_pet.image_url = await this.firebaseService.upload(
+          `pet-img-${pet.id}`,
+          image_file.buffer
+        );
+        await runner.manager.save(new_pet);
+      }
+
       await runner.commitTransaction();
       return pet;
     } catch {
@@ -58,13 +73,19 @@ export class OfficePetService {
   }
 
   async deletePet(id: number): Promise<number | null | undefined> {
+    const pet = await this.getPet(id);
+    if (pet?.image_url) {
+      await this.firebaseService.delete(`pet-img-${id}`);
+    }
     const result = await this.officePetRepository.delete({ id });
+
     return result.affected;
   }
 
   async updatePet(
     id: number,
-    update_data: UpdatePetRequest
+    update_data: UpdatePetRequest,
+    image_file?: Express.Multer.File
   ): Promise<OfficePet | null> {
     const runner = this.dataSource.createQueryRunner();
     await runner.connect();
@@ -77,6 +98,14 @@ export class OfficePetService {
       const owner = await runner.manager.findOneOrFail(User, {
         where: { employee_id: update_data.owner_id },
       });
+
+      if (image_file) {
+        pet.image_url = await this.firebaseService.upload(
+          `pet-img-${id}`,
+          image_file.buffer
+        );
+      }
+
       pet.owner = owner;
       pet.species = update_data.species;
       pet.race = update_data.race;

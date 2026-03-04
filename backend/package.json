@@ -8,6 +8,7 @@
   "scripts": {
     "build": "nest build",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
+    "firebase:emulator:storage": "firebase emulators:start --only storage",
     "migrations:generate": "npm run typeorm -- migration:generate -d src/datasource.ts src/db/migrations/migration",
     "migrations:run": "npm run typeorm -- migration:run -d src/datasource.ts",
     "migrations:rollback": "npm run typeorm -- migration:revert -d src/datasource.ts",
@@ -21,7 +22,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "test:e2e-emulator": "firebase emulators:exec 'npm run test:e2e'",
+    "test:e2e-emulator": "firebase emulators:exec --only auth 'npm run test:e2e'",
     "typeorm": "typeorm-ts-node-commonjs"
   },
   "dependencies": {
@@ -50,6 +51,7 @@
     "@nestjs/testing": "11.0.1",
     "@types/express": "5.0.0",
     "@types/jest": "30.0.0",
+    "@types/multer": "2.0.0",
     "@types/node": "22.10.7",
     "@types/supertest": "6.0.2",
     "dotenv": "17.3.1",

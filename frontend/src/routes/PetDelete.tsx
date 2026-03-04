@@ -46,7 +46,7 @@ export default function PetDeletePage() {
         </h1>
         <div>Are you sure you want to delete this pet?</div>
         <Button
-          className='cursor-pointer'
+          className='cursor-pointer mt-3'
           variant='destructive'
           onClick={() => mutation.mutate()}
         >

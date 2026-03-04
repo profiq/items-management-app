@@ -11,6 +11,7 @@ export type OfficePetType = {
   name: string;
   species: string;
   race: string;
+  image_url?: string;
 };
 
 export async function getOfficePets(user?: User) {

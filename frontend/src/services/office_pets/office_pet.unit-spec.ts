@@ -9,8 +9,8 @@ import type { OfficePetType } from './office_pets';
 import { getOfficePet } from './office_pet';
 
 describe('Testing getting employees', () => {
-  const { mockFetch } = vi.hoisted(() => {
-    return { mockFetch: vi.fn() };
+  const { mockFetch, mockCreateWithImage } = vi.hoisted(() => {
+    return { mockFetch: vi.fn(), mockCreateWithImage: vi.fn() };
   });
 
   vi.mock(import('@/lib/api_client/api_client'), async importOriginal => {
@@ -18,6 +18,7 @@ describe('Testing getting employees', () => {
     const APIClient = vi.fn(
       class APIClient {
         fetch = mockFetch;
+        create_with_image = mockCreateWithImage;
       }
     );
     return {
