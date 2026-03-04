@@ -34,6 +34,24 @@ variables:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_COMMIT_BRANCH == "main"
 
+.rule_mr_and_main_frontend:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - frontend/**/*
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - frontend/**/*
+
+.rule_mr_and_main_backend:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - backend/**/*
+    - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - backend/**/*
+
 .npm_ci_only_root:
   before_script:
     - !reference [.set_npm_config, before_script]
@@ -74,7 +92,7 @@ code_quality:
 frontend-test:
   stage: test
   extends:
-    - .rule_mr_and_main
+    - .rule_mr_and_main_frontend
     - .npm_ci_frontend
   script:
     # if unit tests fail, there is no reason to waste time installing playwright
@@ -86,7 +104,7 @@ frontend-test:
 backend-unit:
   stage: test
   extends:
-    - .rule_mr_and_main
+    - .rule_mr_and_main_backend
     - .npm_ci_backend
   script:
     - npm run test -w backend
@@ -94,7 +112,7 @@ backend-unit:
 backend-e2e:
   stage: test
   extends:
-    - .rule_mr_and_main
+    - .rule_mr_and_main_backend
     - .npm_ci_backend
   script:
     - npm run test:e2e-emulator -w backend
@@ -112,9 +130,15 @@ backend-build:
       allow_failure: true
       variables:
         IMAGE_TAG: ${CI_MERGE_REQUEST_ID}
+      changes:
+        - backend/**/*
+
     - if: $CI_COMMIT_BRANCH == "main"
       variables:
         IMAGE_TAG: ${CI_COMMIT_SHA}
+      changes:
+        - backend/**/*
+
   variables:
     BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
   before_script:
@@ -142,7 +166,7 @@ backend-build:
 frontend-build-dev:
   stage: build
   extends:
-    - .rule_mr_and_main
+    - .rule_mr_and_main_frontend
   artifacts:
     expire_in: '1 hour'
     paths:
@@ -159,9 +183,14 @@ frontend-deploy-dev:
     - frontend-build-dev
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - frontend/**/*
       when: manual
       allow_failure: true
     - if: $CI_COMMIT_BRANCH == "main"
+      changes:
+        - frontend/**/*
+
   before_script:
     - npm ci -w frontend --include-workspace-root
   script:
@@ -181,9 +210,15 @@ backend-deploy-dev:
       allow_failure: true
       variables:
         IMAGE_TAG: ${CI_MERGE_REQUEST_ID}
+      changes:
+        - backend/**/*
+
     - if: $CI_COMMIT_BRANCH == "main"
       variables:
         IMAGE_TAG: ${CI_COMMIT_SHA}
+      changes:
+        - backend/**/*
+
   before_script:
     - echo "$GOOGLE_APPLICATION_CREDENTIALS_BASE64" | base64 -d > "$CI_PROJECT_DIR"/gcloud-service-key.json
     - export GOOGLE_APPLICATION_CREDENTIALS="$CI_PROJECT_DIR"/gcloud-service-key.json
