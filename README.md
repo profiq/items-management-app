@@ -110,6 +110,18 @@ An optional env variable allowing to specify the port
 PORT=
 ```
 
+To use images, you need to specify the bucket name with
+
+```
+GOOGLE_STORAGE_BUCKET=
+```
+
+You can use storage emulator for local dev using env variable. The emulator can be started with `npm run -w backend firebase:emulator:storage`
+
+```
+FIREBASE_STORAGE_EMULATOR_HOST=
+```
+
 ## Testing
 
 ### Frontend

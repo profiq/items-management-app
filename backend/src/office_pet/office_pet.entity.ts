@@ -27,6 +27,10 @@ export class OfficePet {
   @ApiProperty()
   race: string;
 
+  @Column({ nullable: true })
+  @ApiProperty({ nullable: true })
+  image_url?: string;
+
   @ManyToOne(() => User, user => user.pets, {
     cascade: ['insert', 'update'],
     onDelete: 'CASCADE',

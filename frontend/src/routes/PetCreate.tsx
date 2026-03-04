@@ -27,6 +27,9 @@ import { getEmployees, type Employee } from '@/services/employees/employees';
 import { StatusSpinning } from '@/components/status/status-spinning';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router';
+import { fileSchema } from '@/lib/fileschema';
+import { useRef } from 'react';
+import DropZone from '@/components/drop-zone';
 
 const formSchema = z.object({
   name: z
@@ -36,11 +39,12 @@ const formSchema = z.object({
   owner_id: z.string().nonempty('Write the ID'),
   species: z.string().min(2, 'Write a species'),
   race: z.string().min(2, 'Write a race'),
+  image_file: fileSchema,
 });
 
 export default function PetCreate() {
   const { user } = useAuth();
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<z.input<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
@@ -70,6 +74,7 @@ export default function PetCreate() {
 
   const employees: Employee[] = query.data ?? [];
 
+  const fileRef = useRef<HTMLInputElement | null>(null);
   return (
     <>
       {mutation.isPending && <StatusSpinning />}
@@ -181,9 +186,32 @@ export default function PetCreate() {
                 </Field>
               )}
             />
+            <Controller
+              name='image_file'
+              control={form.control}
+              render={({ field, fieldState }) => (
+                <Field data-invalid={fieldState.invalid}>
+                  <FieldLabel htmlFor='form-pet-create-image'>
+                    Pet image
+                  </FieldLabel>
+
+                  <DropZone
+                    field={field}
+                    fieldState={fieldState}
+                    fileRef={fileRef}
+                    resetField={form.resetField}
+                    id='form-pet-create-image'
+                  />
+
+                  {fieldState.invalid && (
+                    <FieldError errors={[fieldState.error]} />
+                  )}
+                </Field>
+              )}
+            />
           </FieldGroup>
         </form>
-        <FieldGroup>
+        <FieldGroup className='mt-3'>
           <Field orientation='horizontal'>
             <Button
               className='cursor-pointer'

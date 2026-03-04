@@ -46,16 +46,18 @@ export default function PetDetailPage() {
           owner={owner_query.data}
           visits={visits_query.data}
         ></PetDetail>
-        <Link to={`/pets/${id}/update`}>
-          <Button className='cursor-pointer' variant='outline'>
-            Update pet
-          </Button>
-        </Link>
-        <Link to={`/pets/${id}/delete`}>
-          <Button className='cursor-pointer' variant='destructive'>
-            Delete this pet
-          </Button>
-        </Link>
+        <div className='mt-3'>
+          <Link to={`/pets/${id}/update`}>
+            <Button className='cursor-pointer mx-1' variant='outline'>
+              Update pet
+            </Button>
+          </Link>
+          <Link to={`/pets/${id}/delete`}>
+            <Button className='cursor-pointer mx-1' variant='destructive'>
+              Delete this pet
+            </Button>
+          </Link>
+        </div>
       </div>
     </>
   );

@@ -29,7 +29,9 @@ import { StatusSpinning } from '@/components/status/status-spinning';
 import { toast } from 'sonner';
 import { getOfficePet } from '@/services/office_pets/office_pet';
 import { getOfficePetOwner } from '@/services/office_pets/pet_owner';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { fileSchema } from '@/lib/fileschema';
+import DropZone from '@/components/drop-zone';
 
 const formSchema = z.object({
   name: z
@@ -39,15 +41,17 @@ const formSchema = z.object({
   owner_id: z.string().nonempty('Write an ID'),
   species: z.string().min(2, 'Write a species'),
   race: z.string().min(2, 'Write a race'),
+  image_file: fileSchema,
 });
 
 export default function PetUpdate() {
   const { user } = useAuth();
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<z.input<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: '',
       owner_id: '',
+      image_file: undefined,
     },
   });
   const params = useParams();
@@ -103,6 +107,7 @@ export default function PetUpdate() {
     }
   }, [pet_owner, pet, employees, form]);
 
+  const fileRef = useRef<HTMLInputElement | null>(null);
   return (
     <>
       {((mutation.isPending || !defaultOwner) && <StatusSpinning />) || (
@@ -220,9 +225,32 @@ export default function PetUpdate() {
                     </Field>
                   )}
                 />
+                <Controller
+                  name='image_file'
+                  control={form.control}
+                  render={({ field, fieldState }) => (
+                    <Field data-invalid={fieldState.invalid}>
+                      <FieldLabel htmlFor='form-pet-update-image'>
+                        Pet image
+                      </FieldLabel>
+
+                      <DropZone
+                        fieldState={fieldState}
+                        field={field}
+                        fileRef={fileRef}
+                        id='form-pet-update-image'
+                        resetField={form.resetField}
+                      />
+
+                      {fieldState.invalid && (
+                        <FieldError errors={[fieldState.error]} />
+                      )}
+                    </Field>
+                  )}
+                />
               </FieldGroup>
             </form>
-            <FieldGroup>
+            <FieldGroup className='mt-3'>
               <Field orientation='horizontal'>
                 <Button
                   className='cursor-pointer'

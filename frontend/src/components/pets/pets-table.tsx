@@ -20,6 +20,7 @@ function PetTable({ pets }: PetTableRow) {
           <TableHead>Name</TableHead>
           <TableHead>Species</TableHead>
           <TableHead>Race</TableHead>
+          <TableHead>Image</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>

@@ -8,6 +8,7 @@ import { AuthModule } from '@/auth/auth.module';
 import { UserModule } from '@/user/user.module';
 import { PetVisitModule } from '@/pet_visit/pet_visit.module';
 import { EmployeeHydrationModule } from '@/employee_hydration/employee_hydration.module';
+import { FirebaseModule } from '@/firebase/firebase.module';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { EmployeeHydrationModule } from '@/employee_hydration/employee_hydration
     forwardRef(() => UserModule),
     forwardRef(() => PetVisitModule),
     EmployeeHydrationModule,
+    FirebaseModule,
   ],
   providers: [OfficePetService],
   controllers: [OfficePetController],

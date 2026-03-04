@@ -143,12 +143,14 @@ describe('UserModule', () => {
           name: 'Alex',
           race: 'big',
           species: 'dog',
+          image_url: null,
         },
         {
           id: 2,
           name: 'Bruno',
           race: 'some',
           species: 'cat',
+          image_url: null,
         },
       ]);
   });

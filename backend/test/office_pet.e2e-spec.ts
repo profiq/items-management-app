@@ -67,12 +67,14 @@ describe('OfficePetModule', () => {
           name: 'Alex',
           race: 'big',
           species: 'dog',
+          image_url: null,
         },
         {
           id: 2,
           name: 'Bruno',
           race: 'some',
           species: 'cat',
+          image_url: null,
         },
       ]);
   });
@@ -102,6 +104,7 @@ describe('OfficePetModule', () => {
         name: 'Alex',
         race: 'big',
         species: 'dog',
+        image_url: null,
       });
   });
   it('/pets/:id (GET) (Non-existant)', async () => {
@@ -173,18 +176,21 @@ describe('OfficePetModule', () => {
           name: 'Alex',
           race: 'big',
           species: 'dog',
+          image_url: null,
         },
         {
           id: 2,
           name: 'Bruno',
           race: 'some',
           species: 'cat',
+          image_url: null,
         },
         {
           id: 3,
           race: 'uslu',
           name: 'rem',
           species: 'pin',
+          image_url: null,
         },
       ]);
   });
@@ -212,12 +218,14 @@ describe('OfficePetModule', () => {
           name: 'harhar',
           race: 'gggggg',
           species: 'gfgfmgf',
+          image_url: null,
         },
         {
           id: 2,
           name: 'Bruno',
           race: 'some',
           species: 'cat',
+          image_url: null,
         },
       ]);
   });
@@ -238,6 +246,7 @@ describe('OfficePetModule', () => {
           name: 'Bruno',
           race: 'some',
           species: 'cat',
+          image_url: null,
         },
       ]);
   });
