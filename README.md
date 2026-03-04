@@ -222,7 +222,7 @@ All the secrets are kept in environment variables loaded from `.env` file in the
 - [TypeORM](https://docs.nestjs.com/techniques/database) or [here](https://typeorm.io/docs/getting-started/) - An ORM system with first-class support from NestJS.
 - Database - We use an SQL database.
   - [SQLite](https://www.sqlite.org/) - For development; a local embedded (single-file/in-memory) database.
-  - [PostgreSQl](https://www.postgresql.org/) - For production; a highly scalable client-server RDBMS.
+  - [MariaDB](https://mariadb.com/) - For production; a highly scalable client-server RDBMS.
 - [Jest](https://jestjs.io/docs/getting-started) - Testing library for Node.js.
 - [Supertest](https://www.npmjs.com/package/supertest) - Library for simulating HTTP requests and testing HTTP responses. Used in E2E tests.
 - [Google Local Emulator Suite](https://firebase.google.com/docs/emulator-suite) - For creating emulated accounts during e2e testing.
@@ -402,6 +402,24 @@ TODO: add a diagram
 - Implementation:
   - [backend/src/employee/employee.service.ts](backend/src/employee/employee.service.ts)
 - For general information about integration in projects, see the [Infrastructure wiki](https://gitlab.com/profiq/all/infra/infra/-/wikis/Integrations/Google-Workspace-Integration)
+
+## Database
+
+- We use TypeORM as the database access layer
+- We store the users (people who logged in or have an associated pet), office pets and the pets' visits in the DB
+- We use decorators in the entities
+- On production, we use [migrations](https://typeorm.io/docs/migrations/why/) for synchronization. On local dev, we use the [synchronize](https://typeorm.io/docs/help/faq/#how-do-i-update-a-database-schema) option
+- Implementation:
+  - [backend/src/user/user.entity.ts](backend/src/user/user.entity.ts)
+  - [backend/src/office_pet/office_pet.entity.ts](office_pet/office_pet.entity.ts)
+  - [backend/src/pet_visit/pet_visit.entity.ts](backend/src/pet_visit/pet_visit.entity.ts)
+  - [backend/src/datasource.ts](backend/src/datasource.ts)
+
+### Transactions
+
+- For cases where there are multiple database operations and any one's failure should rollback, we use [transactions](https://typeorm.io/docs/advanced-topics/transactions/)
+- Implementation:
+  - [backend/src/pet_visit/pet_visit.service.ts](backend/src/pet_visit/pet_visit.service.ts#L27)
 
 ---
 
