@@ -6,6 +6,7 @@ import {
 } from '@/components/ui/navigation-menu';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import { Link } from 'react-router';
+import { HoverProtected } from './hover-protected';
 
 export function NavigationMenuReference() {
   const { user } = useAuth();
@@ -32,17 +33,32 @@ export function NavigationMenuReference() {
             <>
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link to='/protected'>Protected Page</Link>
+                  <Link to='/protected'>
+                    <div className='flex items-center gap-1'>
+                      Protected Page
+                      <HoverProtected />
+                    </div>
+                  </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link to='/employees'>List of Employees</Link>
+                  <Link to='/employees'>
+                    <div className='flex items-center gap-1'>
+                      List of Employees
+                      <HoverProtected />
+                    </div>
+                  </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
               <NavigationMenuItem>
                 <NavigationMenuLink asChild>
-                  <Link to='/pets'>List of Pets</Link>
+                  <Link to='/pets'>
+                    <div className='flex items-center gap-1'>
+                      List of Pets
+                      <HoverProtected />
+                    </div>
+                  </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
             </>
