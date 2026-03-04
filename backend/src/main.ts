@@ -1,8 +1,9 @@
-import { NestFactory } from '@nestjs/core';
+import { HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
+import { CustomExceptionsFilter } from './exception_filter/custom_exceptions.filter';
 
 async function bootstrap() {
   // Disabling x-powered-by is specific to the application backend.
@@ -18,6 +19,10 @@ async function bootstrap() {
     .build();
   app.enableCors();
   app.disable('x-powered-by');
+
+  const httpAdapterHost = app.get(HttpAdapterHost);
+  app.useGlobalFilters(new CustomExceptionsFilter(httpAdapterHost));
+
   const documentFactory = () => SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, documentFactory);
 

@@ -13,6 +13,8 @@ import { setupAuth } from './auth';
 import { TimeDuration } from '@/lib/time';
 import { StatusCodes } from 'http-status-codes';
 import { dbConfig } from './database';
+import { CustomExceptionsFilter } from '@/exception_filter/custom_exceptions.filter';
+import { HttpAdapterHost } from '@nestjs/core';
 
 describe('OfficePetModule', () => {
   let app: INestApplication<App>;
@@ -36,6 +38,8 @@ describe('OfficePetModule', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
+    const httpAdapterHost = app.get(HttpAdapterHost);
+    app.useGlobalFilters(new CustomExceptionsFilter(httpAdapterHost));
     await app.init();
     const dataSource = moduleFixture.get<DataSource>(getDataSourceToken());
     const userRepository = dataSource.getRepository(User);

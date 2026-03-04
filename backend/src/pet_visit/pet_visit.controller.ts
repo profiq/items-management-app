@@ -1,11 +1,4 @@
-import {
-  Body,
-  Controller,
-  Get,
-  NotFoundException,
-  Post,
-  UseGuards,
-} from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
 import { AuthGuard } from '@/auth/auth.guard';
 import { PetVisitService } from './pet_visit.service';
 import { AddVisitRequest } from './dto/add_visit';
@@ -35,12 +28,6 @@ export class PetVisitController {
     type: PetVisit,
   })
   async addVisit(@Body() data: AddVisitRequest): Promise<PetVisit> {
-    const visit = await this.petVisitService.addPetVisit(data);
-    if (!visit) {
-      throw new NotFoundException(
-        `Could not add a visit. An invalid pet was specified.`
-      );
-    }
-    return visit;
+    return await this.petVisitService.addPetVisit(data);
   }
 }
