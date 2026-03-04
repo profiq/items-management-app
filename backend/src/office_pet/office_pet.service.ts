@@ -8,6 +8,11 @@ import { UpdatePetRequest } from './dto/update_pet';
 import { User } from '@/user/user.entity';
 import { UserService } from '@/user/user.service';
 import { FirebaseService } from '@/firebase/firebase.service';
+import {
+  RelatedOwnerException,
+  UnknownPetException,
+  UnknownUserException,
+} from '@/lib/errors';
 
 @Injectable()
 export class OfficePetService {
@@ -28,17 +33,21 @@ export class OfficePetService {
     id: number,
     include_visits: boolean = false,
     include_owner: boolean = false
-  ): Promise<OfficePet | null> {
-    return this.officePetRepository.findOne({
+  ): Promise<OfficePet> {
+    const pet = await this.officePetRepository.findOne({
       where: { id },
       relations: { visits: include_visits, owner: include_owner },
     });
+    if (!pet) {
+      throw new UnknownPetException();
+    }
+    return pet;
   }
 
   async addPet(
     pet_data: AddPetRequest,
     image_file?: Express.Multer.File
-  ): Promise<OfficePet | null> {
+  ): Promise<OfficePet> {
     const runner = this.dataSource.createQueryRunner();
     await runner.connect();
     await runner.startTransaction();
@@ -46,9 +55,13 @@ export class OfficePetService {
       const pet = new OfficePet();
       pet.name = pet_data.name;
       pet.race = pet_data.race;
-      const owner = await runner.manager.findOneByOrFail(User, {
+      const owner = await runner.manager.findOneBy(User, {
         employee_id: pet_data.owner_id,
       });
+
+      if (!owner) {
+        throw new RelatedOwnerException();
+      }
 
       pet.owner = owner;
       pet.species = pet_data.species;
@@ -59,14 +72,15 @@ export class OfficePetService {
           `pet-img-${pet.id}`,
           image_file.buffer
         );
+
         await runner.manager.save(new_pet);
       }
 
       await runner.commitTransaction();
       return pet;
-    } catch {
+    } catch (e) {
       await runner.rollbackTransaction();
-      return null;
+      throw e;
     } finally {
       await runner.release();
     }
@@ -86,18 +100,24 @@ export class OfficePetService {
     id: number,
     update_data: UpdatePetRequest,
     image_file?: Express.Multer.File
-  ): Promise<OfficePet | null> {
+  ): Promise<OfficePet> {
     const runner = this.dataSource.createQueryRunner();
     await runner.connect();
     await runner.startTransaction();
     try {
-      const pet = await runner.manager.findOneOrFail(OfficePet, {
+      const pet = await runner.manager.findOne(OfficePet, {
         where: { id },
       });
+      if (!pet) {
+        throw new UnknownPetException();
+      }
       pet.name = update_data.name;
-      const owner = await runner.manager.findOneOrFail(User, {
+      const owner = await runner.manager.findOne(User, {
         where: { employee_id: update_data.owner_id },
       });
+      if (!owner) {
+        throw new RelatedOwnerException();
+      }
 
       if (image_file) {
         pet.image_url = await this.firebaseService.upload(
@@ -112,18 +132,18 @@ export class OfficePetService {
       await runner.manager.save(pet);
       runner.commitTransaction();
       return pet;
-    } catch {
+    } catch (e) {
       runner.rollbackTransaction();
-      return null;
+      throw e;
     } finally {
       runner.release();
     }
   }
 
-  async getUserPets(id: number): Promise<OfficePet[] | null> {
+  async getUserPets(id: number): Promise<OfficePet[]> {
     const employee = await this.userService.getUserById(id, true);
     if (!employee) {
-      return null;
+      throw new UnknownUserException();
     }
     return employee.pets;
   }

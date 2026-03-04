@@ -1,3 +1,4 @@
+import { UploadException } from '@/lib/errors';
 import { Bucket, SaveData } from '@google-cloud/storage';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -35,8 +36,12 @@ export class FirebaseService {
 
   async upload(name: string, contents: SaveData): Promise<string> {
     const fileRef = this.getBucket().file(name);
-    await fileRef.save(contents);
-    return await getDownloadURL(fileRef);
+    try {
+      await fileRef.save(contents);
+      return await getDownloadURL(fileRef);
+    } catch {
+      throw new UploadException();
+    }
   }
 
   async delete(name: string) {

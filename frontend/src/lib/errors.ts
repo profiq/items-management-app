@@ -37,6 +37,15 @@ export class BadRequestError extends Error {
   }
 }
 
+export class ServiceUnavailableError extends Error {
+  constructor(message?: string) {
+    super(message);
+    this.message =
+      message ?? `Service is unavailable, please retry again later`;
+    this.name = 'ServiceUnavailableError';
+  }
+}
+
 export function createError(status_code: StatusCodes, message?: string): Error {
   let error = new GenericError();
   switch (status_code) {
@@ -48,6 +57,9 @@ export function createError(status_code: StatusCodes, message?: string): Error {
       break;
     case StatusCodes.FORBIDDEN:
       error = new ForbiddenError(message);
+      break;
+    case StatusCodes.SERVICE_UNAVAILABLE:
+      error = new ServiceUnavailableError(message);
       break;
   }
   return error;

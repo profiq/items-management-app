@@ -7,7 +7,6 @@ import {
   Get,
   Header,
   Inject,
-  NotFoundException,
   Param,
   ParseIntPipe,
   Post,
@@ -24,6 +23,7 @@ import { User } from './user.entity';
 import { UserService } from './user.service';
 import { CreateUserRequest } from './dto/create_user';
 import { OfficePetService } from '@/office_pet/office_pet.service';
+import { UnknownUserException } from '@/lib/errors';
 
 @Controller('users')
 @ApiBearerAuth()
@@ -52,7 +52,7 @@ export class UserController {
   async getUserId(@Param('id', ParseIntPipe) id: number): Promise<User> {
     const user = await this.userService.getUserById(id);
     if (!user) {
-      throw new NotFoundException(`Could not find any user with id ${id}`);
+      throw new UnknownUserException();
     }
     return user;
   }
@@ -75,11 +75,7 @@ export class UserController {
     type: [OfficePet],
   })
   async getUserPets(@Param('id') id: number): Promise<OfficePet[]> {
-    const pets = await this.officePetService.getUserPets(id);
-    if (!pets) {
-      throw new NotFoundException(`Could not find any user with id ${id}`);
-    }
-    return pets;
+    return await this.officePetService.getUserPets(id);
   }
 
   @Delete(':id')
@@ -87,7 +83,7 @@ export class UserController {
   async deleteUser(@Param('id') id: number) {
     const deleted = await this.userService.deleteUser(id);
     if (!deleted) {
-      throw new NotFoundException(`Could not find any user with id ${id}`);
+      throw new UnknownUserException();
     }
     return;
   }

@@ -12,6 +12,8 @@ import { TimeDuration } from '@/lib/time';
 import { setupAuth } from './auth';
 import { StatusCodes } from 'http-status-codes';
 import { dbConfig } from './database';
+import { HttpAdapterHost } from '@nestjs/core';
+import { CustomExceptionsFilter } from '@/exception_filter/custom_exceptions.filter';
 
 describe('UserModule', () => {
   let app: INestApplication<App>;
@@ -37,6 +39,8 @@ describe('UserModule', () => {
       .compile();
 
     app = moduleFixture.createNestApplication();
+    const httpAdapterHost = app.get(HttpAdapterHost);
+    app.useGlobalFilters(new CustomExceptionsFilter(httpAdapterHost));
     await app.init();
     const dataSource = moduleFixture.get<DataSource>(getDataSourceToken());
     const userRepository = dataSource.getRepository(User);
