@@ -1,4 +1,5 @@
 import EmployeeRow from '@/components/employee-row';
+import { HoverInfo } from '@/components/hover-info';
 import Paging from '@/components/paging';
 import { StatusSpinning } from '@/components/status/status-spinning';
 import {
@@ -42,7 +43,18 @@ function Employees() {
     <>
       {query.isLoading && <StatusSpinning />}
       <div>
-        <h1>List of employees</h1>
+        <h1>
+          List of employees{' '}
+          <HoverInfo
+            text='This page uses Google Workspace API to list all the employees of the company.'
+            iconSize={10}
+            inline={true}
+            readmeSection={{
+              label: 'Google Workspace API',
+              id: 'google-workspace-api',
+            }}
+          />
+        </h1>
         <Table>
           <TableHeader>
             <TableRow>

@@ -434,6 +434,10 @@ TODO: add a diagram
 - Implementation:
   - [backend/src/pet_visit/pet_visit.service.ts](backend/src/pet_visit/pet_visit.service.ts#L27)
 
+## Protected Page
+
+TODO
+
 ---
 
 # Database diagram

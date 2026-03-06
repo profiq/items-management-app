@@ -1,3 +1,4 @@
+import { HoverInfo } from '@/components/hover-info';
 import PetDetail from '@/components/pets/pet-detail';
 import { StatusSpinning } from '@/components/status/status-spinning';
 import { Button } from '@/components/ui/button';
@@ -80,7 +81,13 @@ export default function PetDetailPage() {
             onClick={() => visit_mutation.mutate()}
           >
             Create pet visit
-          </Button>
+          </Button>{' '}
+          <HoverInfo
+            text='To create the pet visit in DB we use a transaction.'
+            iconSize={7}
+            inline={true}
+            readmeSection={{ label: 'Transactions', id: 'transactions' }}
+          />
         </div>
         <div className='mt-3'>
           <Link to={`/pets/${id}/update`}>

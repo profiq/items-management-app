@@ -22,9 +22,11 @@ describe('Login testing', () => {
       user: { email },
     } as unknown as AuthContextType);
 
-    const { getByText } = await render(<Login></Login>);
+    const { getByText, getByRole } = await render(<Login></Login>);
     await expect.element(getByText(email)).toBeInTheDocument();
-    await expect.element(getByText('Logout')).toBeInTheDocument();
+    await expect
+      .element(getByRole('button').getByText('Logout'))
+      .toBeInTheDocument();
     await expect.element(getByText('Loading')).not.toBeInTheDocument();
     await expect
       .element(getByText('Login with Google'))

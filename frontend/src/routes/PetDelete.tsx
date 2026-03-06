@@ -1,3 +1,4 @@
+import { HoverInfo } from '@/components/hover-info';
 import { StatusSpinning } from '@/components/status/status-spinning';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/providers/auth/useAuth';
@@ -42,7 +43,13 @@ export default function PetDeletePage() {
       {mutation.isPending && <StatusSpinning />}
       <div>
         <h1>
-          Delete Pet {pet.name} ({pet.id})
+          Delete Pet {pet.name} ({pet.id}){' '}
+          <HoverInfo
+            text="To delete the pet's visits when it gets deleted, we use the ON DELETE CASCADE option of SQL."
+            iconSize={10}
+            inline={true}
+            readmeSection={{ label: 'Database', id: 'database' }}
+          />
         </h1>
         <div>Are you sure you want to delete this pet?</div>
         <Button

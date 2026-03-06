@@ -1,3 +1,4 @@
+import { HoverInfo } from '@/components/hover-info';
 import Paging from '@/components/paging';
 import PetTable from '@/components/pets/pets-table';
 import { StatusSpinning } from '@/components/status/status-spinning';
@@ -37,7 +38,15 @@ export default function PetList() {
     <>
       {query.isLoading && <StatusSpinning />}
       <div>
-        <h1>List of pets</h1>
+        <h1>
+          List of pets{' '}
+          <HoverInfo
+            iconSize={10}
+            text='This pet list uses the database on the backend.'
+            readmeSection={{ label: 'Database', id: 'database' }}
+            inline={true}
+          />
+        </h1>
         <PetTable
           pets={pets.slice(
             maxPerPage * (pageNumber - 1),
