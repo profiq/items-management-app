@@ -243,9 +243,10 @@ All the secrets are kept in environment variables loaded from `.env` file in the
 
 ## CI/CD, Deployment
 
-- GitLab CI - for CI/CD we use GitLab's native `.gitlab-ci.yml`.
-- Firebase Hosting - for hosting the frontend, we use Google's Firebase Hosting
-- ... - for hosting the backend, we use ...
+- [GitLab CI](https://docs.gitlab.com/ci/) - for CI/CD we use GitLab's native `.gitlab-ci.yml`.
+- [Firebase Hosting](https://firebase.google.com/docs/hosting) - for hosting the frontend
+- [Cloud Run](cloud.google.com/run) - for hosting the backend
+- [Artifact Registry](https://docs.cloud.google.com/artifact-registry/docs/overview) - for hosting the backend images
 
 ---
 
