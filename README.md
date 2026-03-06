@@ -436,7 +436,12 @@ TODO: add a diagram
 
 ## Protected Page
 
-TODO
+- On the frontend, we use a component to protect the auth-only pages. If an unauthorized user attempts to access such a page, they get redirected to login
+- On the backend, this is enforced using a [Guard](https://docs.nestjs.com/guards) and a JWT signature check
+- Implementation:
+  - [frontend/src/components/ProtectedRoute.tsx](frontend/src/components/ProtectedRoute.tsx)
+  - [backend/src/auth/auth.guard.ts](backend/src/auth/auth.guard.ts)
+  - [backend/src/auth/auth.service.ts](backend/src/auth/auth.service.ts)
 
 ---
 
