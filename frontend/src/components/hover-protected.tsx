@@ -1,9 +1,5 @@
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '@/components/ui/hover-card';
 import { Lock } from 'lucide-react';
+import { HoverInfo } from './hover-info';
 
 type HoverProtectedProps = {
   inline?: boolean;
@@ -11,11 +7,11 @@ type HoverProtectedProps = {
 
 export function HoverProtected({ inline }: HoverProtectedProps) {
   return (
-    <HoverCard openDelay={10} closeDelay={50}>
-      <HoverCardTrigger>
-        <Lock className={`${inline ? 'inline' : ''} size-3`} />
-      </HoverCardTrigger>
-      <HoverCardContent>This page is protected by auth</HoverCardContent>
-    </HoverCard>
+    <HoverInfo
+      iconSize={3}
+      inline={inline}
+      Icon={Lock}
+      text={'This page is protected by auth'}
+    />
   );
 }
