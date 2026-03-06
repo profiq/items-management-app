@@ -30,6 +30,7 @@ import { useNavigate } from 'react-router';
 import { fileSchema } from '@/lib/fileschema';
 import { useRef } from 'react';
 import DropZone from '@/components/drop-zone';
+import { HoverInfo } from '@/components/hover-info';
 
 const formSchema = z.object({
   name: z
@@ -78,7 +79,15 @@ export default function PetCreate() {
   return (
     <>
       {mutation.isPending && <StatusSpinning />}
-      <h1 className='p-3'>Create a Pet</h1>
+      <h1 className='p-3'>
+        Create a Pet{' '}
+        <HoverInfo
+          text='For the form validation, we use zod and the form itself uses ReactHookForm.'
+          iconSize={10}
+          inline={true}
+          readmeSection={{ label: 'Forms', id: 'forms' }}
+        />
+      </h1>
       <div className='w-full border-solid border-2 p-3'>
         <form
           id='form-pet-create'
@@ -111,7 +120,16 @@ export default function PetCreate() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor='form-pet-create-owner'>
-                    Pet owner ID
+                    Pet owner ID{' '}
+                    <HoverInfo
+                      iconSize={4}
+                      text='For ensuring we create the requested user in the database, we use an interceptor.'
+                      inline={true}
+                      readmeSection={{
+                        label: 'Interceptors',
+                        id: 'interceptors',
+                      }}
+                    />
                   </FieldLabel>
                   <Combobox
                     onValueChange={(employee: Employee | null) => {
@@ -192,7 +210,16 @@ export default function PetCreate() {
               render={({ field, fieldState }) => (
                 <Field data-invalid={fieldState.invalid}>
                   <FieldLabel htmlFor='form-pet-create-image'>
-                    Pet image
+                    Pet image{' '}
+                    <HoverInfo
+                      text='We use Google Cloud Storage to save the image.'
+                      iconSize={4}
+                      inline={true}
+                      readmeSection={{
+                        label: 'Google Cloud Storage',
+                        id: 'google-cloud-storage',
+                      }}
+                    />
                   </FieldLabel>
 
                   <DropZone

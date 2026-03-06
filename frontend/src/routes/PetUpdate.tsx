@@ -32,6 +32,7 @@ import { getOfficePetOwner } from '@/services/office_pets/pet_owner';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { fileSchema } from '@/lib/fileschema';
 import DropZone from '@/components/drop-zone';
+import { HoverInfo } from '@/components/hover-info';
 
 const formSchema = z.object({
   name: z
@@ -112,7 +113,15 @@ export default function PetUpdate() {
     <>
       {((mutation.isPending || !defaultOwner) && <StatusSpinning />) || (
         <>
-          <h1 className='p-3'>Update a Pet</h1>
+          <h1 className='p-3'>
+            Update a Pet{' '}
+            <HoverInfo
+              text='For the form validation, we use zod and the form itself uses ReactHookForm.'
+              iconSize={10}
+              inline={true}
+              readmeSection={{ label: 'Forms', id: 'forms' }}
+            />
+          </h1>
           <div className='w-full border-solid border-2 p-3'>
             <form
               id='form-pet-update'
@@ -145,7 +154,16 @@ export default function PetUpdate() {
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
                       <FieldLabel htmlFor='form-pet-update-owner'>
-                        Pet Owner ID
+                        Pet Owner ID{' '}
+                        <HoverInfo
+                          iconSize={4}
+                          text='For ensuring we create the requested user in the database, we use an interceptor.'
+                          inline={true}
+                          readmeSection={{
+                            label: 'Interceptors',
+                            id: 'interceptors',
+                          }}
+                        />
                       </FieldLabel>
                       <Combobox
                         defaultInputValue={defaultOwner?.name}
@@ -231,7 +249,16 @@ export default function PetUpdate() {
                   render={({ field, fieldState }) => (
                     <Field data-invalid={fieldState.invalid}>
                       <FieldLabel htmlFor='form-pet-update-image'>
-                        Pet image
+                        Pet image{' '}
+                        <HoverInfo
+                          text='We use Google Cloud Storage to save the image.'
+                          iconSize={4}
+                          inline={true}
+                          readmeSection={{
+                            label: 'Google Cloud Storage',
+                            id: 'google-cloud-storage',
+                          }}
+                        />
                       </FieldLabel>
 
                       <DropZone

@@ -416,6 +416,13 @@ TODO: add a diagram
   - [backend/src/employee/employee.service.ts](backend/src/employee/employee.service.ts)
 - For general information about integration in projects, see the [Infrastructure wiki](https://gitlab.com/profiq/all/infra/infra/-/wikis/Integrations/Google-Workspace-Integration)
 
+## Google Cloud Storage
+
+- We use Google Cloud Storage for storing the pet images in a [Bucket](https://docs.cloud.google.com/storage/docs/buckets)
+- Implementation:
+  - [backend/src/firebase/firebase.service.ts](backend/src/firebase/firebase.service.ts)
+  - [backend/src/office_pet/office_pet.service.ts](backend/src/office_pet/office_pet.service.ts#L71)
+
 ## Database
 
 - We use TypeORM as the database access layer
@@ -442,6 +449,19 @@ TODO: add a diagram
   - [frontend/src/components/ProtectedRoute.tsx](frontend/src/components/ProtectedRoute.tsx)
   - [backend/src/auth/auth.guard.ts](backend/src/auth/auth.guard.ts)
   - [backend/src/auth/auth.service.ts](backend/src/auth/auth.service.ts)
+
+## Forms
+
+- For forms we use [React Hook Form](https://react-hook-form.com/) and for their validation we use [Zod](https://zod.dev/)
+- Implementation:
+  - [frontend/src/routes/PetCreate.tsx](frontend/src/routes/PetCreate.tsx#L31)
+  - [frontend/src/routes/PetUpdate.tsx](frontend/src/routes/PetUpdate.tsx#L34)
+
+### Interceptors
+
+- For ensuring the employee is created in the DB when a pet create or update request is fired, we use an [interceptor](https://docs.nestjs.com/interceptors)
+- Implementation:
+  - [backend/src/employee_hydration/employee_hydration.interceptor.ts](backend/src/employee_hydration/employee_hydration.interceptor.ts)
 
 ---
 
