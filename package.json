@@ -1,6 +1,6 @@
 {
   "name": "profiq-reference-app",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "The goal of this project is to build a reference project & architecture for all our future project. Meaning we want to have everything in this project correct. And it will be inspiration for all the future projects.",
   "scripts": {
     "changelog:stdout": "conventional-changelog --stdout -i /dev/null -p angular",

@@ -1,3 +1,9 @@
+## [0.0.3](gitlab.com/profiq/all/compare/0.0.2...0.0.3) (2026-03-13)
+
+### Bug Fixes
+
+- [#111](/gitlab.com/profiq/all/issues/111) fix commit in mysql ([2060939](gitlab.com/profiq/all/commits/2060939e7cf4ac02f736c9c4550bbfa39db7747b))
+
 ## [0.0.2](gitlab.com/profiq/all/compare/0.0.1...0.0.2) (2026-03-13)
 
 ## 0.0.1 (2026-03-13)
