@@ -130,13 +130,13 @@ export class OfficePetService {
       pet.species = update_data.species;
       pet.race = update_data.race;
       await runner.manager.save(pet);
-      runner.commitTransaction();
+      await runner.commitTransaction();
       return pet;
     } catch (e) {
-      runner.rollbackTransaction();
+      await runner.rollbackTransaction();
       throw e;
     } finally {
-      runner.release();
+      await runner.release();
     }
   }
 
