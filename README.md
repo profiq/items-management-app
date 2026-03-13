@@ -541,11 +541,18 @@ flowchart LR
 - We store the users (people who logged in or have an associated pet), office pets and the pets' visits in the DB
 - We use decorators in the entities
 - On production, we use [migrations](https://typeorm.io/docs/migrations/why/) for synchronization. On local dev, we use the [synchronize](https://typeorm.io/docs/help/faq/#how-do-i-update-a-database-schema) option
+- The production database is hosted at [Hostinger](https://www.hostinger.com/)
 - Implementation:
   - [backend/src/user/user.entity.ts](backend/src/user/user.entity.ts)
   - [backend/src/office_pet/office_pet.entity.ts](office_pet/office_pet.entity.ts)
   - [backend/src/pet_visit/pet_visit.entity.ts](backend/src/pet_visit/pet_visit.entity.ts)
   - [backend/src/datasource.ts](backend/src/datasource.ts)
+
+### Migrations
+
+- To manually run migrations against the database specified in environment variables, use `npm run migrations:run -w backend`. This is also done automatically at backend startup when using MariaDB
+- To generate new migrations from the data added to `*.entity.ts` files on the backend, use `npm run migrations:generate -w backend`. This also needs the previous migrations to be applied as per the previous point
+- To revert the newest migration, use `npm run migrations:rollback -w backend`
 
 ### Transactions
 
