@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "description": "The goal of this project is to build a reference project & architecture for all our future project. Meaning we want to have everything in this project correct. And it will be inspiration for all the future projects.",
   "scripts": {
+    "changelog:stdout": "conventional-changelog --stdout -i /dev/null -p angular",
+    "changelog:update": "conventional-changelog -p angular",
     "dev:backend": "npm run start:dev -w backend",
     "dev:frontend": "npm run dev -w frontend",
     "fix": "npm run fix:eslint && npm run fix:prettier",
@@ -30,6 +32,8 @@
     "backend"
   ],
   "dependencies": {
+    "conventional-changelog": "7.2.0",
+    "conventional-changelog-angular": "8.3.0",
     "eslint": "9.39.2",
     "eslint-plugin-react-hooks": "7.0.1",
     "globals": "17.0.0",

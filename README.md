@@ -393,7 +393,119 @@ backend-e2e:
 
 All the tests are in the same stage, so they run in parallel, thus ensuring higher performance. As you can see, `!reference` can be used directly in the script.
 
-TODO: add a diagram
+## Changelog Update
+
+```yaml
+update_changelog:
+  stage: update_changelog
+  rules:
+    - if: $CI_COMMIT_TAG
+  variables:
+    # disable shallow clone
+    GIT_DEPTH: 0
+  before_script:
+    - npm ci --workspaces=false
+    - git config user.name "gitlab-ci"
+    - git config user.email "gitlab-ci@example.invalid"
+    # ensure we do not have local tags
+    - git fetch --prune --prune-tags
+    - git switch main
+    - git reset --hard origin/main
+
+  script:
+    - npm version --no-git-tag-version "${CI_COMMIT_TAG}"
+    # the changelog generator expects the workflow to follow tag after bump,
+    # so delete the local version of the tag
+    - git tag -d "${CI_COMMIT_TAG}"
+    - npm run changelog:update
+    - git add .
+    - 'git commit -m "chore(changelog): update changelog to ${CI_COMMIT_TAG}"'
+    - git push origin HEAD:main
+    - npm run --silent changelog:stdout > changes.md
+    - git tag "${CI_COMMIT_TAG}"
+    - git push --force --tags
+  artifacts:
+    when: on_success
+    access: all
+    expire_in: '30 minutes'
+    paths:
+      - changes.md
+
+update_release_notes:
+  image: registry.gitlab.com/gitlab-org/cli:latest
+  needs:
+    - update_changelog
+  rules:
+    - if: $CI_COMMIT_TAG
+  stage: update_changelog
+  script:
+    - glab auth login --hostname $CI_SERVER_HOST --job-token $CI_JOB_TOKEN
+    - glab release create "${CI_COMMIT_TAG}" -F changes.md
+```
+
+This stage updates the changelog both in the repository ([CHANGELOG.md](CHANGELOG.md)) and in the release notes. GitLab checks if the tag originated from a CI/CD pipeline and ignores it if it did, so no cycle happens.
+
+## Diagram
+
+```mermaid
+flowchart LR
+    subgraph sub_cq[code_quality]
+    node_cq[code_quality]
+    end
+    style node_cq fill:cyan,color:black
+
+    subgraph sub_test[test]
+        direction LR
+        node_fe_test[frontend-test +]
+        node_be_test_unit[backend-unit *]
+        node_be_test_e2e[backend-e2e *]
+    end
+    sub_cq --> sub_test
+    style node_fe_test fill:cyan,color:black
+    style node_be_test_unit fill:cyan,color:black
+    style node_be_test_e2e fill:cyan,color:black
+
+
+    subgraph sub_build[build]
+        direction LR
+        node_be_build[backend-build *]
+        node_fe_build_dev[frontend-build-dev +]
+        node_fe_build_prod[frontend-build-production]
+    end
+    sub_test --> sub_build
+    style node_fe_build_dev fill:cyan,color:black
+    style node_be_build fill:orange,color:black
+    style node_fe_build_prod fill:lightgreen,color:black
+
+    subgraph sub_deploy[deploy]
+        direction LR
+        node_fe_deploy_dev[frontend-deploy-dev +]
+        node_be_deploy_dev[backend-deploy-dev *]
+        node_be_deploy_prod[backend-deploy-production]
+        node_fe_deploy_prod[frontend-deploy-production]
+    end
+
+    node_be_build --> node_be_deploy_dev
+    node_be_build --> node_be_deploy_prod
+    node_fe_build_dev --> node_fe_deploy_dev
+    node_fe_build_prod --> node_fe_deploy_prod
+
+    style node_fe_deploy_prod fill:lightgreen,color:black
+    style node_be_deploy_prod fill:lightgreen,color:black
+
+    style node_fe_deploy_dev fill:orange,color:black
+    style node_be_deploy_dev fill:orange,color:black
+```
+
+- **Cyan** jobs run when a tag is created, when a commit lands in main or when a merge request has new commits.
+
+- **Orange** jobs run when a commit lands in main or when the user specifically runs them in merge request.
+
+- **Green** jobs run when a tag is created.
+
+- A "+" means that the job only runs if something on the frontend has been changed.
+
+- A "\*" means that the job only runs if something on the backend has been changed.
 
 ---
 

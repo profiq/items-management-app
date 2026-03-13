@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc -b && vite build",
     "deploy": "firebase deploy --only hosting",
+    "deploy:production": "firebase -P pq-reference-app-prod deploy --only hosting",
     "dev": "vite",
     "firebase:emulator": "firebase emulators:start",
     "init:playwright": "playwright install --with-deps --only-shell chromium",
