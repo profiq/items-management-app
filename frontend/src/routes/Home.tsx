@@ -4,16 +4,16 @@ import { Card } from '@/components/ui/card';
 
 function Home() {
   return (
-    <>
-      <h1 className='text-3xl font-bold underline p-2'>
+    <div data-testid='home-page'>
+      <h1 className='text-3xl font-bold underline p-2' data-testid='home-title'>
         Reference website for Profiq.com
       </h1>
       <div className='text-left p-3'>
-        <Card>
-          <div className='p-3'>
+        <Card data-testid='home-card'>
+          <div className='p-3' data-testid='home-welcome-message'>
             Welcome to the reference website of Profiq SP
           </div>
-          <div className='p-3 underline'>
+          <div className='p-3 underline' data-testid='home-status-message'>
             As of this moment it is out of order.
           </div>
           <div className='p-3'>
@@ -37,7 +37,7 @@ function Home() {
           </div>
         </Card>
       </div>
-    </>
+    </div>
   );
 }
 
