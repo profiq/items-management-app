@@ -26,7 +26,7 @@ function Login() {
   if (loading) {
     return (
       <>
-        <div>Loading</div>
+        <div data-testid='login-loading'>Loading</div>
       </>
     );
   }
@@ -34,7 +34,7 @@ function Login() {
   if (!user) {
     return (
       <>
-        <div>
+        <div data-testid='login-page'>
           <Card className='mx-auto w-full max-w-sm'>
             <CardHeader>
               <CardTitle>
@@ -56,12 +56,15 @@ function Login() {
                 variant='outline'
                 onClick={handleLogin}
                 disabled={signingIn}
+                data-testid='login-button'
               >
                 Login With Google
               </Button>
             </CardContent>
             <CardFooter>
-              <div className='text-red-500'>{error}</div>
+              <div className='text-red-500' data-testid='login-error'>
+                {error}
+              </div>
             </CardFooter>
           </Card>
         </div>
@@ -71,7 +74,7 @@ function Login() {
 
   return (
     <>
-      <div>
+      <div data-testid='logout-page'>
         <Card className='mx-auto w-full max-w-sm'>
           <CardHeader>
             <CardTitle>
@@ -88,13 +91,14 @@ function Login() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div>
+            <div data-testid='logged-in-user'>
               Logged in as {user.email}, {user.displayName}
             </div>
             <Button
               className='cursor-pointer w-full mt-3'
               variant='outline'
               onClick={logout}
+              data-testid='logout-button'
             >
               Logout
             </Button>
