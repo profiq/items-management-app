@@ -30,6 +30,7 @@ export type PagingProps = {
   maxPage: number;
   setMaxPerPage: Dispatch<SetStateAction<number>>;
   buttonCount?: number;
+  testId?: string;
 };
 
 export default function Paging({
@@ -38,6 +39,7 @@ export default function Paging({
   maxPage,
   setMaxPerPage,
   buttonCount = 5,
+  testId = 'paging',
 }: PagingProps) {
   const start = Math.max(1, currentPage - Math.floor(buttonCount / 2));
   const end = Math.min(
@@ -45,35 +47,58 @@ export default function Paging({
     Math.min(Math.floor(buttonCount / 2) + currentPage, maxPage)
   );
   return (
-    <div className='flex items-center gap-4 mt-3'>
+    <div className='flex items-center gap-4 mt-3' data-testid={testId}>
       <Field orientation='horizontal' className='w-fit mr-auto'>
         <FieldLabel htmlFor='select-rows-per-page'>Rows per page</FieldLabel>
         <Select
           defaultValue='25'
           onValueChange={value => setMaxPerPage(parseInt(value))}
         >
-          <SelectTrigger id='select-rows-per-page' className='cursor-pointer'>
+          <SelectTrigger
+            id='select-rows-per-page'
+            className='cursor-pointer'
+            data-testid={`${testId}-rows-per-page`}
+          >
             <SelectValue />
           </SelectTrigger>
           <SelectContent align='start'>
             <SelectGroup>
-              <SelectItem value='10' className='cursor-pointer'>
+              <SelectItem
+                value='10'
+                className='cursor-pointer'
+                data-testid={`${testId}-rows-10`}
+              >
                 10
               </SelectItem>
-              <SelectItem value='25' className='cursor-pointer'>
+              <SelectItem
+                value='25'
+                className='cursor-pointer'
+                data-testid={`${testId}-rows-25`}
+              >
                 25
               </SelectItem>
-              <SelectItem value='50' className='cursor-pointer'>
+              <SelectItem
+                value='50'
+                className='cursor-pointer'
+                data-testid={`${testId}-rows-50`}
+              >
                 50
               </SelectItem>
-              <SelectItem value='100' className='cursor-pointer'>
+              <SelectItem
+                value='100'
+                className='cursor-pointer'
+                data-testid={`${testId}-rows-100`}
+              >
                 100
               </SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>
       </Field>
-      <Pagination className='mx-0 w-auto absolute left-1/2 -translate-x-1/2'>
+      <Pagination
+        className='mx-0 w-auto absolute left-1/2 -translate-x-1/2'
+        data-testid={`${testId}-pagination`}
+      >
         <PaginationContent>
           <PaginationItem
             className={currentPage > 1 ? 'cursor-pointer' : 'cursor-default'}
@@ -85,6 +110,7 @@ export default function Paging({
                 }
                 setSearchParams({ page: (currentPage - 1).toString() });
               }}
+              data-testid={`${testId}-previous`}
             />
           </PaginationItem>
           {Array.from({ length: end - start + 1 }, (_, i) => start + i).map(
@@ -93,6 +119,7 @@ export default function Paging({
                 <PaginationLink
                   onClick={() => setSearchParams({ page: num.toString() })}
                   isActive={num == currentPage}
+                  data-testid={`${testId}-page-${num}`}
                 >
                   {num}
                 </PaginationLink>
@@ -111,6 +138,7 @@ export default function Paging({
                 }
                 setSearchParams({ page: (currentPage + 1).toString() });
               }}
+              data-testid={`${testId}-next`}
             />
           </PaginationItem>
         </PaginationContent>
