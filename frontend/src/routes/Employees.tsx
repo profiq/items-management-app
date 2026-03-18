@@ -41,9 +41,9 @@ function Employees() {
 
   return (
     <>
-      {query.isLoading && <StatusSpinning />}
-      <div>
-        <h1>
+      {query.isLoading && <StatusSpinning data-testid='employees-loading' />}
+      <div data-testid='employees-page'>
+        <h1 data-testid='employees-title'>
           List of employees{' '}
           <HoverInfo
             text='This page uses Google Workspace API to list all the employees of the company.'
@@ -53,9 +53,10 @@ function Employees() {
               label: 'Google Workspace API',
               id: 'google-workspace-api',
             }}
+            testId='employees-hover-info'
           />
         </h1>
-        <Table>
+        <Table data-testid='employees-table'>
           <TableHeader>
             <TableRow>
               <TableHead>ID</TableHead>
@@ -64,7 +65,7 @@ function Employees() {
               <TableHead>Photo</TableHead>
             </TableRow>
           </TableHeader>
-          <TableBody>
+          <TableBody data-testid='employees-table-body'>
             {employees
               .slice(maxPerPage * (pageNumber - 1), maxPerPage * pageNumber)
               .map(EmployeeRow)}
@@ -76,6 +77,7 @@ function Employees() {
           maxPage={maxPages}
           setMaxPerPage={setMaxPerPage}
           buttonCount={5}
+          testId='employees-paging'
         />
       </div>
     </>
