@@ -26,6 +26,7 @@ type HoverInfoProps = {
   inline?: boolean;
   readmeSection?: TooltipReadme;
   Icon?: LucideReactIcon;
+  testId?: string;
 };
 
 export function HoverInfo({
@@ -34,14 +35,18 @@ export function HoverInfo({
   inline,
   readmeSection,
   Icon = Info,
+  testId = 'hover-info',
 }: HoverInfoProps) {
   return (
     <HoverCard openDelay={10} closeDelay={50}>
       <HoverCardTrigger asChild>
-        <Icon className={`${inline ? 'inline' : ''} size-${iconSize}`} />
+        <Icon
+          className={`${inline ? 'inline' : ''} size-${iconSize}`}
+          data-testid={`${testId}-trigger`}
+        />
       </HoverCardTrigger>
-      <HoverCardContent>
-        {text}
+      <HoverCardContent data-testid={`${testId}-content`}>
+        <span data-testid={`${testId}-text`}>{text}</span>
         {readmeSection && (
           <>
             <div>
@@ -53,6 +58,7 @@ export function HoverInfo({
                   hash: readmeSection.id,
                 }}
                 target='_blank'
+                data-testid={`${testId}-link`}
               >
                 README.md {readmeSection.label} section
               </Link>
