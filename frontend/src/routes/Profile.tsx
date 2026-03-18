@@ -4,8 +4,8 @@ import UserInfo from '@/components/user-info';
 export default function Profile() {
   return (
     <>
-      <div>
-        <h1>
+      <div data-testid='profile-page'>
+        <h1 data-testid='profile-title'>
           Profile{' '}
           <HoverInfo
             text='This is an example "protected" page and is unavailable without logging in to an account. This is ensured using the ProtectedRoute component.'
@@ -14,8 +14,11 @@ export default function Profile() {
             inline={true}
           />
         </h1>
-        <div>Only for profiq eyes!</div>
-        <div className='text-gray-250 text-sm'>
+        <div data-testid='profile-subtitle'>Only for profiq eyes!</div>
+        <div
+          className='text-gray-250 text-sm'
+          data-testid='profile-security-note'
+        >
           This is client-side enforced - in terms of security, this is no
           security
         </div>
