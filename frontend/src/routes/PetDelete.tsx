@@ -38,11 +38,11 @@ export default function PetDeletePage() {
     return <>{query.isLoading && <StatusSpinning />}</>;
   }
   return (
-    <>
+    <div data-testid='pet-delete-page'>
       {query.isLoading && <StatusSpinning />}
       {mutation.isPending && <StatusSpinning />}
       <div>
-        <h1>
+        <h1 data-testid='pet-delete-title'>
           Delete Pet {pet.name} ({pet.id}){' '}
           <HoverInfo
             text="To delete the pet's visits when it gets deleted, we use the ON DELETE CASCADE option of SQL."
@@ -51,15 +51,18 @@ export default function PetDeletePage() {
             readmeSection={{ label: 'Database', id: 'database' }}
           />
         </h1>
-        <div>Are you sure you want to delete this pet?</div>
+        <div data-testid='pet-delete-confirmation'>
+          Are you sure you want to delete this pet?
+        </div>
         <Button
           className='cursor-pointer mt-3'
           variant='destructive'
           onClick={() => mutation.mutate()}
+          data-testid='pet-delete-confirm-button'
         >
           Delete the pet
         </Button>
       </div>
-    </>
+    </div>
   );
 }

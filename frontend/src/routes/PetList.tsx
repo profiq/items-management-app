@@ -35,10 +35,10 @@ export default function PetList() {
   }
 
   return (
-    <>
+    <div data-testid='pet-list-page'>
       {query.isLoading && <StatusSpinning />}
       <div>
-        <h1>
+        <h1 data-testid='pet-list-title'>
           List of pets{' '}
           <HoverInfo
             iconSize={10}
@@ -55,7 +55,11 @@ export default function PetList() {
         />
       </div>
       <Link to={`/create-pet`}>
-        <Button className='cursor-pointer mt-3' variant='secondary'>
+        <Button
+          className='cursor-pointer mt-3'
+          variant='secondary'
+          data-testid='pet-list-create-button'
+        >
           Create a new pet
         </Button>
       </Link>
@@ -65,6 +69,6 @@ export default function PetList() {
         maxPage={maxPages}
         setMaxPerPage={setMaxPerPage}
       />
-    </>
+    </div>
   );
 }

@@ -110,10 +110,10 @@ export default function PetUpdate() {
 
   const fileRef = useRef<HTMLInputElement | null>(null);
   return (
-    <>
+    <div data-testid='pet-update-page'>
       {((mutation.isPending || !defaultOwner) && <StatusSpinning />) || (
         <>
-          <h1 className='p-3'>
+          <h1 className='p-3' data-testid='pet-update-title'>
             Update a Pet{' '}
             <HoverInfo
               text='For the form validation, we use zod and the form itself uses ReactHookForm.'
@@ -126,6 +126,7 @@ export default function PetUpdate() {
             <form
               id='form-pet-update'
               onSubmit={form.handleSubmit(data => mutation.mutate(data))}
+              data-testid='pet-update-form'
             >
               <FieldGroup>
                 <Controller
@@ -141,6 +142,7 @@ export default function PetUpdate() {
                         id='form-pet-update-name'
                         aria-invalid={fieldState.invalid}
                         autoComplete='off'
+                        data-testid='pet-update-name-input'
                       />
                       {fieldState.invalid && (
                         <FieldError errors={[fieldState.error]} />
@@ -177,10 +179,12 @@ export default function PetUpdate() {
                         itemToStringLabel={(employee: Employee) =>
                           employee.name
                         }
+                        data-testid='pet-update-owner-combobox'
                       >
                         <ComboboxInput
                           placeholder='Please select an employee'
                           id='form-pet-create-owner'
+                          data-testid='pet-update-owner-input'
                         />
                         <ComboboxContent>
                           <ComboboxEmpty>
@@ -216,6 +220,7 @@ export default function PetUpdate() {
                         id='form-pet-update-name'
                         aria-invalid={fieldState.invalid}
                         autoComplete='off'
+                        data-testid='pet-update-species-input'
                       />
                       {fieldState.invalid && (
                         <FieldError errors={[fieldState.error]} />
@@ -236,6 +241,7 @@ export default function PetUpdate() {
                         id='form-pet-update-name'
                         aria-invalid={fieldState.invalid}
                         autoComplete='off'
+                        data-testid='pet-update-race-input'
                       />
                       {fieldState.invalid && (
                         <FieldError errors={[fieldState.error]} />
@@ -267,6 +273,7 @@ export default function PetUpdate() {
                         fileRef={fileRef}
                         id='form-pet-update-image'
                         resetField={form.resetField}
+                        data-testid='pet-update-image-dropzone'
                       />
 
                       {fieldState.invalid && (
@@ -284,6 +291,7 @@ export default function PetUpdate() {
                   type='button'
                   variant='destructive'
                   onClick={() => form.reset()}
+                  data-testid='pet-update-reset-button'
                 >
                   Reset
                 </Button>
@@ -292,6 +300,7 @@ export default function PetUpdate() {
                   type='submit'
                   form='form-pet-update'
                   variant='default'
+                  data-testid='pet-update-submit-button'
                 >
                   Submit
                 </Button>
@@ -300,6 +309,6 @@ export default function PetUpdate() {
           </div>
         </>
       )}
-    </>
+    </div>
   );
 }

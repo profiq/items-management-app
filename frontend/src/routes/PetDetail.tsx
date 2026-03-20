@@ -65,10 +65,10 @@ export default function PetDetailPage() {
     return <>{pet_query.isLoading && <StatusSpinning />}</>;
   }
   return (
-    <>
+    <div data-testid='pet-detail-page'>
       {pet_query.isLoading && <StatusSpinning />}
       <div>
-        <h1>Details of a Pet</h1>
+        <h1 data-testid='pet-detail-page-title'>Details of a Pet</h1>
         <PetDetail
           pet={pet}
           owner={owner_query.data}
@@ -79,6 +79,7 @@ export default function PetDetailPage() {
             className='cursor-pointer'
             variant='default'
             onClick={() => visit_mutation.mutate()}
+            data-testid='pet-detail-create-visit-button'
           >
             Create pet visit
           </Button>{' '}
@@ -91,17 +92,25 @@ export default function PetDetailPage() {
         </div>
         <div className='mt-3'>
           <Link to={`/pets/${id}/update`}>
-            <Button className='cursor-pointer mx-1' variant='outline'>
+            <Button
+              className='cursor-pointer mx-1'
+              variant='outline'
+              data-testid='pet-detail-update-button'
+            >
               Update pet
             </Button>
           </Link>
           <Link to={`/pets/${id}/delete`}>
-            <Button className='cursor-pointer mx-1' variant='destructive'>
+            <Button
+              className='cursor-pointer mx-1'
+              variant='destructive'
+              data-testid='pet-detail-delete-button'
+            >
               Delete this pet
             </Button>
           </Link>
         </div>
       </div>
-    </>
+    </div>
   );
 }

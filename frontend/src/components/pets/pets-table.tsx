@@ -13,7 +13,7 @@ type PetTableRow = {
 };
 function PetTable({ pets }: PetTableRow) {
   return (
-    <Table>
+    <Table data-testid='pet-table'>
       <TableHeader>
         <TableRow>
           <TableHead>ID</TableHead>
@@ -23,7 +23,7 @@ function PetTable({ pets }: PetTableRow) {
           <TableHead>Image</TableHead>
         </TableRow>
       </TableHeader>
-      <TableBody>
+      <TableBody data-testid='pet-table-body'>
         {pets.map(pet => (
           <PetRow pet={pet} key={pet.id} />
         ))}

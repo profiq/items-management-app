@@ -11,24 +11,31 @@ type PetDetailProps = {
 };
 export default function PetDetail({ pet, owner, visits }: PetDetailProps) {
   return (
-    <>
+    <div data-testid='pet-detail'>
       {pet.image_url && (
-        <Avatar className='mr-auto ml-auto size-44'>
+        <Avatar
+          className='mr-auto ml-auto size-44'
+          data-testid='pet-detail-avatar'
+        >
           <AvatarImage src={pet.image_url} />
           <AvatarFallback>Pet Image</AvatarFallback>
         </Avatar>
       )}
-      <div>ID: {pet.id}</div>
-      <div>Name: {pet.name}</div>
-      <div>Species: {pet.species}</div>
-      <div>Race: {pet.race}</div>
+      <div data-testid='pet-detail-id'>ID: {pet.id}</div>
+      <div data-testid='pet-detail-name'>Name: {pet.name}</div>
+      <div data-testid='pet-detail-species'>Species: {pet.species}</div>
+      <div data-testid='pet-detail-race'>Race: {pet.race}</div>
       {owner && (
-        <>
-          <div>Owner name: {owner.name}</div>
-          <div>Owner ID: {owner.employee_id}</div>
-        </>
+        <div data-testid='pet-detail-owner'>
+          <div data-testid='pet-detail-owner-name'>
+            Owner name: {owner.name}
+          </div>
+          <div data-testid='pet-detail-owner-id'>
+            Owner ID: {owner.employee_id}
+          </div>
+        </div>
       )}
       {visits && visits.length > 0 && <PetVisitsTable visits={visits} />}
-    </>
+    </div>
   );
 }
