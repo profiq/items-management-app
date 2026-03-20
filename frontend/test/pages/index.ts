@@ -5,3 +5,4 @@ export { LoginPage } from './LoginPage';
 export { ProfilePage } from './ProfilePage';
 export { EmployeesPage } from './EmployeesPage';
 export { PetListPage } from './PetListPage';
+export { PetDetailPage } from './PetDetailPage';
