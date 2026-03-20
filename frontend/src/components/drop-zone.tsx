@@ -16,6 +16,7 @@ type DropZoneProps<T extends FieldValues> = {
   fileRef: RefObject<HTMLInputElement | null>;
   id: string;
   resetField: UseFormResetField<T>;
+  'data-testid'?: string;
 };
 
 export default function DropZone<T extends FieldValues>({
@@ -24,12 +25,14 @@ export default function DropZone<T extends FieldValues>({
   fieldState,
   id,
   resetField,
+  'data-testid': testId,
 }: DropZoneProps<T>) {
   const [dragging, setDragging] = useState<boolean>(false);
   return (
     <>
       <div
         role='button'
+        data-testid={testId}
         data-invalid={fieldState.invalid}
         onClick={() => fileRef.current?.click()}
         onDragOver={e => {
