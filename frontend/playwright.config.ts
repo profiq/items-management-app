@@ -4,9 +4,35 @@ import { defineConfig, devices } from '@playwright/test';
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
  */
-// import dotenv from 'dotenv';
-// import path from 'path';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
+import dotenv from 'dotenv';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+type getGoogleCredentialsType = {
+  GOOGLE_CLIENT_EMAIL: string;
+  GOOGLE_PRIVATE_KEY: string;
+};
+
+function getGoogleCredentials(): getGoogleCredentialsType {
+  const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+  dotenv.config({ path: path.resolve(__dirname, '../.env') });
+  if (process.env.GOOGLE_CLIENT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
+    return {
+      GOOGLE_CLIENT_EMAIL: process.env.GOOGLE_CLIENT_EMAIL,
+      GOOGLE_PRIVATE_KEY: process.env.GOOGLE_PRIVATE_KEY,
+    };
+  }
+  const encoded_creds = process.env.GOOGLE_APPLICATION_CREDENTIALS_BASE64;
+  if (!encoded_creds) {
+    throw new Error(`Missing google creds`);
+  }
+  const decoded_creds = JSON.parse(atob(encoded_creds));
+  return {
+    GOOGLE_CLIENT_EMAIL: decoded_creds.client_email,
+    GOOGLE_PRIVATE_KEY: decoded_creds.private_key,
+  };
+}
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -66,12 +92,31 @@ export default defineConfig({
       url: 'http://localhost:5173',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
+      env: {
+        VITE_FIREBASE_EMULATE: 'true',
+        VITE_FIREBASE_EMULATOR_URL: 'http://localhost:9099',
+        GOOGLE_STORAGE_BUCKET: 'pq-reference-app-dev.firebasestorage.app',
+        VITE_API_URL: 'http://127.0.0.1:3000',
+      },
     },
     {
       command: 'npm run firebase:emulator',
       url: 'http://localhost:9099',
       reuseExistingServer: !process.env.CI,
       timeout: 120 * 1000,
+    },
+    {
+      command: 'npm run start -w backend',
+      timeout: 120 * 1000,
+      reuseExistingServer: !process.env.CI,
+      url: 'http://localhost:3000/pets',
+      cwd: '..',
+      env: {
+        FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099',
+        GOOGLE_STORAGE_BUCKET: 'pq-reference-app-dev.firebasestorage.app',
+        FIREBASE_STORAGE_EMULATOR_HOST: '127.0.0.1:9199',
+        ...getGoogleCredentials(),
+      },
     },
   ],
 });
