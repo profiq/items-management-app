@@ -77,9 +77,9 @@ export default function PetCreate() {
 
   const fileRef = useRef<HTMLInputElement | null>(null);
   return (
-    <>
+    <div data-testid='pet-create-page'>
       {mutation.isPending && <StatusSpinning />}
-      <h1 className='p-3'>
+      <h1 className='p-3' data-testid='pet-create-title'>
         Create a Pet{' '}
         <HoverInfo
           text='For the form validation, we use zod and the form itself uses ReactHookForm.'
@@ -92,6 +92,7 @@ export default function PetCreate() {
         <form
           id='form-pet-create'
           onSubmit={form.handleSubmit(data => mutation.mutate(data))}
+          data-testid='pet-create-form'
         >
           <FieldGroup>
             <Controller
@@ -107,6 +108,7 @@ export default function PetCreate() {
                     id='form-pet-create-name'
                     aria-invalid={fieldState.invalid}
                     autoComplete='off'
+                    data-testid='pet-create-name-input'
                   />
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
@@ -138,10 +140,12 @@ export default function PetCreate() {
                     items={employees}
                     itemToStringValue={(employee: Employee) => employee.name}
                     itemToStringLabel={(employee: Employee) => employee.name}
+                    data-testid='pet-create-owner-combobox'
                   >
                     <ComboboxInput
                       placeholder='Please select an employee'
                       id='form-pet-create-owner'
+                      data-testid='pet-create-owner-input'
                     />
                     <ComboboxContent>
                       <ComboboxEmpty>
@@ -177,6 +181,7 @@ export default function PetCreate() {
                     id='form-pet-create-species'
                     aria-invalid={fieldState.invalid}
                     autoComplete='off'
+                    data-testid='pet-create-species-input'
                   />
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
@@ -197,6 +202,7 @@ export default function PetCreate() {
                     id='form-pet-create-race'
                     aria-invalid={fieldState.invalid}
                     autoComplete='off'
+                    data-testid='pet-create-race-input'
                   />
                   {fieldState.invalid && (
                     <FieldError errors={[fieldState.error]} />
@@ -228,6 +234,7 @@ export default function PetCreate() {
                     fileRef={fileRef}
                     resetField={form.resetField}
                     id='form-pet-create-image'
+                    data-testid='pet-create-image-dropzone'
                   />
 
                   {fieldState.invalid && (
@@ -245,6 +252,7 @@ export default function PetCreate() {
               type='button'
               variant='destructive'
               onClick={() => form.reset()}
+              data-testid='pet-create-reset-button'
             >
               Reset
             </Button>
@@ -253,12 +261,13 @@ export default function PetCreate() {
               type='submit'
               form='form-pet-create'
               variant='default'
+              data-testid='pet-create-submit-button'
             >
               Submit
             </Button>
           </Field>
         </FieldGroup>
       </div>
-    </>
+    </div>
   );
 }
