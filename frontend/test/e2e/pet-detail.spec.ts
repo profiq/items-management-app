@@ -1,5 +1,4 @@
 import { test, expect } from '../fixtures';
-import { PetDetailPage } from '../pages';
 import { getFirstPetId } from '../helpers';
 
 test.describe('Pet Detail Page', () => {
@@ -17,6 +16,7 @@ test.describe('Pet Detail Page', () => {
 
   test.describe('when authenticated', () => {
     test('should display the pet detail page', async ({
+      petDetailPage,
       authenticatedPage,
     }) => {
       const petId = await getFirstPetId(authenticatedPage);
@@ -25,20 +25,21 @@ test.describe('Pet Detail Page', () => {
         return;
       }
 
-      const petDetailPage = new PetDetailPage(authenticatedPage);
       await petDetailPage.navigateToPet(petId);
 
       await petDetailPage.expectPageToBeVisible();
     });
 
-    test('should display the correct title', async ({ authenticatedPage }) => {
+    test('should display the correct title', async ({
+      petDetailPage,
+      authenticatedPage,
+    }) => {
       const petId = await getFirstPetId(authenticatedPage);
       if (!petId) {
         test.skip();
         return;
       }
 
-      const petDetailPage = new PetDetailPage(authenticatedPage);
       await petDetailPage.navigateToPet(petId);
 
       await petDetailPage.expectTitleToBeVisible();
@@ -46,14 +47,16 @@ test.describe('Pet Detail Page', () => {
       expect(titleText).toContain('Details of a Pet');
     });
 
-    test('should display pet details', async ({ authenticatedPage }) => {
+    test('should display pet details', async ({
+      petDetailPage,
+      authenticatedPage,
+    }) => {
       const petId = await getFirstPetId(authenticatedPage);
       if (!petId) {
         test.skip();
         return;
       }
 
-      const petDetailPage = new PetDetailPage(authenticatedPage);
       await petDetailPage.navigateToPet(petId);
       await petDetailPage.waitForPetToLoad();
 
@@ -64,14 +67,16 @@ test.describe('Pet Detail Page', () => {
       await expect(petDetailPage.petRace).toBeVisible();
     });
 
-    test('should display action buttons', async ({ authenticatedPage }) => {
+    test('should display action buttons', async ({
+      petDetailPage,
+      authenticatedPage,
+    }) => {
       const petId = await getFirstPetId(authenticatedPage);
       if (!petId) {
         test.skip();
         return;
       }
 
-      const petDetailPage = new PetDetailPage(authenticatedPage);
       await petDetailPage.navigateToPet(petId);
       await petDetailPage.waitForPetToLoad();
 
@@ -81,6 +86,8 @@ test.describe('Pet Detail Page', () => {
     });
 
     test('should navigate to update page when clicking update button', async ({
+      petDetailPage,
+      petUpdatePage,
       authenticatedPage,
     }) => {
       const petId = await getFirstPetId(authenticatedPage);
@@ -89,18 +96,18 @@ test.describe('Pet Detail Page', () => {
         return;
       }
 
-      const petDetailPage = new PetDetailPage(authenticatedPage);
       await petDetailPage.navigateToPet(petId);
       await petDetailPage.waitForPetToLoad();
 
       await petDetailPage.clickUpdate();
 
-      await expect(authenticatedPage).toHaveURL(
-        new RegExp(`/pets/${petId}/update`)
-      );
+      const url = await petUpdatePage.getCurrentUrl();
+      expect(url).toContain(`/pets/${petId}/update`);
     });
 
     test('should navigate to delete page when clicking delete button', async ({
+      petDetailPage,
+      petDeletePage,
       authenticatedPage,
     }) => {
       const petId = await getFirstPetId(authenticatedPage);
@@ -109,25 +116,25 @@ test.describe('Pet Detail Page', () => {
         return;
       }
 
-      const petDetailPage = new PetDetailPage(authenticatedPage);
       await petDetailPage.navigateToPet(petId);
       await petDetailPage.waitForPetToLoad();
 
       await petDetailPage.clickDelete();
 
-      await expect(authenticatedPage).toHaveURL(
-        new RegExp(`/pets/${petId}/delete`)
-      );
+      const url = await petDeletePage.getCurrentUrl();
+      expect(url).toContain(`/pets/${petId}/delete`);
     });
 
-    test('should have correct URL', async ({ authenticatedPage }) => {
+    test('should have correct URL', async ({
+      petDetailPage,
+      authenticatedPage,
+    }) => {
       const petId = await getFirstPetId(authenticatedPage);
       if (!petId) {
         test.skip();
         return;
       }
 
-      const petDetailPage = new PetDetailPage(authenticatedPage);
       await petDetailPage.navigateToPet(petId);
 
       const url = await petDetailPage.getCurrentUrl();

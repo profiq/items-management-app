@@ -1,5 +1,4 @@
 import { test, expect } from '../fixtures';
-import { PetDeletePage } from '../pages';
 import { getFirstPetId } from '../helpers';
 
 test.describe('Pet Delete Page', () => {
@@ -14,6 +13,7 @@ test.describe('Pet Delete Page', () => {
 
   test.describe('when authenticated', () => {
     test('should display the delete pet page', async ({
+      petDeletePage,
       authenticatedPage,
     }) => {
       const petId = await getFirstPetId(authenticatedPage);
@@ -22,13 +22,13 @@ test.describe('Pet Delete Page', () => {
         return;
       }
 
-      const deletePage = new PetDeletePage(authenticatedPage);
-      await deletePage.navigateToDeletePet(petId);
+      await petDeletePage.navigateToDeletePet(petId);
 
-      await deletePage.expectPageToBeVisible();
+      await petDeletePage.expectPageToBeVisible();
     });
 
     test('should display the title with pet name', async ({
+      petDeletePage,
       authenticatedPage,
     }) => {
       const petId = await getFirstPetId(authenticatedPage);
@@ -37,16 +37,16 @@ test.describe('Pet Delete Page', () => {
         return;
       }
 
-      const deletePage = new PetDeletePage(authenticatedPage);
-      await deletePage.navigateToDeletePet(petId);
-      await deletePage.waitForDeletePageToLoad();
+      await petDeletePage.navigateToDeletePet(petId);
+      await petDeletePage.waitForDeletePageToLoad();
 
-      await deletePage.expectTitleToBeVisible();
-      const titleText = await deletePage.getTitleText();
+      await petDeletePage.expectTitleToBeVisible();
+      const titleText = await petDeletePage.getTitleText();
       expect(titleText).toContain('Delete Pet');
     });
 
     test('should display confirmation message', async ({
+      petDeletePage,
       authenticatedPage,
     }) => {
       const petId = await getFirstPetId(authenticatedPage);
@@ -55,18 +55,18 @@ test.describe('Pet Delete Page', () => {
         return;
       }
 
-      const deletePage = new PetDeletePage(authenticatedPage);
-      await deletePage.navigateToDeletePet(petId);
-      await deletePage.waitForDeletePageToLoad();
+      await petDeletePage.navigateToDeletePet(petId);
+      await petDeletePage.waitForDeletePageToLoad();
 
-      await deletePage.expectConfirmationMessageToBeVisible();
-      const confirmText = await deletePage.getConfirmationMessageText();
+      await petDeletePage.expectConfirmationMessageToBeVisible();
+      const confirmText = await petDeletePage.getConfirmationMessageText();
       expect(confirmText).toContain(
         'Are you sure you want to delete this pet?'
       );
     });
 
     test('should display confirm delete button', async ({
+      petDeletePage,
       authenticatedPage,
     }) => {
       const petId = await getFirstPetId(authenticatedPage);
@@ -75,24 +75,25 @@ test.describe('Pet Delete Page', () => {
         return;
       }
 
-      const deletePage = new PetDeletePage(authenticatedPage);
-      await deletePage.navigateToDeletePet(petId);
-      await deletePage.waitForDeletePageToLoad();
+      await petDeletePage.navigateToDeletePet(petId);
+      await petDeletePage.waitForDeletePageToLoad();
 
-      await deletePage.expectConfirmDeleteButtonToBeVisible();
+      await petDeletePage.expectConfirmDeleteButtonToBeVisible();
     });
 
-    test('should have correct URL', async ({ authenticatedPage }) => {
+    test('should have correct URL', async ({
+      petDeletePage,
+      authenticatedPage,
+    }) => {
       const petId = await getFirstPetId(authenticatedPage);
       if (!petId) {
         test.skip();
         return;
       }
 
-      const deletePage = new PetDeletePage(authenticatedPage);
-      await deletePage.navigateToDeletePet(petId);
+      await petDeletePage.navigateToDeletePet(petId);
 
-      const url = await deletePage.getCurrentUrl();
+      const url = await petDeletePage.getCurrentUrl();
       expect(url).toContain(`/pets/${petId}/delete`);
     });
   });

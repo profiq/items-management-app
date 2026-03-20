@@ -3,33 +3,25 @@ import { LoginPage } from '../pages';
 
 test.describe('Login Page', () => {
   test.describe('when not authenticated', () => {
-    test('should display the login page', async ({ page }) => {
-      const loginPage = new LoginPage(page);
-      await loginPage.navigate();
-
+    test('should display the login page', async ({ loginPage }) => {
       await loginPage.expectPageToBeVisible();
       await loginPage.expectLoginButtonToBeVisible();
     });
 
     test('should display the login button with correct text', async ({
-      page,
+      loginPage,
     }) => {
-      const loginPage = new LoginPage(page);
-      await loginPage.navigate();
-
       await expect(loginPage.loginButton).toHaveText('Login With Google');
     });
   });
 
   test.describe('login flow', () => {
     test('should login successfully via Google OAuth emulator popup', async ({
-      page,
+      loginPage,
       login,
       testUser,
+      page,
     }) => {
-      const loginPage = new LoginPage(page);
-      await loginPage.navigate();
-
       // Perform login via emulator popup
       await login(page, testUser);
 
