@@ -13,6 +13,7 @@ export class FirebaseService {
     if (process.env.FIREBASE_AUTH_EMULATOR_HOST) {
       this.firebaseApp = admin.initializeApp({
         projectId: 'pq-reference-app-dev',
+        storageBucket: configService.get<string>('google.storage_bucket'),
       });
     } else {
       this.firebaseApp = admin.initializeApp({
