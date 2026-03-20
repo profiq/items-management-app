@@ -3,59 +3,51 @@ import { expect } from '@playwright/test';
 import { BasePage } from './BasePage';
 
 /**
- * Page object for the Pet Update page (protected route)
+ * Page object for the Pet Create page (protected route)
  */
-export class PetUpdatePage extends BasePage {
-  readonly pageUrl = '/pets';
-  readonly pageTestId = 'pet-update-page';
-
-  /**
-   * Navigate to a specific pet's update page
-   */
-  async navigateToUpdatePet(id: number | string): Promise<void> {
-    await this.page.goto(`/pets/${id}/update`);
-    await this.waitForPageLoad();
-  }
+export class PetCreatePage extends BasePage {
+  readonly pageUrl = '/create-pet';
+  readonly pageTestId = 'pet-create-page';
 
   // Locators
   get title(): Locator {
-    return this.getByTestId('pet-update-title');
+    return this.getByTestId('pet-create-title');
   }
 
   get form(): Locator {
-    return this.getByTestId('pet-update-form');
+    return this.getByTestId('pet-create-form');
   }
 
   get nameInput(): Locator {
-    return this.getByTestId('pet-update-name-input');
+    return this.getByTestId('pet-create-name-input');
   }
 
   get ownerCombobox(): Locator {
-    return this.getByTestId('pet-update-owner-combobox');
+    return this.getByTestId('pet-create-owner-combobox');
   }
 
   get ownerInput(): Locator {
-    return this.getByTestId('pet-update-owner-input');
+    return this.getByTestId('pet-create-owner-input');
   }
 
   get speciesInput(): Locator {
-    return this.getByTestId('pet-update-species-input');
+    return this.getByTestId('pet-create-species-input');
   }
 
   get raceInput(): Locator {
-    return this.getByTestId('pet-update-race-input');
+    return this.getByTestId('pet-create-race-input');
   }
 
   get imageDropzone(): Locator {
-    return this.getByTestId('pet-update-image-dropzone');
+    return this.getByTestId('pet-create-image-dropzone');
   }
 
   get resetButton(): Locator {
-    return this.getByTestId('pet-update-reset-button');
+    return this.getByTestId('pet-create-reset-button');
   }
 
   get submitButton(): Locator {
-    return this.getByTestId('pet-update-submit-button');
+    return this.getByTestId('pet-create-submit-button');
   }
 
   // Actions
@@ -63,7 +55,6 @@ export class PetUpdatePage extends BasePage {
    * Fill the pet name input
    */
   async fillName(name: string): Promise<void> {
-    await this.nameInput.clear();
     await this.nameInput.fill(name);
   }
 
@@ -71,7 +62,6 @@ export class PetUpdatePage extends BasePage {
    * Fill the owner input (combobox)
    */
   async fillOwner(ownerName: string): Promise<void> {
-    await this.ownerInput.clear();
     await this.ownerInput.fill(ownerName);
   }
 
@@ -88,7 +78,6 @@ export class PetUpdatePage extends BasePage {
    * Fill the species input
    */
   async fillSpecies(species: string): Promise<void> {
-    await this.speciesInput.clear();
     await this.speciesInput.fill(species);
   }
 
@@ -96,7 +85,6 @@ export class PetUpdatePage extends BasePage {
    * Fill the race input
    */
   async fillRace(race: string): Promise<void> {
-    await this.raceInput.clear();
     await this.raceInput.fill(race);
   }
 
@@ -145,16 +133,16 @@ export class PetUpdatePage extends BasePage {
   /**
    * Fill all form fields and submit
    */
-  async updatePet(data: {
-    name?: string;
-    ownerName?: string;
-    species?: string;
-    race?: string;
+  async createPet(data: {
+    name: string;
+    ownerName: string;
+    species: string;
+    race: string;
   }): Promise<void> {
-    if (data.name) await this.fillName(data.name);
-    if (data.ownerName) await this.selectOwner(data.ownerName);
-    if (data.species) await this.fillSpecies(data.species);
-    if (data.race) await this.fillRace(data.race);
+    await this.fillName(data.name);
+    await this.selectOwner(data.ownerName);
+    await this.fillSpecies(data.species);
+    await this.fillRace(data.race);
     await this.clickSubmit();
   }
 
@@ -245,9 +233,23 @@ export class PetUpdatePage extends BasePage {
   }
 
   /**
-   * Wait for the update page to load with form
+   * Assert that the owner input is visible
    */
-  async waitForUpdatePageToLoad(): Promise<void> {
+  async expectOwnerInputToBeVisible(): Promise<void> {
+    await expect(this.ownerInput).toBeVisible();
+  }
+
+  /**
+   * Assert that the image dropzone is visible
+   */
+  async expectImageDropzoneToBeVisible(): Promise<void> {
+    await expect(this.imageDropzone).toBeVisible();
+  }
+
+  /**
+   * Wait for the create page to load with form
+   */
+  async waitForCreatePageToLoad(): Promise<void> {
     await this.expectFormToBeVisible();
     await this.expectSubmitButtonToBeVisible();
   }
