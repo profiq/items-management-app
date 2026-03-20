@@ -8,3 +8,4 @@ export { PetListPage } from './PetListPage';
 export { PetDetailPage } from './PetDetailPage';
 export { PetDeletePage } from './PetDeletePage';
 export { PetUpdatePage } from './PetUpdatePage';
+export { PetCreatePage } from './PetCreatePage';
