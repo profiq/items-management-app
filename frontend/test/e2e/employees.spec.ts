@@ -1,5 +1,4 @@
 import { test, expect } from '../fixtures';
-import { EmployeesPage } from '../pages';
 
 test.describe('Employees Page', () => {
   test.describe('when not authenticated', () => {
@@ -15,37 +14,23 @@ test.describe('Employees Page', () => {
   });
 
   test.describe('when authenticated', () => {
-    test('should display the employees page', async ({ authenticatedPage }) => {
-      const employeesPage = new EmployeesPage(authenticatedPage);
-      await employeesPage.navigate();
-
+    test('should display the employees page', async ({ employeesPage }) => {
       await employeesPage.expectPageToBeVisible();
     });
 
-    test('should display the correct title', async ({ authenticatedPage }) => {
-      const employeesPage = new EmployeesPage(authenticatedPage);
-      await employeesPage.navigate();
-
+    test('should display the correct title', async ({ employeesPage }) => {
       await employeesPage.expectTitleToBeVisible();
       const titleText = await employeesPage.getTitleText();
       expect(titleText).toContain('List of employees');
     });
 
-    test('should display the employees table', async ({
-      authenticatedPage,
-    }) => {
-      const employeesPage = new EmployeesPage(authenticatedPage);
-      await employeesPage.navigate();
-
+    test('should display the employees table', async ({ employeesPage }) => {
       await employeesPage.expectTableToBeVisible();
     });
 
     test('should display employees after loading', async ({
-      authenticatedPage,
+      employeesPage,
     }) => {
-      const employeesPage = new EmployeesPage(authenticatedPage);
-      await employeesPage.navigate();
-
       // Wait for employees to load
       await employeesPage.waitForEmployeesToLoad();
 
@@ -54,11 +39,8 @@ test.describe('Employees Page', () => {
     });
 
     test('should display employee details in rows', async ({
-      authenticatedPage,
+      employeesPage,
     }) => {
-      const employeesPage = new EmployeesPage(authenticatedPage);
-      await employeesPage.navigate();
-
       // Wait for employees to load
       await employeesPage.waitForEmployeesToLoad();
 
@@ -78,27 +60,20 @@ test.describe('Employees Page', () => {
       await expect(photoCell).toBeVisible();
     });
 
-    test('should have correct URL', async ({ authenticatedPage }) => {
-      const employeesPage = new EmployeesPage(authenticatedPage);
-      await employeesPage.navigate();
-
+    test('should have correct URL', async ({ employeesPage }) => {
       const url = await employeesPage.getCurrentUrl();
       expect(url).toContain('/employees');
     });
 
-    test('should have page parameter in URL', async ({ authenticatedPage }) => {
-      const employeesPage = new EmployeesPage(authenticatedPage);
-      await employeesPage.navigate();
-
+    test('should have page parameter in URL', async ({ employeesPage }) => {
       // The page should automatically add page=1 parameter
-      await expect(authenticatedPage).toHaveURL(/page=1/);
+      await employeesPage.waitForEmployeesToLoad();
+      const url = await employeesPage.getCurrentUrl();
+      expect(url).toContain('page=1');
     });
 
     test.describe('tooltip', () => {
-      test('should display tooltip on hover', async ({ authenticatedPage }) => {
-        const employeesPage = new EmployeesPage(authenticatedPage);
-        await employeesPage.navigate();
-
+      test('should display tooltip on hover', async ({ employeesPage }) => {
         // Tooltip should not be visible initially
         await employeesPage.expectTooltipToBeHidden();
 
@@ -109,23 +84,15 @@ test.describe('Employees Page', () => {
         await employeesPage.expectTooltipToBeVisible();
       });
 
-      test('should display correct tooltip text', async ({
-        authenticatedPage,
-      }) => {
-        const employeesPage = new EmployeesPage(authenticatedPage);
-        await employeesPage.navigate();
-
+      test('should display correct tooltip text', async ({ employeesPage }) => {
         await employeesPage.hoverOnInfoIcon();
 
         await employeesPage.expectTooltipToContainText('Google Workspace API');
       });
 
       test('should display README link in tooltip', async ({
-        authenticatedPage,
+        employeesPage,
       }) => {
-        const employeesPage = new EmployeesPage(authenticatedPage);
-        await employeesPage.navigate();
-
         await employeesPage.hoverOnInfoIcon();
 
         await employeesPage.expectTooltipLinkToBeVisible();
@@ -133,70 +100,60 @@ test.describe('Employees Page', () => {
     });
 
     test.describe('pagination', () => {
-      test('should display paging component', async ({ authenticatedPage }) => {
-        const employeesPage = new EmployeesPage(authenticatedPage);
-        await employeesPage.navigate();
+      test('should display paging component', async ({ employeesPage }) => {
         await employeesPage.waitForEmployeesToLoad();
 
         await employeesPage.expectPagingToBeVisible();
       });
 
       test('should show page 1 as active by default', async ({
-        authenticatedPage,
+        employeesPage,
       }) => {
-        const employeesPage = new EmployeesPage(authenticatedPage);
-        await employeesPage.navigate();
         await employeesPage.waitForEmployeesToLoad();
 
         await employeesPage.expectPageToBeActive(1);
       });
 
       test('should navigate to next page when clicking next', async ({
-        authenticatedPage,
+        employeesPage,
       }) => {
-        const employeesPage = new EmployeesPage(authenticatedPage);
-        await employeesPage.navigate();
         await employeesPage.waitForEmployeesToLoad();
 
         // Only test if there are multiple pages
         const employeeCount = await employeesPage.getEmployeeCount();
         if (employeeCount > 25) {
           await employeesPage.clickNextPage();
-          await expect(authenticatedPage).toHaveURL(/page=2/);
+          const url = await employeesPage.getCurrentUrl();
+          expect(url).toContain('page=2');
         }
       });
 
       test('should navigate to specific page when clicking page number', async ({
-        authenticatedPage,
+        employeesPage,
       }) => {
-        const employeesPage = new EmployeesPage(authenticatedPage);
-        await employeesPage.navigate();
         await employeesPage.waitForEmployeesToLoad();
 
         // Only test if there are multiple pages
         const employeeCount = await employeesPage.getEmployeeCount();
         if (employeeCount > 25) {
           await employeesPage.clickPageNumber(2);
-          await expect(authenticatedPage).toHaveURL(/page=2/);
+          const url = await employeesPage.getCurrentUrl();
+          expect(url).toContain('page=2');
           await employeesPage.expectPageToBeActive(2);
         }
       });
 
       test('should display rows per page selector', async ({
-        authenticatedPage,
+        employeesPage,
       }) => {
-        const employeesPage = new EmployeesPage(authenticatedPage);
-        await employeesPage.navigate();
         await employeesPage.waitForEmployeesToLoad();
 
         await employeesPage.expectRowsPerPageToBe('25');
       });
 
       test('should change rows per page when selecting different option', async ({
-        authenticatedPage,
+        employeesPage,
       }) => {
-        const employeesPage = new EmployeesPage(authenticatedPage);
-        await employeesPage.navigate();
         await employeesPage.waitForEmployeesToLoad();
 
         await employeesPage.selectRowsPerPage(10);

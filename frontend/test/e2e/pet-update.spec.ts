@@ -1,7 +1,7 @@
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { test, expect } from '../fixtures';
-import { PetListPage, PetUpdatePage } from '../pages';
+import { PetListPage } from '../pages';
 import type { Page } from 'playwright/test';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -38,6 +38,7 @@ test.describe('Pet Update Page', () => {
 
   test.describe('when authenticated', () => {
     test('should display the update pet page', async ({
+      petUpdatePage,
       authenticatedPage,
     }) => {
       const petId = await getFirstPetId(authenticatedPage);
@@ -46,29 +47,31 @@ test.describe('Pet Update Page', () => {
         return;
       }
 
-      const updatePage = new PetUpdatePage(authenticatedPage);
-      await updatePage.navigateToUpdatePet(petId);
+      await petUpdatePage.navigateToUpdatePet(petId);
 
-      await updatePage.expectPageToBeVisible();
+      await petUpdatePage.expectPageToBeVisible();
     });
 
-    test('should display the correct title', async ({ authenticatedPage }) => {
+    test('should display the correct title', async ({
+      petUpdatePage,
+      authenticatedPage,
+    }) => {
       const petId = await getFirstPetId(authenticatedPage);
       if (!petId) {
         test.skip();
         return;
       }
 
-      const updatePage = new PetUpdatePage(authenticatedPage);
-      await updatePage.navigateToUpdatePet(petId);
-      await updatePage.waitForUpdatePageToLoad();
+      await petUpdatePage.navigateToUpdatePet(petId);
+      await petUpdatePage.waitForUpdatePageToLoad();
 
-      await updatePage.expectTitleToBeVisible();
-      const titleText = await updatePage.getTitleText();
+      await petUpdatePage.expectTitleToBeVisible();
+      const titleText = await petUpdatePage.getTitleText();
       expect(titleText).toContain('Update a Pet');
     });
 
     test('should display the form with pre-filled values', async ({
+      petUpdatePage,
       authenticatedPage,
     }) => {
       const petId = await getFirstPetId(authenticatedPage);
@@ -77,17 +80,17 @@ test.describe('Pet Update Page', () => {
         return;
       }
 
-      const updatePage = new PetUpdatePage(authenticatedPage);
-      await updatePage.navigateToUpdatePet(petId);
-      await updatePage.waitForUpdatePageToLoad();
+      await petUpdatePage.navigateToUpdatePet(petId);
+      await petUpdatePage.waitForUpdatePageToLoad();
 
-      await updatePage.expectFormToBeVisible();
+      await petUpdatePage.expectFormToBeVisible();
       // Name should be pre-filled (not empty)
-      const nameValue = await updatePage.getNameValue();
+      const nameValue = await petUpdatePage.getNameValue();
       expect(nameValue.length).toBeGreaterThan(0);
     });
 
     test('should display submit and reset buttons', async ({
+      petUpdatePage,
       authenticatedPage,
     }) => {
       const petId = await getFirstPetId(authenticatedPage);
@@ -96,30 +99,32 @@ test.describe('Pet Update Page', () => {
         return;
       }
 
-      const updatePage = new PetUpdatePage(authenticatedPage);
-      await updatePage.navigateToUpdatePet(petId);
-      await updatePage.waitForUpdatePageToLoad();
+      await petUpdatePage.navigateToUpdatePet(petId);
+      await petUpdatePage.waitForUpdatePageToLoad();
 
-      await updatePage.expectSubmitButtonToBeVisible();
-      await updatePage.expectResetButtonToBeVisible();
+      await petUpdatePage.expectSubmitButtonToBeVisible();
+      await petUpdatePage.expectResetButtonToBeVisible();
     });
 
-    test('should have correct URL', async ({ authenticatedPage }) => {
+    test('should have correct URL', async ({
+      petUpdatePage,
+      authenticatedPage,
+    }) => {
       const petId = await getFirstPetId(authenticatedPage);
       if (!petId) {
         test.skip();
         return;
       }
 
-      const updatePage = new PetUpdatePage(authenticatedPage);
-      await updatePage.navigateToUpdatePet(petId);
+      await petUpdatePage.navigateToUpdatePet(petId);
 
-      const url = await updatePage.getCurrentUrl();
+      const url = await petUpdatePage.getCurrentUrl();
       expect(url).toContain(`/pets/${petId}/update`);
     });
 
     test.describe('image upload', () => {
       test('should display dropzone for image upload', async ({
+        petUpdatePage,
         authenticatedPage,
       }) => {
         const petId = await getFirstPetId(authenticatedPage);
@@ -128,37 +133,39 @@ test.describe('Pet Update Page', () => {
           return;
         }
 
-        const updatePage = new PetUpdatePage(authenticatedPage);
-        await updatePage.navigateToUpdatePet(petId);
-        await updatePage.waitForUpdatePageToLoad();
+        await petUpdatePage.navigateToUpdatePet(petId);
+        await petUpdatePage.waitForUpdatePageToLoad();
 
-        await expect(updatePage.imageDropzone).toBeVisible();
+        await expect(petUpdatePage.imageDropzone).toBeVisible();
       });
 
-      test('should upload an image file', async ({ authenticatedPage }) => {
+      test('should upload an image file', async ({
+        petUpdatePage,
+        authenticatedPage,
+      }) => {
         const petId = await getFirstPetId(authenticatedPage);
         if (!petId) {
           test.skip();
           return;
         }
 
-        const updatePage = new PetUpdatePage(authenticatedPage);
-        await updatePage.navigateToUpdatePet(petId);
-        await updatePage.waitForUpdatePageToLoad();
+        await petUpdatePage.navigateToUpdatePet(petId);
+        await petUpdatePage.waitForUpdatePageToLoad();
 
         // Upload the test image
-        await updatePage.uploadImage(TEST_IMAGE_PATH);
+        await petUpdatePage.uploadImage(TEST_IMAGE_PATH);
 
         // Verify the file name is displayed
         await expect(
-          updatePage.imageDropzone.locator('text=Selected:')
+          petUpdatePage.imageDropzone.locator('text=Selected:')
         ).toBeVisible();
         await expect(
-          updatePage.imageDropzone.locator('text=test-image.png')
+          petUpdatePage.imageDropzone.locator('text=test-image.png')
         ).toBeVisible();
       });
 
       test('should show reset image button after upload', async ({
+        petUpdatePage,
         authenticatedPage,
       }) => {
         const petId = await getFirstPetId(authenticatedPage);
@@ -167,20 +174,20 @@ test.describe('Pet Update Page', () => {
           return;
         }
 
-        const updatePage = new PetUpdatePage(authenticatedPage);
-        await updatePage.navigateToUpdatePet(petId);
-        await updatePage.waitForUpdatePageToLoad();
+        await petUpdatePage.navigateToUpdatePet(petId);
+        await petUpdatePage.waitForUpdatePageToLoad();
 
         // Upload the test image
-        await updatePage.uploadImage(TEST_IMAGE_PATH);
+        await petUpdatePage.uploadImage(TEST_IMAGE_PATH);
 
         // Verify reset button appears
         await expect(
-          updatePage.imageDropzone.locator('button:has-text("Reset image")')
+          petUpdatePage.imageDropzone.locator('button:has-text("Reset image")')
         ).toBeVisible();
       });
 
       test('should clear image when clicking reset image button', async ({
+        petUpdatePage,
         authenticatedPage,
       }) => {
         const petId = await getFirstPetId(authenticatedPage);
@@ -189,28 +196,31 @@ test.describe('Pet Update Page', () => {
           return;
         }
 
-        const updatePage = new PetUpdatePage(authenticatedPage);
-        await updatePage.navigateToUpdatePet(petId);
-        await updatePage.waitForUpdatePageToLoad();
+        await petUpdatePage.navigateToUpdatePet(petId);
+        await petUpdatePage.waitForUpdatePageToLoad();
 
         // Upload the test image
-        await updatePage.uploadImage(TEST_IMAGE_PATH);
+        await petUpdatePage.uploadImage(TEST_IMAGE_PATH);
 
         // Verify image is selected
         await expect(
-          updatePage.imageDropzone.locator('text=test-image.png')
+          petUpdatePage.imageDropzone.locator('text=test-image.png')
         ).toBeVisible();
 
         // Click reset image
-        await updatePage.clickResetImage();
+        await petUpdatePage.clickResetImage();
 
         // Verify image is cleared and default text is shown
         await expect(
-          updatePage.imageDropzone.locator('text=Supported formats: PNG, JPG')
+          petUpdatePage.imageDropzone.locator(
+            'text=Supported formats: PNG, JPG'
+          )
         ).toBeVisible();
       });
 
       test('should update pet with new image and redirect to detail page', async ({
+        petUpdatePage,
+        petDetailPage,
         authenticatedPage,
       }) => {
         const petId = await getFirstPetId(authenticatedPage);
@@ -219,26 +229,26 @@ test.describe('Pet Update Page', () => {
           return;
         }
 
-        const updatePage = new PetUpdatePage(authenticatedPage);
-        await updatePage.navigateToUpdatePet(petId);
-        await updatePage.waitForUpdatePageToLoad();
+        await petUpdatePage.navigateToUpdatePet(petId);
+        await petUpdatePage.waitForUpdatePageToLoad();
 
         // Upload the test image
-        await updatePage.uploadImage(TEST_IMAGE_PATH);
+        await petUpdatePage.uploadImage(TEST_IMAGE_PATH);
 
         // Verify image is selected before submitting
         await expect(
-          updatePage.imageDropzone.locator('text=test-image.png')
+          petUpdatePage.imageDropzone.locator('text=test-image.png')
         ).toBeVisible();
 
         // Submit the form
-        await updatePage.clickSubmit();
+        await petUpdatePage.clickSubmit();
 
         // Should redirect to the pet detail page after successful update
-        await expect(authenticatedPage).toHaveURL(
-          new RegExp(`/pets/${petId}$`),
-          { timeout: 15000 }
-        );
+        await authenticatedPage.waitForURL(new RegExp(`/pets/${petId}$`), {
+          timeout: 15000,
+        });
+        const url = await petDetailPage.getCurrentUrl();
+        expect(url).toContain(`/pets/${petId}`);
 
         // Verify the pet detail page shows the uploaded image (avatar)
         await expect(
