@@ -293,6 +293,8 @@ frontend-build-dev:
   extends:
     - .rule_mr_and_main_frontend
     - .frontend-build
+  variables:
+    VITE_VERSION: ${CI_COMMIT_SHORT_SHA}
   environment:
     name: dev
     action: prepare
@@ -303,6 +305,8 @@ frontend-build-production:
     - .frontend-build
   rules:
     - if: $CI_COMMIT_TAG
+  variables:
+    VITE_VERSION: ${CI_COMMIT_TAG}
   environment:
     name: production
     action: prepare
