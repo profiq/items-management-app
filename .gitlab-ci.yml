@@ -15,6 +15,7 @@ default:
 #    policy: pull
 
 stages:
+  - manual_prepare
   - code_quality
   - test
   - build
@@ -25,6 +26,7 @@ variables:
   GIT_DEPTH: 1
   IMAGE_NAME: europe-central2-docker.pkg.dev/pq-reference-app-dev/pq-reference-app-be-dev/backend-dev
   PROD_IMAGE_NAME: europe-central2-docker.pkg.dev/pq-reference-app-prod/pq-reference-app-be-prod/backend-prod
+  NODE_JAVA_IMAGE: $CI_REGISTRY_IMAGE/node-java
 
 .set_npm_config:
   before_script:
@@ -85,6 +87,39 @@ variables:
 #  script:
 #    - npm ci --cache .npm --prefer-offline
 
+build_node_java:
+  stage: manual_prepare
+  when: manual
+  image:
+    name: moby/buildkit:rootless
+    entrypoint: ['']
+  tags:
+    - profiq
+  extends:
+    - .rule_mr_and_main
+  variables:
+    BUILDKITD_FLAGS: --oci-worker-no-process-sandbox
+  before_script:
+    # due to permission issues with Docker in Docker (DinD), we use buildkit (https://docs.gitlab.com/ci/docker/using_buildkit/)
+    # which does not support docker login and docker build commands, so we have to use direct echo of the credentials
+    - mkdir -p ~/.docker
+    - |
+      echo "{
+        \"auths\": {
+          \"${CI_REGISTRY}\": {
+            \"auth\": \"$(printf "%s:%s" "${CI_REGISTRY_USER}" "${CI_REGISTRY_PASSWORD}" | base64 -w0)\"
+          }
+        }
+      }" > ~/.docker/config.json
+
+  script:
+    - |
+      buildctl-daemonless.sh build \
+        --frontend dockerfile.v0 \
+        --local context=. \
+        --local dockerfile=. \
+        --output type=image,\"name=${NODE_JAVA_IMAGE}:latest\",push=true
+
 code_quality:
   stage: code_quality
   extends:
@@ -105,6 +140,66 @@ frontend-test:
     - npm run test:unit -w frontend
     - npm run init:playwright -w frontend
     - npm run test:component -w frontend
+
+frontend-e2e:
+  stage: test
+  extends:
+    - .rule_mr_and_main_frontend
+  image: $NODE_JAVA_IMAGE:latest
+  before_script:
+    - npm ci
+  script:
+    - npm run test:e2e -w frontend
+  environment:
+    name: dev
+    action: verify
+  artifacts:
+    when: always
+    access: all
+    expire_in: '7 days'
+    paths:
+      - frontend/test-results/
+      - frontend/playwright-report/
+
+# the following section shows how to shard tests in playwright.
+# As we only have one runner, we do not shard
+#frontend-e2e-sharded:
+#  stage: test
+#  extends:
+#    - .rule_mr_and_main_frontend
+#  image: $NODE_JAVA_IMAGE:latest
+#  parallel:
+#    matrix:
+#      - SHARD_INDEX: [1, 2, 3, 4]
+#        SHARD_TOTAL: [4]
+#  before_script:
+#    - npm ci
+#  script:
+#    - npm run test:e2e -w frontend -- --shard=${SHARD_INDEX}/${SHARD_TOTAL} --reporter=blob
+#  environment:
+#    name: dev
+#    action: verify
+#  artifacts:
+#    when: always
+#    access: all
+#    expire_in: '7 days'
+#    paths:
+#      - frontend/blob-report/
+#
+#frontend-e2e-merge:
+#  stage: test
+#  needs:
+#    - frontend-e2e-sharded
+#  extends:
+#    - .rule_mr_and_main_frontend
+#  script:
+#    - npx playwright merge-reports --reporter html ./frontend/blob-report
+#  artifacts:
+#    when: always
+#    access: all
+#    expire_in: '7 days'
+#    paths:
+#      - frontend/playwright-report/
 
 backend-unit:
   stage: test
