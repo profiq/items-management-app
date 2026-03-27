@@ -202,6 +202,14 @@ There are four components in the architecture of the project:
 
 All the secrets are kept in environment variables loaded from `.env` file in the root on startup.
 
+## Architecture Diagram
+
+![Architecture diagram](assets/architecture.svg)
+
+The arrows show which component initiates the connection. If this is neither side, it shows the data (for example, Artifact Repository and the backend).
+
+Please note that for the CI/CD flow on the GitLab side, see the [CI/CD diagram](#diagram).
+
 ---
 
 # Tech Stack
