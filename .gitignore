@@ -3,3 +3,8 @@ node_modules/
 __screenshots__
 *.db
 .firebase
+
+# Code review temporary files
+.augment/review-findings.json
+.augment/filtered-findings.json
+.augment/posting-results.json

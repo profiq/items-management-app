@@ -18,6 +18,7 @@ stages:
   - manual_prepare
   - code_quality
   - test
+  - code_review
   - build
   - deploy
   - update_changelog
@@ -216,6 +217,27 @@ backend-e2e:
     - .npm_ci_backend
   script:
     - npm run test:e2e-emulator -w backend
+
+code_review:
+  image: $NODE_JAVA_IMAGE:latest
+  stage: code_review
+  # AI-based analysis may fail due to network errors or service availability
+  retry: 2
+  allow_failure: true
+  timeout: 1h
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event" && $CI_MERGE_REQUEST_DRAFT != "true" && $CI_MERGE_REQUEST_LABELS =~ /Waiting for review/
+  variables:
+    AUGMENT_SESSION_AUTH: $AUGMENT_CLI_SESSION_KEY
+  resource_group: code-review-mr-${CI_MERGE_REQUEST_IID}
+  before_script:
+    - glab auth login --hostname $CI_SERVER_HOST -t $GLAB_TOKEN
+    - glab auth status || (echo "GitLab authentication failed" && exit 1)
+    - export AUGMENT_RETRY_TIMEOUT=${AUGMENT_RETRY_TIMEOUT:-120}
+  script:
+    - auggie --print --retry-timeout "$AUGMENT_RETRY_TIMEOUT" "/review-code mr:${CI_MERGE_REQUEST_IID}"
+    - auggie --print --retry-timeout "$AUGMENT_RETRY_TIMEOUT" "/filter-review auto"
+    - auggie --print --retry-timeout "$AUGMENT_RETRY_TIMEOUT" "/post-review auto"
 
 backend-build-dev:
   image:
