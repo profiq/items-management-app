@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { EmployeeModule } from './employee/employee.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './user/user.module';
+import { ItemsModule } from './items/items.module';
 import configuration from './config/configuration';
 import { ConfigModule } from '@nestjs/config';
 import { dataSourceOptions } from './datasource';
@@ -10,6 +11,7 @@ import { dataSourceOptions } from './datasource';
   imports: [
     EmployeeModule,
     UserModule,
+    ItemsModule,
     TypeOrmModule.forRoot(dataSourceOptions),
     ConfigModule.forRoot({
       load: [configuration],
