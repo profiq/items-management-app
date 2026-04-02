@@ -9,8 +9,6 @@ import {
   NestInterceptor,
 } from '@nestjs/common';
 import { User } from '@/user/user.entity';
-import { UpdatePetRequest } from '@/office_pet/dto/update_pet';
-import { AddPetRequest } from '@/office_pet/dto/add_pet';
 
 @Injectable()
 export class EmployeeHydrationInterceptor implements NestInterceptor {
@@ -21,9 +19,10 @@ export class EmployeeHydrationInterceptor implements NestInterceptor {
     private userService: UserService
   ) {}
   async intercept(context: ExecutionContext, next: CallHandler) {
-    const { owner_id }: UpdatePetRequest | AddPetRequest = context
+    const body = context
       .switchToHttp()
-      .getRequest().body;
+      .getRequest<{ body: { owner_id: string } }>().body;
+    const owner_id = body.owner_id;
     if (await this.userService.getUserByEmployeeId(owner_id)) {
       return next.handle();
     }

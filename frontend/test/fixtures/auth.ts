@@ -4,16 +4,7 @@ import {
   createTestUserData,
   signInWithGoogleEmulatorPopup,
 } from '../helpers';
-import {
-  LoginPage,
-  ProfilePage,
-  EmployeesPage,
-  PetListPage,
-  PetCreatePage,
-  PetDetailPage,
-  PetUpdatePage,
-  PetDeletePage,
-} from '../pages';
+import { LoginPage, ProfilePage, EmployeesPage } from '../pages';
 
 type AuthFixtures = {
   testUser: TestUser;
@@ -22,11 +13,6 @@ type AuthFixtures = {
   loginPage: LoginPage;
   profilePage: ProfilePage;
   employeesPage: EmployeesPage;
-  petListPage: PetListPage;
-  petCreatePage: PetCreatePage;
-  petDetailPage: PetDetailPage;
-  petUpdatePage: PetUpdatePage;
-  petDeletePage: PetDeletePage;
 };
 
 /**
@@ -97,51 +83,6 @@ export const test = base.extend<AuthFixtures>({
     const employeesPage = new EmployeesPage(authenticatedPage);
     await employeesPage.navigate();
     await use(employeesPage);
-  },
-
-  /**
-   * Provides a PetListPage instance that navigates to the pet list page (requires authentication)
-   */
-  petListPage: async ({ authenticatedPage }, use) => {
-    const petListPage = new PetListPage(authenticatedPage);
-    await petListPage.navigate();
-    await use(petListPage);
-  },
-
-  /**
-   * Provides a PetCreatePage instance that navigates to the create pet page (requires authentication)
-   */
-  petCreatePage: async ({ authenticatedPage }, use) => {
-    const petCreatePage = new PetCreatePage(authenticatedPage);
-    await petCreatePage.navigate();
-    await use(petCreatePage);
-  },
-
-  /**
-   * Provides a PetDetailPage instance (requires authentication, does not auto-navigate)
-   * Use petDetailPage.navigateToPet(id) to navigate to a specific pet
-   */
-  petDetailPage: async ({ authenticatedPage }, use) => {
-    const petDetailPage = new PetDetailPage(authenticatedPage);
-    await use(petDetailPage);
-  },
-
-  /**
-   * Provides a PetUpdatePage instance (requires authentication, does not auto-navigate)
-   * Use petUpdatePage.navigateToUpdatePet(id) to navigate to a specific pet's update page
-   */
-  petUpdatePage: async ({ authenticatedPage }, use) => {
-    const petUpdatePage = new PetUpdatePage(authenticatedPage);
-    await use(petUpdatePage);
-  },
-
-  /**
-   * Provides a PetDeletePage instance (requires authentication, does not auto-navigate)
-   * Use petDeletePage.navigateToDeletePet(id) to navigate to a specific pet's delete page
-   */
-  petDeletePage: async ({ authenticatedPage }, use) => {
-    const petDeletePage = new PetDeletePage(authenticatedPage);
-    await use(petDeletePage);
   },
 });
 

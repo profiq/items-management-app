@@ -21,11 +21,6 @@ export function NavigationMenuReference() {
           </NavigationMenuItem>
           <NavigationMenuItem>
             <NavigationMenuLink asChild>
-              <Link to='/about'>About</Link>
-            </NavigationMenuLink>
-          </NavigationMenuItem>
-          <NavigationMenuItem>
-            <NavigationMenuLink asChild>
               <Link to='/login'>Login</Link>
             </NavigationMenuLink>
           </NavigationMenuItem>
@@ -46,16 +41,6 @@ export function NavigationMenuReference() {
                   <Link to='/employees'>
                     <div className='flex items-center gap-1'>
                       List of Employees
-                      <HoverProtected />
-                    </div>
-                  </Link>
-                </NavigationMenuLink>
-              </NavigationMenuItem>
-              <NavigationMenuItem>
-                <NavigationMenuLink asChild>
-                  <Link to='/pets'>
-                    <div className='flex items-center gap-1'>
-                      List of Pets
                       <HoverProtected />
                     </div>
                   </Link>

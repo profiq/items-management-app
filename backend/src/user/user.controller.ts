@@ -3,10 +3,8 @@ import {
   Body,
   Controller,
   Delete,
-  forwardRef,
   Get,
   Header,
-  Inject,
   Param,
   ParseIntPipe,
   Post,
@@ -18,22 +16,16 @@ import {
   ApiOkResponse,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@/auth/auth.guard';
-import { OfficePet } from '@/office_pet/office_pet.entity';
 import { User } from './user.entity';
 import { UserService } from './user.service';
 import { CreateUserRequest } from './dto/create_user';
-import { OfficePetService } from '@/office_pet/office_pet.service';
 import { UnknownUserException } from '@/lib/errors';
 
 @Controller('users')
 @ApiBearerAuth()
 @UseGuards(AuthGuard)
 export class UserController {
-  constructor(
-    private userService: UserService,
-    @Inject(forwardRef(() => OfficePetService))
-    private officePetService: OfficePetService
-  ) {}
+  constructor(private userService: UserService) {}
 
   @Get()
   @Header('Cache-Control', 'max-age=10, private')
@@ -67,15 +59,6 @@ export class UserController {
       throw new BadRequestException();
     }
     return user;
-  }
-
-  @Get(':id/pets')
-  @Header('Cache-Control', 'max-age=10, private')
-  @ApiOkResponse({
-    type: [OfficePet],
-  })
-  async getUserPets(@Param('id') id: number): Promise<OfficePet[]> {
-    return await this.officePetService.getUserPets(id);
   }
 
   @Delete(':id')

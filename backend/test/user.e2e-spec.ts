@@ -6,7 +6,6 @@ import { UserModule } from '@/user/user.module';
 import { AuthService } from '@/auth/auth.service';
 import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
 import { User } from '@/user/user.entity';
-import { OfficePet } from '@/office_pet/office_pet.entity';
 import { DataSource } from 'typeorm';
 import { TimeDuration } from '@/lib/time';
 import { setupAuth } from './auth';
@@ -50,20 +49,7 @@ describe('UserModule', () => {
     user.employee_id = '1';
     //await userRepository.save(user);
     await dataSource.manager.save(user);
-    userRepository.insert([{ id: 2, name: 'Eve', employee_id: '2' }]);
-    const petRepository = dataSource.getRepository(OfficePet);
-    const pet = new OfficePet();
-    pet.name = 'Alex';
-    pet.race = 'big';
-    pet.species = 'dog';
-    pet.owner = user;
-    await petRepository.save(pet);
-    const pet2 = new OfficePet();
-    pet2.name = 'Bruno';
-    pet2.race = 'some';
-    pet2.species = 'cat';
-    pet2.owner = user;
-    await petRepository.save(pet2);
+    await userRepository.insert([{ id: 2, name: 'Eve', employee_id: '2' }]);
   });
 
   it('/users (GET)', async () => {
@@ -119,44 +105,6 @@ describe('UserModule', () => {
       .get('/users/3')
       .set('Authorization', `Bearer ${validToken}`)
       .expect(StatusCodes.NOT_FOUND);
-  });
-
-  it('/users/:id/pets (GET) (Non-existant user)', async () => {
-    return request(app.getHttpServer())
-      .get('/users/3/pets')
-      .set('Authorization', `Bearer ${validToken}`)
-      .expect(StatusCodes.NOT_FOUND);
-  });
-
-  it('/users/:id/pets (GET) (No pets)', async () => {
-    return request(app.getHttpServer())
-      .get('/users/2/pets')
-      .set('Authorization', `Bearer ${validToken}`)
-      .expect(StatusCodes.OK)
-      .expect([]);
-  });
-
-  it('/users/:id/pets (GET) (Pets)', async () => {
-    return request(app.getHttpServer())
-      .get('/users/1/pets')
-      .set('Authorization', `Bearer ${validToken}`)
-      .expect(StatusCodes.OK)
-      .expect([
-        {
-          id: 1,
-          name: 'Alex',
-          race: 'big',
-          species: 'dog',
-          image_url: null,
-        },
-        {
-          id: 2,
-          name: 'Bruno',
-          race: 'some',
-          species: 'cat',
-          image_url: null,
-        },
-      ]);
   });
 
   it('/users/:id (DELETE)', async () => {

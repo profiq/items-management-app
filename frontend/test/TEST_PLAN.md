@@ -88,7 +88,6 @@ Unit tests verify individual functions and utilities in isolation.
 - `generateSubTestId.unit-spec.ts` - Test ID generation utilities
 - `AuthProvider.unit-spec.tsx` - Domain validation for authentication
 - `employees.unit-spec.ts` - Employee service API calls
-- `office_pet.unit-spec.ts` - Office pet service API calls
 
 **Test Approach:**
 
@@ -125,13 +124,6 @@ E2E tests verify complete user workflows using the Page Object Model pattern.
 - Welcome message is visible
 - Main card is visible
 - Status message is visible
-
-**About Page** (`about.spec.ts`)
-
-- Page loads successfully
-- Title displays correctly
-- Description content is accurate
-- Tech info section is visible
 
 #### Authentication
 
@@ -177,61 +169,6 @@ All protected pages test:
   - Rows per page selector (default: 25)
   - Changing rows per page updates display
 
-**Pet List Page** (`pet-list.spec.ts`)
-
-- Displays pet list table
-- Shows correct title
-- Create pet button is visible
-- Correct URL routing
-- Loads and displays pet data
-- Pet rows contain expected information
-
-**Pet Detail Page** (`pet-detail.spec.ts`)
-
-- Displays individual pet details
-- Shows pet information (name, type, etc.)
-- Displays pet avatar/image
-- Correct URL with pet ID
-- Navigation from list to detail works
-
-**Pet Create Page** (`pet-create.spec.ts`)
-
-- Displays create pet form
-- Shows correct title
-- Form fields are visible and functional
-- Submit and reset buttons present
-- **Image upload functionality:**
-  - Dropzone visible
-  - File upload works
-  - Selected file name displays
-  - Reset image button appears after upload
-  - Reset image clears selection
-  - Form submission with image works
-- Successful creation redirects to pet list
-
-**Pet Update Page** (`pet-update.spec.ts`)
-
-- Displays update pet form
-- Shows correct title
-- Form pre-filled with existing pet data
-- Submit and reset buttons present
-- **Image upload functionality:**
-  - Dropzone visible
-  - File upload works
-  - Selected file name displays
-  - Reset image button appears after upload
-  - Reset image clears selection
-  - Form submission with new image works
-- Successful update redirects to pet detail page
-- Updated image displays on detail page
-
-**Pet Delete Page** (`pet-delete.spec.ts`)
-
-- Displays delete confirmation
-- Shows pet information to be deleted
-- Confirm and cancel buttons present
-- Successful deletion redirects appropriately
-
 ## Test Patterns & Best Practices
 
 ### Page Object Model (POM)
@@ -248,21 +185,15 @@ All E2E tests use the Page Object Model pattern for maintainability and reusabil
 **Page Objects:**
 
 - `HomePage.ts`
-- `AboutPage.ts`
 - `LoginPage.ts`
 - `ProfilePage.ts`
 - `EmployeesPage.ts`
-- `PetListPage.ts`
-- `PetCreatePage.ts`
-- `PetDetailPage.ts`
-- `PetUpdatePage.ts`
-- `PetDeletePage.ts`
 
 ### Fixtures
 
 **Public Fixtures** (`fixtures/public.ts`)
 
-- Provides page objects for public pages (Home, About)
+- Provides page objects for public pages (Home)
 - No authentication required
 
 **Auth Fixtures** (`fixtures/auth.ts`)
@@ -278,10 +209,6 @@ All E2E tests use the Page Object Model pattern for maintainability and reusabil
 
 - `createTestUserData()` - Generates test user data
 - `signInWithGoogleEmulatorPopup()` - Handles OAuth flow with Firebase emulator
-
-**Pet ID Helper** (`helpers/pet-id-helper.ts`)
-
-- `getFirstPetId()` - Retrieves a valid pet ID from the list for testing
 
 ## Test Environment Configuration
 
@@ -322,7 +249,6 @@ All E2E tests use the Page Object Model pattern for maintainability and reusabil
 
 ### Test Data
 
-- Test image: `test/assets/test-image.png` (used for pet image upload tests)
 - Test users: Generated dynamically with Faker.js
 - Employee data: Fetched from Google Workspace API (mocked in unit tests)
 
@@ -330,4 +256,3 @@ All E2E tests use the Page Object Model pattern for maintainability and reusabil
 
 - Firebase Auth Emulator (required for authentication tests)
 - Backend API (required for E2E tests)
-- Google Storage Emulator (for image upload tests)

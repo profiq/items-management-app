@@ -109,7 +109,7 @@ export default defineConfig({
       command: 'npm run start -w backend',
       timeout: 120 * 1000,
       reuseExistingServer: !process.env.CI,
-      url: 'http://localhost:3000/pets',
+      url: 'http://localhost:3000/users',
       cwd: '..',
       env: {
         FIREBASE_AUTH_EMULATOR_HOST: '127.0.0.1:9099',

@@ -1,10 +1,8 @@
-import { OfficePet } from '@/office_pet/office_pet.entity';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   Column,
   Entity,
   Index,
-  OneToMany,
   PrimaryColumn,
   PrimaryGeneratedColumn,
 } from 'typeorm';
@@ -25,9 +23,4 @@ export class User {
   @Index({ unique: true })
   @ApiProperty()
   employee_id: string;
-
-  @OneToMany(() => OfficePet, pet => pet.owner, {
-    cascade: ['insert', 'update'],
-  })
-  pets: OfficePet[];
 }

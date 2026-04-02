@@ -1,9 +1,8 @@
 import { test as base } from '@playwright/test';
-import { HomePage, AboutPage } from '../pages';
+import { HomePage } from '../pages';
 
 type PublicPageFixtures = {
   homePage: HomePage;
-  aboutPage: AboutPage;
 };
 
 export const test = base.extend<PublicPageFixtures>({
@@ -11,11 +10,6 @@ export const test = base.extend<PublicPageFixtures>({
     const homePage = new HomePage(page);
     await homePage.navigate();
     await use(homePage);
-  },
-  aboutPage: async ({ page }, use) => {
-    const aboutPage = new AboutPage(page);
-    await aboutPage.navigate();
-    await use(aboutPage);
   },
 });
 

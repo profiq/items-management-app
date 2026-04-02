@@ -18,13 +18,9 @@ export class UserService {
     return this.userRepository.find();
   }
 
-  async getUserById(
-    id: number,
-    include_pets: boolean = false
-  ): Promise<User | null> {
+  async getUserById(id: number): Promise<User | null> {
     return this.userRepository.findOne({
       where: { id },
-      relations: { pets: include_pets },
     });
   }
 

@@ -3,6 +3,8 @@ node_modules/
 __screenshots__
 *.db
 .firebase
+firebase-debug.log
+ui-debug.log
 
 # Code review temporary files
 .augment/review-findings.json
