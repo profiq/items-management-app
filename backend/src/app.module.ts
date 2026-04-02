@@ -6,6 +6,7 @@ import { ItemsModule } from './items/items.module';
 import configuration from './config/configuration';
 import { ConfigModule } from '@nestjs/config';
 import { dataSourceOptions } from './datasource';
+import { CategoriesModule } from './categories/categories.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { dataSourceOptions } from './datasource';
       envFilePath: '../.env',
       cache: true,
     }),
+    CategoriesModule,
   ],
 })
 export class AppModule {}
