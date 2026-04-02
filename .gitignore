@@ -8,3 +8,6 @@ __screenshots__
 .augment/review-findings.json
 .augment/filtered-findings.json
 .augment/posting-results.json
+
+#webstorm idea individual setting
+.idea/
