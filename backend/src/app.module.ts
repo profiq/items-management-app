@@ -7,6 +7,7 @@ import configuration from './config/configuration';
 import { ConfigModule } from '@nestjs/config';
 import { dataSourceOptions } from './datasource';
 import { CategoriesModule } from './categories/categories.module';
+import { CitiesModule } from './cities/cities.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { CategoriesModule } from './categories/categories.module';
       cache: true,
     }),
     CategoriesModule,
+    CitiesModule,
   ],
 })
 export class AppModule {}
