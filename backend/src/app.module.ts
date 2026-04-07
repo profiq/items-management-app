@@ -9,6 +9,7 @@ import { dataSourceOptions } from './datasource';
 import { CategoriesModule } from './categories/categories.module';
 import { CitiesModule } from './cities/cities.module';
 import { TagsModule } from './tags/tags.module';
+import { LocationsModule } from './locations/locations.module';
 
 @Module({
   imports: [
@@ -24,6 +25,7 @@ import { TagsModule } from './tags/tags.module';
     CategoriesModule,
     CitiesModule,
     TagsModule,
+    LocationsModule,
   ],
 })
 export class AppModule {}
