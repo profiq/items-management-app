@@ -6,11 +6,12 @@ import { Tag } from '@/tags/entities/tag.entity';
 import { Item } from '@/items/entities/item.entity';
 import { Location } from '@/locations/entities/location.entity';
 import { ItemCopy } from '@/item-copies/entities/item-copy.entity';
+import { Loan } from '@/loans/entities/loan.entity';
 
 export const dbConfig: TypeOrmModuleOptions = {
   type: 'sqlite',
   database: ':memory:',
-  entities: [User, Category, City, Tag, Item, Location, ItemCopy],
+  entities: [User, Category, City, Tag, Item, Location, ItemCopy, Loan],
   synchronize: true,
   dropSchema: true,
 };
