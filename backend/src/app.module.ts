@@ -10,6 +10,7 @@ import { CategoriesModule } from './categories/categories.module';
 import { CitiesModule } from './cities/cities.module';
 import { TagsModule } from './tags/tags.module';
 import { LocationsModule } from './locations/locations.module';
+import { ItemCopiesModule } from './item-copies/item-copies.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { LocationsModule } from './locations/locations.module';
     CitiesModule,
     TagsModule,
     LocationsModule,
+    ItemCopiesModule,
   ],
 })
 export class AppModule {}
