@@ -8,6 +8,7 @@ import { ConfigModule } from '@nestjs/config';
 import { dataSourceOptions } from './datasource';
 import { CategoriesModule } from './categories/categories.module';
 import { CitiesModule } from './cities/cities.module';
+import { TagsModule } from './tags/tags.module';
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { CitiesModule } from './cities/cities.module';
     }),
     CategoriesModule,
     CitiesModule,
+    TagsModule,
   ],
 })
 export class AppModule {}
