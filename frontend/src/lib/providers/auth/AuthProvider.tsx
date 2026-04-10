@@ -6,10 +6,14 @@ import {
   signInWithPopup,
   type UserInfo,
 } from 'firebase/auth';
-import { AuthContext, type AuthContextType, type User } from '@/lib/contexts';
+import {
+  AuthContext,
+  type AuthContextType,
+  type User,
+  type UserRole,
+} from '@/lib/contexts';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { createUser, type CreateUserType } from '@/services/users/create_user';
+import { loginToBackend, getMe } from '@/services/auth/auth';
 
 const DOMAIN = 'profiq.com';
 
@@ -19,32 +23,29 @@ export const checkDomain = (user: UserInfo): boolean => {
   return domain?.toLowerCase() === DOMAIN;
 };
 
-type UserCreationAuthType = {
-  data: CreateUserType;
-  user: User;
-};
-
 type AuthProviderProps = {
   children: ReactNode;
 };
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<UserInfo | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [role, setRole] = useState<UserRole | null>(null);
   const [signingIn, setSigningIn] = useState(false);
 
-  const createUserMutation = useMutation({
-    mutationKey: ['user-create'],
-    mutationFn: async ({ data, user }: UserCreationAuthType) =>
-      createUser(data, user),
-  });
-
-  const onUserUpdate = useCallback(async (user: UserInfo) => {
-    if (!checkDomain(user)) {
+  const onUserUpdate = useCallback(async (firebaseUser: User) => {
+    if (!checkDomain(firebaseUser)) {
       auth.signOut();
       return;
     }
-    setUser(user);
+    setUser(firebaseUser);
+    try {
+      const dbUser = await getMe(firebaseUser);
+      setRole(dbUser.role);
+    } catch {
+      // User not in DB yet — will be created on next login
+      setRole(null);
+    }
   }, []);
 
   useEffect(() => {
@@ -53,13 +54,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
     let unsubscribe: (() => void) | undefined;
     (async () => {
       await setPersistence(auth, browserLocalPersistence);
-      unsubscribe = auth.onAuthStateChanged(async user => {
-        if (user) {
-          await onUserUpdate(user);
+      unsubscribe = auth.onAuthStateChanged(async firebaseUser => {
+        if (firebaseUser) {
+          await onUserUpdate(firebaseUser as User);
         } else {
           setUser(null);
+          setRole(null);
         }
-
         setLoading(false);
       });
       if (destroyed) {
@@ -72,53 +73,47 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, [onUserUpdate]);
 
-  const login = useCallback(async () => {
+  const login = useCallback(async (): Promise<string | undefined> => {
     try {
+      setSigningIn(true);
       const provider = new GoogleAuthProvider();
-      // Provide domain hint to the user
-      provider.setCustomParameters({
-        hd: DOMAIN,
-      });
+      provider.setCustomParameters({ hd: DOMAIN });
 
       const result = await signInWithPopup(auth, provider);
       if (!result.user) {
         return 'Failed to login. Try again.';
       }
-
       if (!checkDomain(result.user)) {
         return `User does not belong to ${DOMAIN}.`;
       }
-      // result.user.uid contains uid of the user in the firebase project.
-      // To find the google workspace uid, we need to use this thing.
-      const workspace_id =
-        result.user.providerData.find(
-          element => element.providerId == 'google.com'
-        )?.uid ?? '';
-      const data: UserCreationAuthType = {
-        data: {
-          workspace_id,
-          name: result.user.displayName ?? '',
-        },
-        user: result.user,
-      };
-      createUserMutation.mutate(data);
+      const firebaseUser = result.user as User;
+      setUser(firebaseUser);
+      try {
+        const dbUser = await loginToBackend(firebaseUser);
+        setRole(dbUser.role);
+      } catch {
+        setRole(null);
+      }
     } catch (err) {
       return `Error during sign in: ${err}`;
     } finally {
       setSigningIn(false);
     }
-  }, [createUserMutation]);
+  }, []);
 
   const logout = useCallback(async () => {
     await auth.signOut();
     setUser(null);
+    setRole(null);
   }, []);
+
   return (
     <AuthContext
       value={
         {
           loading,
           user,
+          role,
           logout,
           login,
           signingIn,

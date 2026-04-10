@@ -7,6 +7,7 @@ import Home from './routes/Home.tsx';
 import { AuthProvider } from './lib/providers/auth/AuthProvider.tsx';
 import Login from './routes/Login.tsx';
 import ProtectedRoute from './components/ProtectedRoute.tsx';
+import AdminRoute from './components/AdminRoute.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Employees from './routes/Employees.tsx';
 import { Toaster } from './components/ui/sonner.tsx';
@@ -30,6 +31,8 @@ function App() {
                 <Route element={<ProtectedRoute />}>
                   <Route path='/profile' element={<Profile />} />
                   <Route path='/employees' element={<Employees />} />
+                </Route>
+                <Route element={<AdminRoute />}>
                   <Route path='/admin' element={<Admin />} />
                 </Route>
               </Routes>

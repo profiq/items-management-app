@@ -6,10 +6,13 @@ export type User = {
   getIdToken?: (forceRefresh?: boolean) => Promise<string>;
 } & UserInfo;
 
+export type UserRole = 'admin' | 'user';
+
 export type AuthContextType =
   | {
       loading: true;
       user?: undefined;
+      role?: undefined;
       logout?: undefined;
       login?: undefined;
       signingIn: boolean;
@@ -17,6 +20,7 @@ export type AuthContextType =
   | {
       loading: false;
       user: User;
+      role: UserRole | null;
       logout: () => Promise<void>;
       login?: undefined;
       signingIn?: undefined;
@@ -24,8 +28,9 @@ export type AuthContextType =
   | {
       loading: false;
       user?: undefined;
+      role?: undefined;
       logout?: undefined;
-      login: () => Promise<void>;
+      login: () => Promise<string | undefined>;
       signingIn?: boolean;
     };
 export const AuthContext = createContext<AuthContextType | undefined>(
