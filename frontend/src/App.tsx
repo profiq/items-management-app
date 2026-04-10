@@ -12,6 +12,7 @@ import Employees from './routes/Employees.tsx';
 import { Toaster } from './components/ui/sonner.tsx';
 import Profile from './routes/Profile.tsx';
 import VersionInfo from './components/version-info.tsx';
+import Admin from './routes/admin/Admin.tsx';
 
 const queryClient = new QueryClient();
 
@@ -29,6 +30,7 @@ function App() {
                 <Route element={<ProtectedRoute />}>
                   <Route path='/profile' element={<Profile />} />
                   <Route path='/employees' element={<Employees />} />
+                  <Route path='/admin' element={<Admin />} />
                 </Route>
               </Routes>
             </div>

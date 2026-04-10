@@ -15,6 +15,7 @@ import { LoansModule } from './loans/loans.module';
 import { EmailNotificationsModule } from './email-notifications/email-notifications.module';
 import { ItemCategoriesModule } from './item-categories/item-categories.module';
 import { ItemTagsModule } from './item-tags/item-tags.module';
+import { AdminModule } from './admin/admin.module';
 
 @Module({
   imports: [
@@ -36,6 +37,7 @@ import { ItemTagsModule } from './item-tags/item-tags.module';
     EmailNotificationsModule,
     ItemCategoriesModule,
     ItemTagsModule,
+    AdminModule,
   ],
 })
 export class AppModule {}
