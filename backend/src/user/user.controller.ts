@@ -7,6 +7,7 @@ import {
   Header,
   Param,
   ParseIntPipe,
+  Patch,
   Post,
   UseGuards,
 } from '@nestjs/common';
@@ -14,12 +15,20 @@ import {
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiOkResponse,
+  ApiProperty,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@/auth/auth.guard';
-import { User } from './user.entity';
+import { RolesGuard } from '@/auth/roles.guard';
+import { Roles } from '@/auth/roles.decorator';
+import { User, UserRole } from './user.entity';
 import { UserService } from './user.service';
 import { CreateUserRequest } from './dto/create_user';
 import { UnknownUserException } from '@/lib/errors';
+
+class UpdateRoleRequest {
+  @ApiProperty({ enum: UserRole })
+  role: UserRole;
+}
 
 @Controller('users')
 @ApiBearerAuth()
@@ -57,6 +66,21 @@ export class UserController {
     const user = await this.userService.createUser(data);
     if (!user) {
       throw new BadRequestException();
+    }
+    return user;
+  }
+
+  @Patch(':id/role')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.Admin)
+  @ApiOkResponse({ type: User })
+  async updateRole(
+    @Param('id', ParseIntPipe) id: number,
+    @Body() body: UpdateRoleRequest
+  ): Promise<User> {
+    const user = await this.userService.updateUserRole(id, body.role);
+    if (!user) {
+      throw new UnknownUserException();
     }
     return user;
   }

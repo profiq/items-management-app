@@ -1,9 +1,10 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from './user.entity';
+import { User, UserRole } from './user.entity';
 import { CreateUserRequest } from './dto/create_user';
 import { EmployeeService } from '@/employee/employee.service';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 
 @Injectable()
 export class UserService {
@@ -47,6 +48,52 @@ export class UserService {
     new_user.employee_id = employee.id;
     await this.userRepository.save(new_user);
     return new_user;
+  }
+
+  async getUserByFirebaseUid(firebase_uid: string): Promise<User | null> {
+    return this.userRepository.findOne({ where: { firebase_uid } });
+  }
+
+  async upsertByFirebaseToken(token: DecodedIdToken): Promise<User | null> {
+    let user = await this.getUserByFirebaseUid(token.uid);
+    if (user) {
+      user.email = token.email ?? user.email;
+      await this.userRepository.save(user);
+      return user;
+    }
+    // Try to find by employee_id (google workspace uid)
+    const googleUid =
+      (
+        token.firebase?.identities?.['google.com'] as string[] | undefined
+      )?.[0] ?? '';
+    if (googleUid) {
+      user = await this.getUserByEmployeeId(googleUid);
+    }
+    if (user) {
+      user.firebase_uid = token.uid;
+      user.email = token.email ?? user.email;
+      await this.userRepository.save(user);
+      return user;
+    }
+    // Auto-create user from token if employee lookup is not possible
+    const newUser = new User();
+    newUser.firebase_uid = token.uid;
+    newUser.email = token.email ?? '';
+    newUser.name = token.name ?? token.email ?? '';
+    newUser.employee_id = googleUid || token.uid;
+    newUser.role = UserRole.User;
+    await this.userRepository.save(newUser);
+    return newUser;
+  }
+
+  async updateUserRole(id: number, role: UserRole): Promise<User | null> {
+    const user = await this.getUserById(id);
+    if (!user) {
+      return null;
+    }
+    user.role = role;
+    await this.userRepository.save(user);
+    return user;
   }
 
   async saveUser(user: User) {
