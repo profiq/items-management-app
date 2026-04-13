@@ -3,6 +3,7 @@ import Login from './Login';
 import { render } from 'vitest-browser-react';
 import type { AuthContextType } from '@/lib/contexts';
 import { faker } from '@faker-js/faker';
+import { MemoryRouter } from 'react-router';
 
 describe('Login testing', () => {
   const mocks = vi.hoisted(() => {
@@ -22,7 +23,11 @@ describe('Login testing', () => {
       user: { email },
     } as unknown as AuthContextType);
 
-    const { getByText, getByRole } = await render(<Login></Login>);
+    const { getByText, getByRole } = await render(
+      <MemoryRouter>
+        <Login></Login>
+      </MemoryRouter>
+    );
     await expect.element(getByText(email)).toBeInTheDocument();
     await expect
       .element(getByRole('button').getByText('Logout'))
@@ -40,8 +45,12 @@ describe('Login testing', () => {
       user: { email },
     } as unknown as AuthContextType);
 
-    const { getByText } = await render(<Login></Login>);
-    await expect.element(getByText('Loading')).toBeInTheDocument();
+    const { getByText, getByTestId } = await render(
+      <MemoryRouter>
+        <Login></Login>
+      </MemoryRouter>
+    );
+    await expect.element(getByTestId('login-loading')).toBeInTheDocument();
     await expect.element(getByText(email)).not.toBeInTheDocument();
     await expect.element(getByText('Logout')).not.toBeInTheDocument();
     await expect
@@ -55,7 +64,11 @@ describe('Login testing', () => {
       loading: false,
     } as unknown as AuthContextType);
 
-    const { getByText } = await render(<Login></Login>);
+    const { getByText } = await render(
+      <MemoryRouter>
+        <Login></Login>
+      </MemoryRouter>
+    );
     await expect.element(getByText('Loading')).not.toBeInTheDocument();
     await expect.element(getByText(email)).not.toBeInTheDocument();
     await expect.element(getByText('Logout')).not.toBeInTheDocument();

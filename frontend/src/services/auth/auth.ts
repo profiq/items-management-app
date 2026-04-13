@@ -11,8 +11,6 @@ export type DbUser = {
   id: number;
   name: string;
   employee_id: string;
-  firebase_uid: string | null;
-  email: string | null;
   role: UserRole;
 };
 
@@ -38,9 +36,4 @@ export async function getMe(user: User): Promise<DbUser> {
     throw createError(result.status_code, result.error.message);
   }
   return result.data;
-}
-
-export async function logoutFromBackend(user: User): Promise<void> {
-  const client = new APIClient(user);
-  await client.fetch(HttpMethod.Post, '/auth/logout');
 }

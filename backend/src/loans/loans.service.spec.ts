@@ -16,8 +16,6 @@ const mockLoan: Loan = {
     id: 1,
     name: 'John',
     employee_id: 'emp1',
-    firebase_uid: null,
-    email: null,
     role: UserRole.User,
   },
   user_id: 1,

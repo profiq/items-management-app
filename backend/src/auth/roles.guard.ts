@@ -27,7 +27,8 @@ export class RolesGuard implements CanActivate {
     if (!firebaseUser) {
       return false;
     }
-    const user = await this.userService.getUserByFirebaseUid(firebaseUser.uid);
+    const user =
+      await this.userService.getUserByGoogleWorkspaceUid(firebaseUser);
     if (!user) {
       return false;
     }

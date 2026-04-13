@@ -6,7 +6,11 @@ import { UserModule } from '@/user/user.module';
 import { ConfigModule } from '@nestjs/config';
 
 @Module({
-  imports: [AuthModule, forwardRef(() => UserModule), ConfigModule],
+  imports: [
+    forwardRef(() => AuthModule),
+    forwardRef(() => UserModule),
+    ConfigModule,
+  ],
   providers: [EmployeeService],
   controllers: [EmployeeController],
   exports: [EmployeeService],

@@ -14,6 +14,7 @@ import {
 } from '@/lib/contexts';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { loginToBackend, getMe } from '@/services/auth/auth';
+import { ForbiddenError } from '@/lib/errors';
 
 const DOMAIN = 'profiq.com';
 
@@ -42,7 +43,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       const dbUser = await getMe(firebaseUser);
       setRole(dbUser.role);
-    } catch {
+    } catch (err) {
+      if (err instanceof ForbiddenError) {
+        auth.signOut();
+        return;
+      }
       // User not in DB yet — will be created on next login
       setRole(null);
     }

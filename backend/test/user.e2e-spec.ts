@@ -5,7 +5,7 @@ import { App } from 'supertest/types';
 import { UserModule } from '@/user/user.module';
 import { AuthService } from '@/auth/auth.service';
 import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
-import { User } from '@/user/user.entity';
+import { User, UserRole } from '@/user/user.entity';
 import { DataSource } from 'typeorm';
 import { TimeDuration } from '@/lib/time';
 import { setupAuth } from './auth';
@@ -62,11 +62,13 @@ describe('UserModule', () => {
           id: 1,
           name: 'abcd abcd',
           employee_id: '1',
+          role: UserRole.User,
         },
         {
           id: 2,
           name: 'Eve',
           employee_id: '2',
+          role: UserRole.User,
         },
       ]);
   });
@@ -97,6 +99,7 @@ describe('UserModule', () => {
         id: 1,
         name: 'abcd abcd',
         employee_id: '1',
+        role: UserRole.User,
       });
   });
 
@@ -117,11 +120,13 @@ describe('UserModule', () => {
           id: 1,
           name: 'abcd abcd',
           employee_id: '1',
+          role: UserRole.User,
         },
         {
           id: 2,
           name: 'Eve',
           employee_id: '2',
+          role: UserRole.User,
         },
       ]);
 
@@ -139,6 +144,7 @@ describe('UserModule', () => {
           id: 1,
           name: 'abcd abcd',
           employee_id: '1',
+          role: UserRole.User,
         },
       ]);
   });
