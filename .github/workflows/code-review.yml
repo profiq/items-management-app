@@ -1,0 +1,27 @@
+name: AI Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, ready_for_review, labeled]
+
+jobs:
+  code-review:
+    name: Auggie Code Review
+    runs-on: ubuntu-latest
+    # Skip draft PRs and only run when "Waiting for review" label is present
+    if: |
+      !github.event.pull_request.draft &&
+      contains(github.event.pull_request.labels.*.name, 'Waiting for review')
+    permissions:
+      contents: read
+      pull-requests: write
+    timeout-minutes: 60
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Augment Review PR
+        uses: augmentcode/augment-review-pr-action@v0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          augment-session-auth: ${{ secrets.AUGMENT_CLI_SESSION_KEY }}
