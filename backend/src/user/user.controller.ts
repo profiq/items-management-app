@@ -15,7 +15,6 @@ import {
   ApiBearerAuth,
   ApiCreatedResponse,
   ApiOkResponse,
-  ApiProperty,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@/auth/auth.guard';
 import { RolesGuard } from '@/auth/roles.guard';
@@ -23,12 +22,8 @@ import { Roles } from '@/auth/roles.decorator';
 import { User, UserRole } from './user.entity';
 import { UserService } from './user.service';
 import { CreateUserRequest } from './dto/create_user';
+import { UpdateRoleRequest } from './dto/update_role';
 import { UnknownUserException } from '@/lib/errors';
-
-class UpdateRoleRequest {
-  @ApiProperty({ enum: UserRole })
-  role: UserRole;
-}
 
 @Controller('users')
 @ApiBearerAuth()

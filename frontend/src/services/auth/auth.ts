@@ -10,7 +10,6 @@ import type { UserRole } from '@/lib/contexts';
 export type DbUser = {
   id: number;
   name: string;
-  employee_id: string;
   role: UserRole;
 };
 

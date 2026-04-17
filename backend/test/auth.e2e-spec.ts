@@ -36,13 +36,11 @@ describe('AuthModule', () => {
 
   const buildApp = async (user: User | null) => {
     const mockUserService: jest.Mocked<
-      Pick<
-        UserService,
-        'upsertByGoogleWorkspaceToken' | 'getUserByGoogleWorkspaceUid'
-      >
+      Pick<UserService, 'upsertByGoogleWorkspaceToken'>
     > = {
-      upsertByGoogleWorkspaceToken: jest.fn().mockResolvedValue(user),
-      getUserByGoogleWorkspaceUid: jest.fn().mockResolvedValue(user),
+      upsertByGoogleWorkspaceToken: jest
+        .fn()
+        .mockResolvedValue(user ? { user } : { error: 'not-in-directory' }),
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -54,7 +52,7 @@ describe('AuthModule', () => {
       .useValue(mockUserService)
       .compile();
 
-    const app = moduleFixture.createNestApplication();
+    const app = moduleFixture.createNestApplication<INestApplication<App>>();
     const httpAdapterHost = app.get(HttpAdapterHost);
     app.useGlobalFilters(new CustomExceptionsFilter(httpAdapterHost));
     await app.init();
@@ -75,7 +73,6 @@ describe('AuthModule', () => {
         .expect({
           id: 1,
           name: 'Test User',
-          employee_id: 'google-workspace-uid',
           role: UserRole.User,
         });
     });
@@ -114,7 +111,6 @@ describe('AuthModule', () => {
         .expect({
           id: 1,
           name: 'Test User',
-          employee_id: 'google-workspace-uid',
           role: UserRole.User,
         });
     });

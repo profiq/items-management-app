@@ -5,6 +5,10 @@ import { User, UserRole } from './user.entity';
 import { CreateUserRequest } from './dto/create_user';
 import { EmployeeService } from '@/employee/employee.service';
 
+export type UpsertResult =
+  | { user: User }
+  | { error: 'no-google-identity' | 'not-in-directory' };
+
 @Injectable()
 export class UserService {
   constructor(
@@ -65,27 +69,31 @@ export class UserService {
   async upsertByGoogleWorkspaceToken(token: {
     uid: string;
     firebase?: { identities?: Record<string, unknown> };
-  }): Promise<User | null> {
+  }): Promise<UpsertResult> {
     const googleUid = (
       token.firebase?.identities?.['google.com'] as string[] | undefined
     )?.[0];
     if (!googleUid) {
-      return null;
+      return { error: 'no-google-identity' };
     }
     const existing = await this.getUserByEmployeeId(googleUid);
     if (existing) {
-      return existing;
+      return { user: existing };
     }
     const employee = await this.employeeService.getEmployee(googleUid);
     if (!employee) {
-      return null;
+      return { error: 'not-in-directory' };
     }
     const user = new User();
     user.employee_id = googleUid;
     user.name = employee.name;
-    user.role = UserRole.User;
+    user.role =
+      process.env.FIRST_ADMIN_EMAIL &&
+      employee.email === process.env.FIRST_ADMIN_EMAIL
+        ? UserRole.Admin
+        : UserRole.User;
     await this.userRepository.save(user);
-    return user;
+    return { user };
   }
 
   async updateUserRole(id: number, role: UserRole): Promise<User | null> {

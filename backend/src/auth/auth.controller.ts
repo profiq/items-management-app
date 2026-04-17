@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   HttpCode,
@@ -11,12 +12,24 @@ import {
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from './auth.guard';
 import { UserService } from '@/user/user.service';
-import { User } from '@/user/user.entity';
+import { UserResponseDto } from '@/user/dto/user_response.dto';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 
 type FirebaseRequest = {
   firebaseUser: DecodedIdToken;
 };
+
+function toUserResponseDto(user: {
+  id: number;
+  name: string;
+  role: import('@/user/user.entity').UserRole;
+}): UserResponseDto {
+  const dto = new UserResponseDto();
+  dto.id = user.id;
+  dto.name = user.name;
+  dto.role = user.role;
+  return dto;
+}
 
 @ApiTags('auth')
 @Controller('auth')
@@ -27,15 +40,20 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
-  @ApiOkResponse({ type: User })
-  async login(@Req() req: FirebaseRequest): Promise<User> {
-    const user = await this.userService.upsertByGoogleWorkspaceToken(
+  @ApiOkResponse({ type: UserResponseDto })
+  async login(@Req() req: FirebaseRequest): Promise<UserResponseDto> {
+    const result = await this.userService.upsertByGoogleWorkspaceToken(
       req.firebaseUser
     );
-    if (user === null) {
+    if ('error' in result) {
+      if (result.error === 'no-google-identity') {
+        throw new BadRequestException(
+          'Token does not contain a Google identity'
+        );
+      }
       throw new NotFoundException('User not found in employee directory');
     }
-    return user;
+    return toUserResponseDto(result.user);
   }
 
   @Post('logout')
@@ -46,14 +64,19 @@ export class AuthController {
   }
 
   @Get('me')
-  @ApiOkResponse({ type: User })
-  async getMe(@Req() req: FirebaseRequest): Promise<User> {
-    const user = await this.userService.getUserByGoogleWorkspaceUid(
+  @ApiOkResponse({ type: UserResponseDto })
+  async getMe(@Req() req: FirebaseRequest): Promise<UserResponseDto> {
+    const result = await this.userService.upsertByGoogleWorkspaceToken(
       req.firebaseUser
     );
-    if (!user) {
-      throw new NotFoundException('User not found');
+    if ('error' in result) {
+      if (result.error === 'no-google-identity') {
+        throw new BadRequestException(
+          'Token does not contain a Google identity'
+        );
+      }
+      throw new NotFoundException('User not found in employee directory');
     }
-    return user;
+    return toUserResponseDto(result.user);
   }
 }

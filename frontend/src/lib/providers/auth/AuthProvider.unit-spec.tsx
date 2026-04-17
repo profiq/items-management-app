@@ -1,5 +1,5 @@
 import { expect, test, vi } from 'vitest';
-import { checkDomain } from './AuthProvider';
+import { checkDomain } from './domain';
 import type { UserInfo } from 'firebase/auth';
 import { faker } from '@faker-js/faker';
 

@@ -11,6 +11,14 @@ import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router';
+import { z } from 'zod';
+
+const loginStateSchema = z.object({ from: z.string() }).partial().nullable();
+
+function getRedirectFrom(state: unknown): string {
+  const parsed = loginStateSchema.safeParse(state);
+  return parsed.success ? (parsed.data?.from ?? '/') : '/';
+}
 
 function Login() {
   const { loading, user, login, signingIn, logout } = useAuth();
@@ -18,7 +26,7 @@ function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const from = (location.state as { from?: string } | null)?.from ?? '/';
+  const from = getRedirectFrom(location.state);
 
   const handleLogin = async () => {
     setError(null);

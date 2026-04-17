@@ -4,7 +4,7 @@ import {
   GoogleAuthProvider,
   setPersistence,
   signInWithPopup,
-  type UserInfo,
+  type User as FirebaseUser,
 } from 'firebase/auth';
 import {
   AuthContext,
@@ -15,18 +15,15 @@ import {
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
 import { loginToBackend, getMe } from '@/services/auth/auth';
 import { ForbiddenError } from '@/lib/errors';
-
-const DOMAIN = 'profiq.com';
-
-export const checkDomain = (user: UserInfo): boolean => {
-  const { email } = user;
-  const domain = email?.split('@')[1];
-  return domain?.toLowerCase() === DOMAIN;
-};
+import { checkDomain, DOMAIN } from './domain';
 
 type AuthProviderProps = {
   children: ReactNode;
 };
+
+function toUser(fbUser: FirebaseUser): User {
+  return fbUser;
+}
 
 export function AuthProvider({ children }: AuthProviderProps) {
   const [loading, setLoading] = useState(true);
@@ -34,22 +31,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [role, setRole] = useState<UserRole | null>(null);
   const [signingIn, setSigningIn] = useState(false);
 
-  const onUserUpdate = useCallback(async (firebaseUser: User) => {
+  const onUserUpdate = useCallback(async (firebaseUser: FirebaseUser) => {
     if (!checkDomain(firebaseUser)) {
-      auth.signOut();
+      await auth.signOut();
       return;
     }
-    setUser(firebaseUser);
+    setUser(toUser(firebaseUser));
     try {
-      const dbUser = await getMe(firebaseUser);
+      const dbUser = await getMe(toUser(firebaseUser));
       setRole(dbUser.role);
     } catch (err) {
       if (err instanceof ForbiddenError) {
-        auth.signOut();
+        await auth.signOut();
         return;
       }
-      // User not in DB yet — will be created on next login
-      setRole(null);
+      // getMe now upserts on the backend, so any remaining error is unexpected — sign out
+      await auth.signOut();
     }
   }, []);
 
@@ -61,7 +58,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       await setPersistence(auth, browserLocalPersistence);
       unsubscribe = auth.onAuthStateChanged(async firebaseUser => {
         if (firebaseUser) {
-          await onUserUpdate(firebaseUser as User);
+          await onUserUpdate(firebaseUser);
         } else {
           setUser(null);
           setRole(null);
@@ -91,13 +88,14 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (!checkDomain(result.user)) {
         return `User does not belong to ${DOMAIN}.`;
       }
-      const firebaseUser = result.user as User;
+      const firebaseUser = toUser(result.user);
       setUser(firebaseUser);
       try {
         const dbUser = await loginToBackend(firebaseUser);
         setRole(dbUser.role);
-      } catch {
+      } catch (err) {
         setRole(null);
+        return `Failed to sign in: ${err instanceof Error ? err.message : String(err)}`;
       }
     } catch (err) {
       return `Error during sign in: ${err}`;
