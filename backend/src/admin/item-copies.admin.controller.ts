@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@/auth/auth.guard';
@@ -32,8 +33,8 @@ export class ItemCopiesAdminController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<ItemCopy> {
-    return this.itemCopiesService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number): Promise<ItemCopy> {
+    return this.itemCopiesService.findOne(id);
   }
 
   @Post()
@@ -43,14 +44,14 @@ export class ItemCopiesAdminController {
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateItemCopyDto: UpdateItemCopyDto
   ): Promise<ItemCopy> {
-    return this.itemCopiesService.update(+id, updateItemCopyDto);
+    return this.itemCopiesService.update(id, updateItemCopyDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string): Promise<void> {
-    return this.itemCopiesService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    return this.itemCopiesService.remove(id);
   }
 }

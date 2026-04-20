@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   UseGuards,
+  ParseIntPipe,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@/auth/auth.guard';
@@ -32,8 +33,8 @@ export class LocationsAdminController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string): Promise<Location> {
-    return this.locationsService.findOne(+id);
+  findOne(@Param('id', ParseIntPipe) id: number): Promise<Location> {
+    return this.locationsService.findOne(id);
   }
 
   @Post()
@@ -43,14 +44,14 @@ export class LocationsAdminController {
 
   @Patch(':id')
   update(
-    @Param('id') id: string,
+    @Param('id', ParseIntPipe) id: number,
     @Body() updateLocationDto: UpdateLocationDto
   ): Promise<Location> {
-    return this.locationsService.update(+id, updateLocationDto);
+    return this.locationsService.update(id, updateLocationDto);
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string): Promise<void> {
-    return this.locationsService.remove(+id);
+  remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
+    return this.locationsService.remove(id);
   }
 }

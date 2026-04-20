@@ -104,6 +104,14 @@ describe('CitiesModule (e2e)', (): void => {
     });
   });
 
+  describe('/admin/cities/:id (GET)', (): void => {
+    it('should return 400 for non-numeric id', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .get('/admin/cities/not-a-number')
+        .expect(StatusCodes.BAD_REQUEST);
+    });
+  });
+
   describe('/admin/cities/:id (PATCH)', (): void => {
     it('should update a city', async (): Promise<void> => {
       const created: Response = await request(app.getHttpServer())
@@ -129,6 +137,13 @@ describe('CitiesModule (e2e)', (): void => {
         .send({ name: 'X' })
         .expect(StatusCodes.NOT_FOUND);
     });
+
+    it('should return 400 for non-numeric id', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .patch('/admin/cities/not-a-number')
+        .send({ name: 'X' })
+        .expect(StatusCodes.BAD_REQUEST);
+    });
   });
 
   describe('/admin/cities/:id (DELETE)', (): void => {
@@ -152,6 +167,12 @@ describe('CitiesModule (e2e)', (): void => {
       await request(app.getHttpServer())
         .delete('/admin/cities/9999')
         .expect(StatusCodes.NOT_FOUND);
+    });
+
+    it('should return 400 for non-numeric id', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .delete('/admin/cities/not-a-number')
+        .expect(StatusCodes.BAD_REQUEST);
     });
   });
 });

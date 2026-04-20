@@ -120,6 +120,14 @@ describe('ItemsModule (e2e)', (): void => {
     });
   });
 
+  describe('/admin/items/:id (GET)', (): void => {
+    it('should return 400 for non-numeric id', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .get('/admin/items/not-a-number')
+        .expect(StatusCodes.BAD_REQUEST);
+    });
+  });
+
   describe('/admin/items/:id (PATCH)', (): void => {
     it('should update scalar fields', async (): Promise<void> => {
       const created: Response = await request(app.getHttpServer())
@@ -146,6 +154,13 @@ describe('ItemsModule (e2e)', (): void => {
         .send({ name: 'X' })
         .expect(StatusCodes.NOT_FOUND);
     });
+
+    it('should return 400 for non-numeric id', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .patch('/admin/items/not-a-number')
+        .send({ name: 'X' })
+        .expect(StatusCodes.BAD_REQUEST);
+    });
   });
 
   describe('/admin/items/:id (DELETE)', (): void => {
@@ -169,6 +184,12 @@ describe('ItemsModule (e2e)', (): void => {
       await request(app.getHttpServer())
         .delete('/admin/items/9999')
         .expect(StatusCodes.NOT_FOUND);
+    });
+
+    it('should return 400 for non-numeric id', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .delete('/admin/items/not-a-number')
+        .expect(StatusCodes.BAD_REQUEST);
     });
   });
 });
