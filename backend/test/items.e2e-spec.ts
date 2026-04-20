@@ -8,7 +8,11 @@ import { ItemsModule } from '@/items/items.module';
 import { ItemsAdminController } from '@/admin/items.admin.controller';
 import { AuthGuard } from '@/auth/auth.guard';
 import { RolesGuard } from '@/auth/roles.guard';
+import { CategoriesModule } from '@/categories/categories.module';
+import { TagsModule } from '@/tags/tags.module';
 import { Item } from '@/items/entities/item.entity';
+import { Category } from '@/categories/entities/category.entity';
+import { Tag } from '@/tags/entities/tag.entity';
 import { dbConfig } from './database';
 
 describe('ItemsModule (e2e)', (): void => {
@@ -16,7 +20,12 @@ describe('ItemsModule (e2e)', (): void => {
 
   beforeEach(async (): Promise<void> => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [ItemsModule, TypeOrmModule.forRoot(dbConfig)],
+      imports: [
+        ItemsModule,
+        CategoriesModule,
+        TagsModule,
+        TypeOrmModule.forRoot(dbConfig),
+      ],
       controllers: [ItemsAdminController],
     })
       .overrideGuard(AuthGuard)
@@ -34,7 +43,7 @@ describe('ItemsModule (e2e)', (): void => {
   });
 
   describe('/admin/items (POST)', (): void => {
-    it('should create an item without optional fields', async (): Promise<void> => {
+    it('should create an item without categories or tags', async (): Promise<void> => {
       await request(app.getHttpServer())
         .post('/admin/items')
         .send({ name: 'Clean Code', default_loan_days: 14 })
@@ -47,6 +56,8 @@ describe('ItemsModule (e2e)', (): void => {
           expect(body.description).toBeNull();
           expect(body.image_url).toBeNull();
           expect(body.archived_at).toBeNull();
+          expect(body.categories).toEqual([]);
+          expect(body.tags).toEqual([]);
         });
     });
 
@@ -66,10 +77,39 @@ describe('ItemsModule (e2e)', (): void => {
           expect(body.image_url).toBe('https://example.com/img.png');
         });
     });
+
+    it('should create an item with categories and tags', async (): Promise<void> => {
+      const catRes: Response = await request(app.getHttpServer())
+        .post('/categories')
+        .send({ name: 'Books' });
+      const tagRes: Response = await request(app.getHttpServer())
+        .post('/tags')
+        .send({ name: 'fiction' });
+
+      const categoryId = (catRes.body as Category).id;
+      const tagId = (tagRes.body as Tag).id;
+
+      await request(app.getHttpServer())
+        .post('/admin/items')
+        .send({
+          name: 'Clean Code',
+          default_loan_days: 14,
+          categoryIds: [categoryId],
+          tagIds: [tagId],
+        })
+        .expect(StatusCodes.CREATED)
+        .expect((res: Response) => {
+          const body = res.body as Item;
+          expect(body.categories).toHaveLength(1);
+          expect(body.categories[0].id).toBe(categoryId);
+          expect(body.tags).toHaveLength(1);
+          expect(body.tags[0].id).toBe(tagId);
+        });
+    });
   });
 
   describe('/items (GET)', (): void => {
-    it('should return all items', async (): Promise<void> => {
+    it('should return all items with categories and tags', async (): Promise<void> => {
       await request(app.getHttpServer())
         .post('/admin/items')
         .send({ name: 'Clean Code', default_loan_days: 14 });
@@ -84,6 +124,8 @@ describe('ItemsModule (e2e)', (): void => {
           const body = res.body as Item[];
           expect(Array.isArray(body)).toBe(true);
           expect(body).toHaveLength(2);
+          expect(body[0].categories).toBeDefined();
+          expect(body[0].tags).toBeDefined();
         });
     });
 
@@ -96,10 +138,19 @@ describe('ItemsModule (e2e)', (): void => {
   });
 
   describe('/items/:id (GET)', (): void => {
-    it('should return an item by id', async (): Promise<void> => {
+    it('should return an item with categories and tags', async (): Promise<void> => {
+      const catRes: Response = await request(app.getHttpServer())
+        .post('/categories')
+        .send({ name: 'Books' });
+      const categoryId = (catRes.body as Category).id;
+
       const created: Response = await request(app.getHttpServer())
         .post('/admin/items')
-        .send({ name: 'Clean Code', default_loan_days: 14 });
+        .send({
+          name: 'Clean Code',
+          default_loan_days: 14,
+          categoryIds: [categoryId],
+        });
 
       const createdBody = created.body as Item;
 
@@ -109,7 +160,8 @@ describe('ItemsModule (e2e)', (): void => {
         .expect((res: Response) => {
           const body = res.body as Item;
           expect(body.id).toBe(createdBody.id);
-          expect(body.name).toBe('Clean Code');
+          expect(body.categories).toHaveLength(1);
+          expect(body.categories[0].id).toBe(categoryId);
         });
     });
 
@@ -145,6 +197,29 @@ describe('ItemsModule (e2e)', (): void => {
           expect(body.name).toBe('Clean Code 2nd Edition');
           expect(body.default_loan_days).toBe(21);
           expect(body.id).toBe(createdBody.id);
+        });
+    });
+
+    it('should replace categories on update', async (): Promise<void> => {
+      const catRes: Response = await request(app.getHttpServer())
+        .post('/categories')
+        .send({ name: 'Books' });
+      const categoryId = (catRes.body as Category).id;
+
+      const created: Response = await request(app.getHttpServer())
+        .post('/admin/items')
+        .send({ name: 'Clean Code', default_loan_days: 14 });
+
+      const createdBody = created.body as Item;
+
+      await request(app.getHttpServer())
+        .patch(`/admin/items/${createdBody.id}`)
+        .send({ categoryIds: [categoryId] })
+        .expect(StatusCodes.OK)
+        .expect((res: Response) => {
+          const body = res.body as Item;
+          expect(body.categories).toHaveLength(1);
+          expect(body.categories[0].id).toBe(categoryId);
         });
     });
 

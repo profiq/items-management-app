@@ -1,5 +1,13 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import {
+  Column,
+  Entity,
+  JoinTable,
+  ManyToMany,
+  PrimaryGeneratedColumn,
+} from 'typeorm';
+import { Category } from '@/categories/entities/category.entity';
+import { Tag } from '@/tags/entities/tag.entity';
 
 @Entity()
 export class Item {
@@ -26,4 +34,20 @@ export class Item {
   @Column({ type: 'datetime', nullable: true, default: null })
   @ApiPropertyOptional({ type: String, format: 'date-time', nullable: true })
   archived_at: Date | null;
+
+  @ManyToMany(() => Category, { eager: false })
+  @JoinTable({
+    name: 'item_category',
+    joinColumn: { name: 'item_id' },
+    inverseJoinColumn: { name: 'category_id' },
+  })
+  categories: Category[];
+
+  @ManyToMany(() => Tag, { eager: false })
+  @JoinTable({
+    name: 'item_tag',
+    joinColumn: { name: 'item_id' },
+    inverseJoinColumn: { name: 'tag_id' },
+  })
+  tags: Tag[];
 }

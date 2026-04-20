@@ -13,6 +13,8 @@ const mockItemCopy: ItemCopy = {
     image_url: null,
     default_loan_days: 14,
     archived_at: null,
+    categories: [],
+    tags: [],
   },
   item_id: 1,
   location: {

@@ -11,6 +11,8 @@ const mockItem: Item = {
   image_url: null,
   default_loan_days: 14,
   archived_at: null,
+  categories: [],
+  tags: [],
 };
 
 const mockService: jest.Mocked<Pick<ItemsService, 'findAll' | 'findOne'>> = {

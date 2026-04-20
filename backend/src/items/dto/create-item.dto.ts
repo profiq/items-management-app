@@ -12,4 +12,10 @@ export class CreateItemDto {
 
   @ApiProperty()
   default_loan_days: number;
+
+  @ApiPropertyOptional({ type: [Number] })
+  categoryIds?: number[];
+
+  @ApiPropertyOptional({ type: [Number] })
+  tagIds?: number[];
 }

@@ -1,11 +1,16 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { ItemsService } from './items.service';
 import { Item } from './entities/item.entity';
+import { Category } from '@/categories/entities/category.entity';
+import { Tag } from '@/tags/entities/tag.entity';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
+
+const mockCategory: Category = { id: 1, name: 'Books', archived_at: null };
+const mockTag: Tag = { id: 1, name: 'fiction' };
 
 const mockItem: Item = {
   id: 1,
@@ -14,16 +19,28 @@ const mockItem: Item = {
   image_url: null,
   default_loan_days: 14,
   archived_at: null,
+  categories: [],
+  tags: [],
 };
 
-const mockRepository: jest.Mocked<
-  Pick<Repository<Item>, 'create' | 'save' | 'find' | 'findOneBy' | 'remove'>
+const mockItemRepository: jest.Mocked<
+  Pick<Repository<Item>, 'create' | 'save' | 'find' | 'findOne' | 'remove'>
 > = {
   create: jest.fn(),
   save: jest.fn(),
   find: jest.fn(),
-  findOneBy: jest.fn(),
+  findOne: jest.fn(),
   remove: jest.fn(),
+};
+
+const mockCategoryRepository: jest.Mocked<
+  Pick<Repository<Category>, 'findBy'>
+> = {
+  findBy: jest.fn(),
+};
+
+const mockTagRepository: jest.Mocked<Pick<Repository<Tag>, 'findBy'>> = {
+  findBy: jest.fn(),
 };
 
 describe('ItemsService', (): void => {
@@ -33,10 +50,12 @@ describe('ItemsService', (): void => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ItemsService,
+        { provide: getRepositoryToken(Item), useValue: mockItemRepository },
         {
-          provide: getRepositoryToken(Item),
-          useValue: mockRepository,
+          provide: getRepositoryToken(Category),
+          useValue: mockCategoryRepository,
         },
+        { provide: getRepositoryToken(Tag), useValue: mockTagRepository },
       ],
     }).compile();
 
@@ -45,73 +64,106 @@ describe('ItemsService', (): void => {
   });
 
   describe('create', (): void => {
-    it('should create and return an item', async (): Promise<void> => {
+    it('should create and return an item without categories/tags', async (): Promise<void> => {
       const dto: CreateItemDto = {
         name: 'Clean Code',
         description: 'A book about clean code',
         default_loan_days: 14,
       };
-      mockRepository.create.mockReturnValue(mockItem);
-      mockRepository.save.mockResolvedValue(mockItem);
+      mockItemRepository.create.mockReturnValue({ ...mockItem });
+      mockItemRepository.save.mockResolvedValue(mockItem);
 
-      const result: Item = await service.create(dto);
+      const result = await service.create(dto);
 
-      expect(mockRepository.create).toHaveBeenCalledWith({
+      expect(mockItemRepository.create).toHaveBeenCalledWith({
         name: 'Clean Code',
         description: 'A book about clean code',
         image_url: null,
         default_loan_days: 14,
         archived_at: null,
       });
-      expect(mockRepository.save).toHaveBeenCalledWith(mockItem);
+      expect(mockCategoryRepository.findBy).not.toHaveBeenCalled();
+      expect(mockTagRepository.findBy).not.toHaveBeenCalled();
       expect(result).toEqual(mockItem);
     });
 
     it('should default description and image_url to null when not provided', async (): Promise<void> => {
       const dto: CreateItemDto = { name: 'Clean Code', default_loan_days: 14 };
-      mockRepository.create.mockReturnValue(mockItem);
-      mockRepository.save.mockResolvedValue(mockItem);
+      mockItemRepository.create.mockReturnValue({ ...mockItem });
+      mockItemRepository.save.mockResolvedValue(mockItem);
 
       await service.create(dto);
 
-      expect(mockRepository.create).toHaveBeenCalledWith(
+      expect(mockItemRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({ description: null, image_url: null })
       );
+    });
+
+    it('should assign categories and tags when IDs are provided', async (): Promise<void> => {
+      const dto: CreateItemDto = {
+        name: 'Clean Code',
+        default_loan_days: 14,
+        categoryIds: [1],
+        tagIds: [1],
+      };
+      const itemWithoutRelations = { ...mockItem, categories: [], tags: [] };
+      mockItemRepository.create.mockReturnValue(itemWithoutRelations);
+      mockCategoryRepository.findBy.mockResolvedValue([mockCategory]);
+      mockTagRepository.findBy.mockResolvedValue([mockTag]);
+      mockItemRepository.save.mockResolvedValue({
+        ...mockItem,
+        categories: [mockCategory],
+        tags: [mockTag],
+      });
+
+      const result = await service.create(dto);
+
+      expect(mockCategoryRepository.findBy).toHaveBeenCalledWith({
+        id: In([1]),
+      });
+      expect(mockTagRepository.findBy).toHaveBeenCalledWith({ id: In([1]) });
+      expect(result.categories).toEqual([mockCategory]);
+      expect(result.tags).toEqual([mockTag]);
     });
   });
 
   describe('findAll', (): void => {
-    it('should return all items', async (): Promise<void> => {
+    it('should return all items with relations', async (): Promise<void> => {
       const items: Item[] = [mockItem];
-      mockRepository.find.mockResolvedValue(items);
+      mockItemRepository.find.mockResolvedValue(items);
 
-      const result: Item[] = await service.findAll();
+      const result = await service.findAll();
 
-      expect(mockRepository.find).toHaveBeenCalled();
+      expect(mockItemRepository.find).toHaveBeenCalledWith({
+        relations: ['categories', 'tags'],
+      });
       expect(result).toEqual(items);
     });
 
     it('should return empty array when no items exist', async (): Promise<void> => {
-      mockRepository.find.mockResolvedValue([]);
+      mockItemRepository.find.mockResolvedValue([]);
 
-      const result: Item[] = await service.findAll();
+      const result = await service.findAll();
 
       expect(result).toEqual([]);
     });
   });
 
   describe('findOne', (): void => {
-    it('should return an item by id', async (): Promise<void> => {
-      mockRepository.findOneBy.mockResolvedValue(mockItem);
+    it('should return an item with relations by id', async (): Promise<void> => {
+      mockItemRepository.findOne.mockResolvedValue(mockItem);
 
-      const result: Item = await service.findOne(1);
+      const result = await service.findOne(1);
 
-      expect(mockRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(mockItemRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 1 },
+        relations: ['categories', 'tags'],
+      });
       expect(result).toEqual(mockItem);
     });
 
     it('should throw NotFoundException when item does not exist', async (): Promise<void> => {
-      mockRepository.findOneBy.mockResolvedValue(null);
+      mockItemRepository.findOne.mockResolvedValue(null);
 
       await expect(service.findOne(99)).rejects.toThrow(NotFoundException);
       await expect(service.findOne(99)).rejects.toThrow('Item #99 not found');
@@ -119,28 +171,59 @@ describe('ItemsService', (): void => {
   });
 
   describe('update', (): void => {
-    it('should update and return the item', async (): Promise<void> => {
+    it('should update scalar fields without touching relations when IDs not provided', async (): Promise<void> => {
       const dto: UpdateItemDto = { name: 'Updated Code', default_loan_days: 7 };
       const updated: Item = {
         ...mockItem,
         name: 'Updated Code',
         default_loan_days: 7,
       };
-      mockRepository.findOneBy.mockResolvedValue(mockItem);
-      mockRepository.save.mockResolvedValue(updated);
+      mockItemRepository.findOne.mockResolvedValue({ ...mockItem });
+      mockItemRepository.save.mockResolvedValue(updated);
 
-      const result: Item = await service.update(1, dto);
+      const result = await service.update(1, dto);
 
-      expect(mockRepository.save).toHaveBeenCalledWith({
+      expect(mockCategoryRepository.findBy).not.toHaveBeenCalled();
+      expect(mockTagRepository.findBy).not.toHaveBeenCalled();
+      expect(result.name).toBe('Updated Code');
+    });
+
+    it('should replace categories when categoryIds provided', async (): Promise<void> => {
+      const dto: UpdateItemDto = { categoryIds: [1] };
+      mockItemRepository.findOne.mockResolvedValue({ ...mockItem });
+      mockCategoryRepository.findBy.mockResolvedValue([mockCategory]);
+      mockItemRepository.save.mockResolvedValue({
         ...mockItem,
-        name: 'Updated Code',
-        default_loan_days: 7,
+        categories: [mockCategory],
       });
-      expect(result).toEqual(updated);
+
+      const result = await service.update(1, dto);
+
+      expect(mockCategoryRepository.findBy).toHaveBeenCalledWith({
+        id: In([1]),
+      });
+      expect(result.categories).toEqual([mockCategory]);
+    });
+
+    it('should clear categories when categoryIds is empty array', async (): Promise<void> => {
+      const dto: UpdateItemDto = { categoryIds: [] };
+      mockItemRepository.findOne.mockResolvedValue({
+        ...mockItem,
+        categories: [mockCategory],
+      });
+      mockItemRepository.save.mockResolvedValue({
+        ...mockItem,
+        categories: [],
+      });
+
+      const result = await service.update(1, dto);
+
+      expect(mockCategoryRepository.findBy).not.toHaveBeenCalled();
+      expect(result.categories).toEqual([]);
     });
 
     it('should throw NotFoundException when item does not exist', async (): Promise<void> => {
-      mockRepository.findOneBy.mockResolvedValue(null);
+      mockItemRepository.findOne.mockResolvedValue(null);
 
       await expect(service.update(99, { name: 'X' })).rejects.toThrow(
         NotFoundException
@@ -150,16 +233,16 @@ describe('ItemsService', (): void => {
 
   describe('remove', (): void => {
     it('should remove the item', async (): Promise<void> => {
-      mockRepository.findOneBy.mockResolvedValue(mockItem);
-      mockRepository.remove.mockResolvedValue(mockItem);
+      mockItemRepository.findOne.mockResolvedValue(mockItem);
+      mockItemRepository.remove.mockResolvedValue(mockItem);
 
       await service.remove(1);
 
-      expect(mockRepository.remove).toHaveBeenCalledWith(mockItem);
+      expect(mockItemRepository.remove).toHaveBeenCalledWith(mockItem);
     });
 
     it('should throw NotFoundException when item does not exist', async (): Promise<void> => {
-      mockRepository.findOneBy.mockResolvedValue(null);
+      mockItemRepository.findOne.mockResolvedValue(null);
 
       await expect(service.remove(99)).rejects.toThrow(NotFoundException);
     });
