@@ -21,6 +21,7 @@ describe('Protected Route test', () => {
   vi.mock(import('react-router'), () => ({
     Navigate: mocks.Navigate,
     Outlet: mocks.Outlet,
+    useLocation: vi.fn().mockReturnValue({ pathname: '/test' }),
   }));
 
   it('should show nothing, loading', async () => {

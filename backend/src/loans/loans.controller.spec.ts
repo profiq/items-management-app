@@ -5,12 +5,18 @@ import { LoansService } from './loans.service';
 import { Loan } from './entities/loan.entity';
 import { CreateLoanDto } from './dto/create-loan.dto';
 import { UpdateLoanDto } from './dto/update-loan.dto';
+import { UserRole } from '@/user/user.entity';
 
 const mockLoan: Loan = {
   id: 1,
   copy: { id: 1 } as Loan['copy'],
   copy_id: 1,
-  user: { id: 1, name: 'John', employee_id: 'emp1' },
+  user: {
+    id: 1,
+    name: 'John',
+    employee_id: 'emp1',
+    role: UserRole.User,
+  },
   user_id: 1,
   borrowed_at: new Date('2026-04-01T10:00:00Z'),
   due_date: '2026-04-15',

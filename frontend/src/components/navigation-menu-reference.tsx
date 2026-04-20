@@ -9,7 +9,7 @@ import { Link } from 'react-router';
 import { HoverProtected } from './hover-protected';
 
 export function NavigationMenuReference() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   return (
     <>
       <NavigationMenu>
@@ -46,6 +46,18 @@ export function NavigationMenuReference() {
                   </Link>
                 </NavigationMenuLink>
               </NavigationMenuItem>
+              {role === 'admin' && (
+                <NavigationMenuItem>
+                  <NavigationMenuLink asChild>
+                    <Link to='/admin'>
+                      <div className='flex items-center gap-1'>
+                        Admin
+                        <HoverProtected />
+                      </div>
+                    </Link>
+                  </NavigationMenuLink>
+                </NavigationMenuItem>
+              )}
             </>
           )}
         </NavigationMenuList>

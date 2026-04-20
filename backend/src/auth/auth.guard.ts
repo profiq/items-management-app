@@ -12,6 +12,7 @@ export class AuthGuard implements CanActivate {
     if (!token.email?.endsWith('@profiq.com')) {
       return false;
     }
+    request.firebaseUser = token;
     return true;
   }
 }

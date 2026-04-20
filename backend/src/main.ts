@@ -3,6 +3,7 @@ import { AppModule } from './app.module';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { ConfigService } from '@nestjs/config';
+import { ValidationPipe } from '@nestjs/common';
 import { CustomExceptionsFilter } from './exception_filter/custom_exceptions.filter';
 
 async function bootstrap() {
@@ -19,6 +20,7 @@ async function bootstrap() {
     .build();
   app.enableCors();
   app.disable('x-powered-by');
+  app.useGlobalPipes(new ValidationPipe());
 
   const httpAdapterHost = app.get(HttpAdapterHost);
   app.useGlobalFilters(new CustomExceptionsFilter(httpAdapterHost));

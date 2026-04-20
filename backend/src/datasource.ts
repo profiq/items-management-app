@@ -19,12 +19,9 @@ export const dataSourceOptions: DataSourceOptions = {
   password: dbConfig?.password,
 
   entities: [__dirname + '/**/*.entity.{js,ts}'],
-  synchronize: process.env.NODE_ENV != 'production',
-  migrations:
-    process.env.NODE_ENV == 'production'
-      ? [__dirname + '/db/migrations/**/*{.js,.ts}']
-      : [],
-  migrationsRun: process.env.NODE_ENV == 'production',
+  synchronize: false,
+  migrations: [__dirname + '/db/migrations/**/*{.js,.ts}'],
+  migrationsRun: true,
 };
 
 export const dataSource = new DataSource(dataSourceOptions);

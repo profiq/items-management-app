@@ -7,74 +7,48 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card';
+import { Spinner } from '@/components/ui/spinner';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import { useState } from 'react';
+import { useNavigate, useLocation } from 'react-router';
+import { z } from 'zod';
+
+const loginStateSchema = z.object({ from: z.string() }).partial().nullable();
+
+function getRedirectFrom(state: unknown): string {
+  const parsed = loginStateSchema.safeParse(state);
+  return parsed.success ? (parsed.data?.from ?? '/') : '/';
+}
 
 function Login() {
   const { loading, user, login, signingIn, logout } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const from = getRedirectFrom(location.state);
+
   const handleLogin = async () => {
+    setError(null);
     const result = await login?.();
-    if (result === undefined) {
-      // Error persists if the user logs in validly later
-      // and shows after logout, so clear it after success
-      setError(null);
+    if (result !== undefined) {
+      setError(result);
       return;
     }
-    setError(result);
+    navigate(from, { replace: true });
   };
+
   if (loading) {
     return (
-      <>
-        <div data-testid='login-loading'>Loading</div>
-      </>
+      <div data-testid='login-loading' className='flex justify-center p-8'>
+        <Spinner className='size-8' />
+      </div>
     );
   }
 
   if (!user) {
     return (
-      <>
-        <div data-testid='login-page'>
-          <Card className='mx-auto w-full max-w-sm'>
-            <CardHeader>
-              <CardTitle>
-                <div className='relative'>
-                  <div className='absolute top-0 right-0'>
-                    <HoverInfo
-                      text={'We use Firebase Auth for authentication'}
-                      iconSize={4}
-                      readmeSection={{ label: 'Auth', id: 'auth' }}
-                    />
-                  </div>
-                </div>
-                Login
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Button
-                className='cursor-pointer w-full'
-                variant='outline'
-                onClick={handleLogin}
-                disabled={signingIn}
-                data-testid='login-button'
-              >
-                Login With Google
-              </Button>
-            </CardContent>
-            <CardFooter>
-              <div className='text-red-500' data-testid='login-error'>
-                {error}
-              </div>
-            </CardFooter>
-          </Card>
-        </div>
-      </>
-    );
-  }
-
-  return (
-    <>
-      <div data-testid='logout-page'>
+      <div data-testid='login-page'>
         <Card className='mx-auto w-full max-w-sm'>
           <CardHeader>
             <CardTitle>
@@ -87,25 +61,70 @@ function Login() {
                   />
                 </div>
               </div>
-              Logout
+              Login
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div data-testid='logged-in-user'>
-              Logged in as {user.email}, {user.displayName}
-            </div>
             <Button
-              className='cursor-pointer w-full mt-3'
+              className='cursor-pointer w-full'
               variant='outline'
-              onClick={logout}
-              data-testid='logout-button'
+              onClick={handleLogin}
+              disabled={signingIn}
+              data-testid='login-button'
             >
-              Logout
+              {signingIn ? (
+                <span className='flex items-center gap-2'>
+                  <Spinner />
+                  Signing in...
+                </span>
+              ) : (
+                'Login With Google'
+              )}
             </Button>
           </CardContent>
+          <CardFooter>
+            <div className='text-red-500 text-sm' data-testid='login-error'>
+              {error}
+            </div>
+          </CardFooter>
         </Card>
       </div>
-    </>
+    );
+  }
+
+  return (
+    <div data-testid='logout-page'>
+      <Card className='mx-auto w-full max-w-sm'>
+        <CardHeader>
+          <CardTitle>
+            <div className='relative'>
+              <div className='absolute top-0 right-0'>
+                <HoverInfo
+                  text={'We use Firebase Auth for authentication'}
+                  iconSize={4}
+                  readmeSection={{ label: 'Auth', id: 'auth' }}
+                />
+              </div>
+            </div>
+            Logout
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div data-testid='logged-in-user'>
+            Logged in as {user.email}, {user.displayName}
+          </div>
+          <Button
+            className='cursor-pointer w-full mt-3'
+            variant='outline'
+            onClick={logout}
+            data-testid='logout-button'
+          >
+            Logout
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
+
 export default Login;
