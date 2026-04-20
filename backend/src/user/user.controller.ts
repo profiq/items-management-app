@@ -9,8 +9,10 @@ import {
   ParseIntPipe,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 import {
   ApiBearerAuth,
   ApiCreatedResponse,
@@ -24,6 +26,8 @@ import { UserService } from './user.service';
 import { CreateUserRequest } from './dto/create_user';
 import { UpdateRoleRequest } from './dto/update_role';
 import { UnknownUserException } from '@/lib/errors';
+
+type FirebaseRequest = { firebaseUser: DecodedIdToken };
 
 @Controller('users')
 @ApiBearerAuth()
@@ -70,10 +74,21 @@ export class UserController {
   @Roles(UserRole.Admin)
   @ApiOkResponse({ type: User })
   async updateRole(
+    @Req() req: FirebaseRequest,
     @Param('id', ParseIntPipe) id: number,
     @Body() body: UpdateRoleRequest
   ): Promise<User> {
-    const user = await this.userService.updateUserRole(id, body.role);
+    const currentUser = await this.userService.getUserByGoogleWorkspaceUid(
+      req.firebaseUser
+    );
+    if (!currentUser) {
+      throw new UnknownUserException();
+    }
+    const user = await this.userService.updateUserRole(
+      id,
+      body.role,
+      currentUser.id
+    );
     if (!user) {
       throw new UnknownUserException();
     }

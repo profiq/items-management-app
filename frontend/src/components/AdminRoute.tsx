@@ -1,6 +1,6 @@
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import type { ReactNode } from 'react';
-import { Navigate, Outlet } from 'react-router';
+import { Navigate, Outlet, useLocation } from 'react-router';
 
 type AdminRouteProps = {
   children?: ReactNode;
@@ -8,12 +8,13 @@ type AdminRouteProps = {
 
 function AdminRoute({ children }: AdminRouteProps) {
   const { user, role, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return <></>;
   }
   if (!user) {
-    return <Navigate to='/login' />;
+    return <Navigate to='/login' replace state={{ from: location.pathname }} />;
   }
   if (role !== 'admin') {
     return (

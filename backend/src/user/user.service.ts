@@ -1,6 +1,11 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import {
+  ForbiddenException,
+  forwardRef,
+  Inject,
+  Injectable,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { User, UserRole } from './user.entity';
 import { CreateUserRequest } from './dto/create_user';
 import { EmployeeService } from '@/employee/employee.service';
@@ -53,13 +58,19 @@ export class UserService {
     return new_user;
   }
 
+  private extractGoogleUid(token: {
+    firebase?: { identities?: Record<string, unknown> };
+  }): string | undefined {
+    return (
+      token.firebase?.identities?.['google.com'] as string[] | undefined
+    )?.[0];
+  }
+
   async getUserByGoogleWorkspaceUid(token: {
     uid: string;
     firebase?: { identities?: Record<string, unknown> };
   }): Promise<User | null> {
-    const googleUid = (
-      token.firebase?.identities?.['google.com'] as string[] | undefined
-    )?.[0];
+    const googleUid = this.extractGoogleUid(token);
     if (!googleUid) {
       return null;
     }
@@ -70,9 +81,7 @@ export class UserService {
     uid: string;
     firebase?: { identities?: Record<string, unknown> };
   }): Promise<UpsertResult> {
-    const googleUid = (
-      token.firebase?.identities?.['google.com'] as string[] | undefined
-    )?.[0];
+    const googleUid = this.extractGoogleUid(token);
     if (!googleUid) {
       return { error: 'no-google-identity' };
     }
@@ -89,17 +98,43 @@ export class UserService {
     user.name = employee.name;
     user.role =
       process.env.FIRST_ADMIN_EMAIL &&
-      employee.email === process.env.FIRST_ADMIN_EMAIL
+      employee.email?.trim().toLowerCase() ===
+        process.env.FIRST_ADMIN_EMAIL.trim().toLowerCase()
         ? UserRole.Admin
         : UserRole.User;
-    await this.userRepository.save(user);
+    try {
+      await this.userRepository.save(user);
+    } catch (e) {
+      if (e instanceof QueryFailedError) {
+        const concurrent = await this.getUserByEmployeeId(googleUid);
+        if (concurrent) {
+          return { user: concurrent };
+        }
+      }
+      throw e;
+    }
     return { user };
   }
 
-  async updateUserRole(id: number, role: UserRole): Promise<User | null> {
+  async updateUserRole(
+    id: number,
+    role: UserRole,
+    currentUserId: number
+  ): Promise<User | null> {
+    if (id === currentUserId && role !== UserRole.Admin) {
+      throw new ForbiddenException('Cannot demote yourself');
+    }
     const user = await this.getUserById(id);
     if (!user) {
       return null;
+    }
+    if (user.role === UserRole.Admin && role !== UserRole.Admin) {
+      const adminCount = await this.userRepository.count({
+        where: { role: UserRole.Admin },
+      });
+      if (adminCount <= 1) {
+        throw new ForbiddenException('Cannot remove the last admin');
+      }
     }
     user.role = role;
     await this.userRepository.save(user);

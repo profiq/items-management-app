@@ -60,7 +60,9 @@ describe('AuthModule', () => {
   };
 
   afterEach(async () => {
-    await app.close();
+    if (app && typeof app.close === 'function') {
+      await app.close();
+    }
   });
 
   describe('POST /auth/login', () => {
