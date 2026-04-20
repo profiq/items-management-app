@@ -72,7 +72,7 @@ describe('LocationsAdminController', (): void => {
     it('should return a location by id', async (): Promise<void> => {
       mockService.findOne.mockResolvedValue(mockLocation);
 
-      const result: Location = await controller.findOne('1');
+      const result: Location = await controller.findOne(1);
 
       expect(mockService.findOne).toHaveBeenCalledWith(1);
       expect(result).toBe(mockLocation);
@@ -83,7 +83,7 @@ describe('LocationsAdminController', (): void => {
         new NotFoundException('Location #99 not found')
       );
 
-      await expect(controller.findOne('99')).rejects.toThrow(NotFoundException);
+      await expect(controller.findOne(99)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -93,7 +93,7 @@ describe('LocationsAdminController', (): void => {
       const updated: Location = { ...mockLocation, name: 'Updated' };
       mockService.update.mockResolvedValue(updated);
 
-      const result: Location = await controller.update('1', dto);
+      const result: Location = await controller.update(1, dto);
 
       expect(mockService.update).toHaveBeenCalledWith(1, dto);
       expect(result).toBe(updated);
@@ -104,7 +104,7 @@ describe('LocationsAdminController', (): void => {
         new NotFoundException('Location #99 not found')
       );
 
-      await expect(controller.update('99', { name: 'X' })).rejects.toThrow(
+      await expect(controller.update(99, { name: 'X' })).rejects.toThrow(
         NotFoundException
       );
     });
@@ -114,7 +114,7 @@ describe('LocationsAdminController', (): void => {
     it('should remove the location', async (): Promise<void> => {
       mockService.remove.mockResolvedValue(undefined);
 
-      await controller.remove('1');
+      await controller.remove(1);
 
       expect(mockService.remove).toHaveBeenCalledWith(1);
     });
@@ -124,7 +124,7 @@ describe('LocationsAdminController', (): void => {
         new NotFoundException('Location #99 not found')
       );
 
-      await expect(controller.remove('99')).rejects.toThrow(NotFoundException);
+      await expect(controller.remove(99)).rejects.toThrow(NotFoundException);
     });
   });
 });

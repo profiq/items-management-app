@@ -70,7 +70,7 @@ describe('CitiesAdminController', (): void => {
     it('should return a city by id', async (): Promise<void> => {
       mockService.findOne.mockResolvedValue(mockCity);
 
-      const result: City = await controller.findOne('1');
+      const result: City = await controller.findOne(1);
 
       expect(mockService.findOne).toHaveBeenCalledWith(1);
       expect(result).toBe(mockCity);
@@ -81,7 +81,7 @@ describe('CitiesAdminController', (): void => {
         new NotFoundException('City #99 not found')
       );
 
-      await expect(controller.findOne('99')).rejects.toThrow(NotFoundException);
+      await expect(controller.findOne(99)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -91,7 +91,7 @@ describe('CitiesAdminController', (): void => {
       const updated: City = { ...mockCity, name: 'Updated' };
       mockService.update.mockResolvedValue(updated);
 
-      const result: City = await controller.update('1', dto);
+      const result: City = await controller.update(1, dto);
 
       expect(mockService.update).toHaveBeenCalledWith(1, dto);
       expect(result).toBe(updated);
@@ -102,7 +102,7 @@ describe('CitiesAdminController', (): void => {
         new NotFoundException('City #99 not found')
       );
 
-      await expect(controller.update('99', { name: 'X' })).rejects.toThrow(
+      await expect(controller.update(99, { name: 'X' })).rejects.toThrow(
         NotFoundException
       );
     });
@@ -112,7 +112,7 @@ describe('CitiesAdminController', (): void => {
     it('should remove the city', async (): Promise<void> => {
       mockService.remove.mockResolvedValue(undefined);
 
-      await controller.remove('1');
+      await controller.remove(1);
 
       expect(mockService.remove).toHaveBeenCalledWith(1);
     });
@@ -122,7 +122,7 @@ describe('CitiesAdminController', (): void => {
         new NotFoundException('City #99 not found')
       );
 
-      await expect(controller.remove('99')).rejects.toThrow(NotFoundException);
+      await expect(controller.remove(99)).rejects.toThrow(NotFoundException);
     });
   });
 });
