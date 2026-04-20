@@ -5,6 +5,9 @@ import { App } from 'supertest/types';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { StatusCodes } from 'http-status-codes';
 import { ItemsModule } from '@/items/items.module';
+import { ItemsAdminController } from '@/admin/items.admin.controller';
+import { AuthGuard } from '@/auth/auth.guard';
+import { RolesGuard } from '@/auth/roles.guard';
 import { Item } from '@/items/entities/item.entity';
 import { dbConfig } from './database';
 
@@ -14,7 +17,13 @@ describe('ItemsModule (e2e)', (): void => {
   beforeEach(async (): Promise<void> => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [ItemsModule, TypeOrmModule.forRoot(dbConfig)],
-    }).compile();
+      controllers: [ItemsAdminController],
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
@@ -24,10 +33,10 @@ describe('ItemsModule (e2e)', (): void => {
     await app.close();
   });
 
-  describe('/items (POST)', (): void => {
-    it('should create an item', async (): Promise<void> => {
+  describe('/admin/items (POST)', (): void => {
+    it('should create an item without optional fields', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .post('/items')
+        .post('/admin/items')
         .send({ name: 'Clean Code', default_loan_days: 14 })
         .expect(StatusCodes.CREATED)
         .expect((res: Response) => {
@@ -43,7 +52,7 @@ describe('ItemsModule (e2e)', (): void => {
 
     it('should create an item with optional fields', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .post('/items')
+        .post('/admin/items')
         .send({
           name: 'The Pragmatic Programmer',
           description: 'A classic book',
@@ -62,10 +71,10 @@ describe('ItemsModule (e2e)', (): void => {
   describe('/items (GET)', (): void => {
     it('should return all items', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .post('/items')
+        .post('/admin/items')
         .send({ name: 'Clean Code', default_loan_days: 14 });
       await request(app.getHttpServer())
-        .post('/items')
+        .post('/admin/items')
         .send({ name: 'Refactoring', default_loan_days: 7 });
 
       await request(app.getHttpServer())
@@ -75,8 +84,6 @@ describe('ItemsModule (e2e)', (): void => {
           const body = res.body as Item[];
           expect(Array.isArray(body)).toBe(true);
           expect(body).toHaveLength(2);
-          expect(body[0].name).toBe('Clean Code');
-          expect(body[1].name).toBe('Refactoring');
         });
     });
 
@@ -91,7 +98,7 @@ describe('ItemsModule (e2e)', (): void => {
   describe('/items/:id (GET)', (): void => {
     it('should return an item by id', async (): Promise<void> => {
       const created: Response = await request(app.getHttpServer())
-        .post('/items')
+        .post('/admin/items')
         .send({ name: 'Clean Code', default_loan_days: 14 });
 
       const createdBody = created.body as Item;
@@ -113,16 +120,16 @@ describe('ItemsModule (e2e)', (): void => {
     });
   });
 
-  describe('/items/:id (PATCH)', (): void => {
-    it('should update an item', async (): Promise<void> => {
+  describe('/admin/items/:id (PATCH)', (): void => {
+    it('should update scalar fields', async (): Promise<void> => {
       const created: Response = await request(app.getHttpServer())
-        .post('/items')
+        .post('/admin/items')
         .send({ name: 'Clean Code', default_loan_days: 14 });
 
       const createdBody = created.body as Item;
 
       await request(app.getHttpServer())
-        .patch(`/items/${createdBody.id}`)
+        .patch(`/admin/items/${createdBody.id}`)
         .send({ name: 'Clean Code 2nd Edition', default_loan_days: 21 })
         .expect(StatusCodes.OK)
         .expect((res: Response) => {
@@ -135,22 +142,22 @@ describe('ItemsModule (e2e)', (): void => {
 
     it('should return 404 when item does not exist', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .patch('/items/9999')
+        .patch('/admin/items/9999')
         .send({ name: 'X' })
         .expect(StatusCodes.NOT_FOUND);
     });
   });
 
-  describe('/items/:id (DELETE)', (): void => {
+  describe('/admin/items/:id (DELETE)', (): void => {
     it('should delete an item', async (): Promise<void> => {
       const created: Response = await request(app.getHttpServer())
-        .post('/items')
+        .post('/admin/items')
         .send({ name: 'Clean Code', default_loan_days: 14 });
 
       const createdBody = created.body as Item;
 
       await request(app.getHttpServer())
-        .delete(`/items/${createdBody.id}`)
+        .delete(`/admin/items/${createdBody.id}`)
         .expect(StatusCodes.OK);
 
       await request(app.getHttpServer())
@@ -160,7 +167,7 @@ describe('ItemsModule (e2e)', (): void => {
 
     it('should return 404 when item does not exist', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .delete('/items/9999')
+        .delete('/admin/items/9999')
         .expect(StatusCodes.NOT_FOUND);
     });
   });

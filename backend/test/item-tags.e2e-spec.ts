@@ -7,6 +7,10 @@ import { StatusCodes } from 'http-status-codes';
 import { ItemTagsModule } from '@/item-tags/item-tags.module';
 import { ItemsModule } from '@/items/items.module';
 import { TagsModule } from '@/tags/tags.module';
+import { ItemsAdminController } from '@/admin/items.admin.controller';
+import { TagsAdminController } from '@/admin/tags.admin.controller';
+import { AuthGuard } from '@/auth/auth.guard';
+import { RolesGuard } from '@/auth/roles.guard';
 import { ItemTag } from '@/item-tags/entities/item-tag.entity';
 import { dbConfig } from './database';
 
@@ -23,18 +27,24 @@ describe('ItemTagsModule (e2e)', (): void => {
         TagsModule,
         TypeOrmModule.forRoot(dbConfig),
       ],
-    }).compile();
+      controllers: [ItemsAdminController, TagsAdminController],
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
 
     const itemRes: Response = await request(app.getHttpServer())
-      .post('/items')
+      .post('/admin/items')
       .send({ name: 'Clean Code', default_loan_days: 14 });
     itemId = (itemRes.body as { id: number }).id;
 
     const tagRes: Response = await request(app.getHttpServer())
-      .post('/tags')
+      .post('/admin/tags')
       .send({ name: 'Fiction' });
     tagId = (tagRes.body as { id: number }).id;
   });

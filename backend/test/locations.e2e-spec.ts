@@ -6,6 +6,10 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { StatusCodes } from 'http-status-codes';
 import { LocationsModule } from '@/locations/locations.module';
 import { CitiesModule } from '@/cities/cities.module';
+import { LocationsAdminController } from '@/admin/locations.admin.controller';
+import { CitiesAdminController } from '@/admin/cities.admin.controller';
+import { AuthGuard } from '@/auth/auth.guard';
+import { RolesGuard } from '@/auth/roles.guard';
 import { Location } from '@/locations/entities/location.entity';
 import { dbConfig } from './database';
 
@@ -16,13 +20,19 @@ describe('LocationsModule (e2e)', (): void => {
   beforeEach(async (): Promise<void> => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [LocationsModule, CitiesModule, TypeOrmModule.forRoot(dbConfig)],
-    }).compile();
+      controllers: [LocationsAdminController, CitiesAdminController],
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
 
     const cityRes: Response = await request(app.getHttpServer())
-      .post('/cities')
+      .post('/admin/cities')
       .send({ name: 'Prague' });
     cityId = (cityRes.body as { id: number }).id;
   });
@@ -31,10 +41,10 @@ describe('LocationsModule (e2e)', (): void => {
     await app.close();
   });
 
-  describe('/locations (POST)', (): void => {
+  describe('/admin/locations (POST)', (): void => {
     it('should create a location', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .post('/locations')
+        .post('/admin/locations')
         .send({ name: 'Central Library', city_id: cityId })
         .expect(StatusCodes.CREATED)
         .expect((res: Response) => {
@@ -50,10 +60,10 @@ describe('LocationsModule (e2e)', (): void => {
   describe('/locations (GET)', (): void => {
     it('should return all locations', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .post('/locations')
+        .post('/admin/locations')
         .send({ name: 'Central Library', city_id: cityId });
       await request(app.getHttpServer())
-        .post('/locations')
+        .post('/admin/locations')
         .send({ name: 'North Branch', city_id: cityId });
 
       await request(app.getHttpServer())
@@ -79,7 +89,7 @@ describe('LocationsModule (e2e)', (): void => {
   describe('/locations/:id (GET)', (): void => {
     it('should return a location by id', async (): Promise<void> => {
       const created: Response = await request(app.getHttpServer())
-        .post('/locations')
+        .post('/admin/locations')
         .send({ name: 'Central Library', city_id: cityId });
 
       const createdBody = created.body as Location;
@@ -101,16 +111,16 @@ describe('LocationsModule (e2e)', (): void => {
     });
   });
 
-  describe('/locations/:id (PATCH)', (): void => {
+  describe('/admin/locations/:id (PATCH)', (): void => {
     it('should update a location', async (): Promise<void> => {
       const created: Response = await request(app.getHttpServer())
-        .post('/locations')
+        .post('/admin/locations')
         .send({ name: 'Central Library', city_id: cityId });
 
       const createdBody = created.body as Location;
 
       await request(app.getHttpServer())
-        .patch(`/locations/${createdBody.id}`)
+        .patch(`/admin/locations/${createdBody.id}`)
         .send({ name: 'Updated Library' })
         .expect(StatusCodes.OK)
         .expect((res: Response) => {
@@ -122,22 +132,22 @@ describe('LocationsModule (e2e)', (): void => {
 
     it('should return 404 when location does not exist', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .patch('/locations/9999')
+        .patch('/admin/locations/9999')
         .send({ name: 'X' })
         .expect(StatusCodes.NOT_FOUND);
     });
   });
 
-  describe('/locations/:id (DELETE)', (): void => {
+  describe('/admin/locations/:id (DELETE)', (): void => {
     it('should delete a location', async (): Promise<void> => {
       const created: Response = await request(app.getHttpServer())
-        .post('/locations')
+        .post('/admin/locations')
         .send({ name: 'Central Library', city_id: cityId });
 
       const createdBody = created.body as Location;
 
       await request(app.getHttpServer())
-        .delete(`/locations/${createdBody.id}`)
+        .delete(`/admin/locations/${createdBody.id}`)
         .expect(StatusCodes.OK);
 
       await request(app.getHttpServer())
@@ -147,7 +157,7 @@ describe('LocationsModule (e2e)', (): void => {
 
     it('should return 404 when location does not exist', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .delete('/locations/9999')
+        .delete('/admin/locations/9999')
         .expect(StatusCodes.NOT_FOUND);
     });
   });

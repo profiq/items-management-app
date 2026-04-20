@@ -11,6 +11,12 @@ import { ItemCopiesModule } from '@/item-copies/item-copies.module';
 import { ItemsModule } from '@/items/items.module';
 import { LocationsModule } from '@/locations/locations.module';
 import { CitiesModule } from '@/cities/cities.module';
+import { ItemsAdminController } from '@/admin/items.admin.controller';
+import { CitiesAdminController } from '@/admin/cities.admin.controller';
+import { LocationsAdminController } from '@/admin/locations.admin.controller';
+import { ItemCopiesAdminController } from '@/admin/item-copies.admin.controller';
+import { AuthGuard } from '@/auth/auth.guard';
+import { RolesGuard } from '@/auth/roles.guard';
 import { EmailNotification } from '@/email-notifications/entities/email-notification.entity';
 import { User } from '@/user/user.entity';
 import { dbConfig } from './database';
@@ -30,7 +36,18 @@ describe('EmailNotificationsModule (e2e)', (): void => {
         CitiesModule,
         TypeOrmModule.forRoot(dbConfig),
       ],
-    }).compile();
+      controllers: [
+        ItemsAdminController,
+        CitiesAdminController,
+        LocationsAdminController,
+        ItemCopiesAdminController,
+      ],
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
@@ -42,22 +59,22 @@ describe('EmailNotificationsModule (e2e)', (): void => {
     const savedUser = await dataSource.manager.save(user);
 
     const itemRes: Response = await request(app.getHttpServer())
-      .post('/items')
+      .post('/admin/items')
       .send({ name: 'Clean Code', default_loan_days: 14 });
     const itemId = (itemRes.body as { id: number }).id;
 
     const cityRes: Response = await request(app.getHttpServer())
-      .post('/cities')
+      .post('/admin/cities')
       .send({ name: 'Prague' });
     const cityId = (cityRes.body as { id: number }).id;
 
     const locationRes: Response = await request(app.getHttpServer())
-      .post('/locations')
+      .post('/admin/locations')
       .send({ name: 'Central Library', city_id: cityId });
     const locationId = (locationRes.body as { id: number }).id;
 
     const copyRes: Response = await request(app.getHttpServer())
-      .post('/item-copies')
+      .post('/admin/item-copies')
       .send({ item_id: itemId, location_id: locationId, condition: 'good' });
     const copyId = (copyRes.body as { id: number }).id;
 

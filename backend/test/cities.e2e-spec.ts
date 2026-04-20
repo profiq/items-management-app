@@ -5,6 +5,9 @@ import { App } from 'supertest/types';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { StatusCodes } from 'http-status-codes';
 import { CitiesModule } from '@/cities/cities.module';
+import { CitiesAdminController } from '@/admin/cities.admin.controller';
+import { AuthGuard } from '@/auth/auth.guard';
+import { RolesGuard } from '@/auth/roles.guard';
 import { City } from '@/cities/entities/city.entity';
 import { dbConfig } from './database';
 
@@ -14,7 +17,13 @@ describe('CitiesModule (e2e)', (): void => {
   beforeEach(async (): Promise<void> => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [CitiesModule, TypeOrmModule.forRoot(dbConfig)],
-    }).compile();
+      controllers: [CitiesAdminController],
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
@@ -24,10 +33,10 @@ describe('CitiesModule (e2e)', (): void => {
     await app.close();
   });
 
-  describe('/cities (POST)', (): void => {
+  describe('/admin/cities (POST)', (): void => {
     it('should create a city', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .post('/cities')
+        .post('/admin/cities')
         .send({ name: 'Prague' })
         .expect(StatusCodes.CREATED)
         .expect((res: Response) => {
@@ -42,9 +51,11 @@ describe('CitiesModule (e2e)', (): void => {
   describe('/cities (GET)', (): void => {
     it('should return all cities', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .post('/cities')
+        .post('/admin/cities')
         .send({ name: 'Prague' });
-      await request(app.getHttpServer()).post('/cities').send({ name: 'Brno' });
+      await request(app.getHttpServer())
+        .post('/admin/cities')
+        .send({ name: 'Brno' });
 
       await request(app.getHttpServer())
         .get('/cities')
@@ -71,7 +82,7 @@ describe('CitiesModule (e2e)', (): void => {
   describe('/cities/:id (GET)', (): void => {
     it('should return a city by id', async (): Promise<void> => {
       const created: Response = await request(app.getHttpServer())
-        .post('/cities')
+        .post('/admin/cities')
         .send({ name: 'Prague' });
 
       const createdBody = created.body as City;
@@ -93,16 +104,16 @@ describe('CitiesModule (e2e)', (): void => {
     });
   });
 
-  describe('/cities/:id (PATCH)', (): void => {
+  describe('/admin/cities/:id (PATCH)', (): void => {
     it('should update a city', async (): Promise<void> => {
       const created: Response = await request(app.getHttpServer())
-        .post('/cities')
+        .post('/admin/cities')
         .send({ name: 'Prague' });
 
       const createdBody = created.body as City;
 
       await request(app.getHttpServer())
-        .patch(`/cities/${createdBody.id}`)
+        .patch(`/admin/cities/${createdBody.id}`)
         .send({ name: 'Updated Prague' })
         .expect(StatusCodes.OK)
         .expect((res: Response) => {
@@ -114,22 +125,22 @@ describe('CitiesModule (e2e)', (): void => {
 
     it('should return 404 when city does not exist', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .patch('/cities/9999')
+        .patch('/admin/cities/9999')
         .send({ name: 'X' })
         .expect(StatusCodes.NOT_FOUND);
     });
   });
 
-  describe('/cities/:id (DELETE)', (): void => {
+  describe('/admin/cities/:id (DELETE)', (): void => {
     it('should delete a city', async (): Promise<void> => {
       const created: Response = await request(app.getHttpServer())
-        .post('/cities')
+        .post('/admin/cities')
         .send({ name: 'Prague' });
 
       const createdBody = created.body as City;
 
       await request(app.getHttpServer())
-        .delete(`/cities/${createdBody.id}`)
+        .delete(`/admin/cities/${createdBody.id}`)
         .expect(StatusCodes.OK);
 
       await request(app.getHttpServer())
@@ -139,7 +150,7 @@ describe('CitiesModule (e2e)', (): void => {
 
     it('should return 404 when city does not exist', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .delete('/cities/9999')
+        .delete('/admin/cities/9999')
         .expect(StatusCodes.NOT_FOUND);
     });
   });

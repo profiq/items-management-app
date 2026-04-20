@@ -7,6 +7,10 @@ import { StatusCodes } from 'http-status-codes';
 import { ItemCategoriesModule } from '@/item-categories/item-categories.module';
 import { ItemsModule } from '@/items/items.module';
 import { CategoriesModule } from '@/categories/categories.module';
+import { ItemsAdminController } from '@/admin/items.admin.controller';
+import { CategoriesAdminController } from '@/admin/categories.admin.controller';
+import { AuthGuard } from '@/auth/auth.guard';
+import { RolesGuard } from '@/auth/roles.guard';
 import { ItemCategory } from '@/item-categories/entities/item-category.entity';
 import { dbConfig } from './database';
 
@@ -23,18 +27,24 @@ describe('ItemCategoriesModule (e2e)', (): void => {
         CategoriesModule,
         TypeOrmModule.forRoot(dbConfig),
       ],
-    }).compile();
+      controllers: [ItemsAdminController, CategoriesAdminController],
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
 
     const itemRes: Response = await request(app.getHttpServer())
-      .post('/items')
+      .post('/admin/items')
       .send({ name: 'Clean Code', default_loan_days: 14 });
     itemId = (itemRes.body as { id: number }).id;
 
     const categoryRes: Response = await request(app.getHttpServer())
-      .post('/categories')
+      .post('/admin/categories')
       .send({ name: 'Fiction' });
     categoryId = (categoryRes.body as { id: number }).id;
   });
