@@ -37,9 +37,10 @@ const mockItemCopy: ItemCopy = {
 };
 
 const mockService: jest.Mocked<
-  Pick<ItemCopiesService, 'create' | 'update' | 'archive'>
+  Pick<ItemCopiesService, 'create' | 'findOne' | 'update' | 'archive'>
 > = {
   create: jest.fn(),
+  findOne: jest.fn(),
   update: jest.fn(),
   archive: jest.fn(),
 };
@@ -69,7 +70,6 @@ describe('ItemCopiesAdminController', (): void => {
       mockService.create.mockResolvedValue(mockItemCopy);
 
       const result: ItemCopyResponseDto = await controller.create(1, {
-        item_id: 99,
         location_id: 1,
         condition: ItemCondition.Good,
       });
@@ -90,21 +90,32 @@ describe('ItemCopiesAdminController', (): void => {
         ...mockItemCopy,
         condition: ItemCondition.Damaged,
       };
+      mockService.findOne.mockResolvedValue(mockItemCopy);
       mockService.update.mockResolvedValue(updated);
 
-      const result: ItemCopyResponseDto = await controller.update(1, dto);
+      const result: ItemCopyResponseDto = await controller.update(1, 1, dto);
 
+      expect(mockService.findOne).toHaveBeenCalledWith(1);
       expect(mockService.update).toHaveBeenCalledWith(1, dto);
       expect(result).toBe(updated);
     });
 
+    it('should throw NotFoundException when copy belongs to a different item', async (): Promise<void> => {
+      mockService.findOne.mockResolvedValue({ ...mockItemCopy, item_id: 99 });
+
+      await expect(
+        controller.update(1, 1, { condition: ItemCondition.Damaged })
+      ).rejects.toThrow(NotFoundException);
+      expect(mockService.update).not.toHaveBeenCalled();
+    });
+
     it('should propagate NotFoundException when item copy does not exist', async (): Promise<void> => {
-      mockService.update.mockRejectedValue(
+      mockService.findOne.mockRejectedValue(
         new NotFoundException('ItemCopy #99 not found')
       );
 
       await expect(
-        controller.update(99, { condition: ItemCondition.Damaged })
+        controller.update(1, 99, { condition: ItemCondition.Damaged })
       ).rejects.toThrow(NotFoundException);
     });
   });
@@ -112,20 +123,31 @@ describe('ItemCopiesAdminController', (): void => {
   describe('archive', (): void => {
     it('should archive the item copy', async (): Promise<void> => {
       const archived: ItemCopy = { ...mockItemCopy, archived_at: new Date() };
+      mockService.findOne.mockResolvedValue(mockItemCopy);
       mockService.archive.mockResolvedValue(archived);
 
-      const result: ItemCopyResponseDto = await controller.archive(1);
+      const result: ItemCopyResponseDto = await controller.archive(1, 1);
 
+      expect(mockService.findOne).toHaveBeenCalledWith(1);
       expect(mockService.archive).toHaveBeenCalledWith(1);
       expect(result.archived_at).not.toBeNull();
     });
 
+    it('should throw NotFoundException when copy belongs to a different item', async (): Promise<void> => {
+      mockService.findOne.mockResolvedValue({ ...mockItemCopy, item_id: 99 });
+
+      await expect(controller.archive(1, 1)).rejects.toThrow(NotFoundException);
+      expect(mockService.archive).not.toHaveBeenCalled();
+    });
+
     it('should propagate NotFoundException when item copy does not exist', async (): Promise<void> => {
-      mockService.archive.mockRejectedValue(
+      mockService.findOne.mockRejectedValue(
         new NotFoundException('ItemCopy #99 not found')
       );
 
-      await expect(controller.archive(99)).rejects.toThrow(NotFoundException);
+      await expect(controller.archive(1, 99)).rejects.toThrow(
+        NotFoundException
+      );
     });
   });
 });

@@ -44,10 +44,14 @@ export class ItemsService {
   }
 
   async findOne(id: number): Promise<Item> {
-    const item = await this.itemRepository.findOne({
-      where: { id },
-      relations: ['categories', 'tags', 'copies', 'copies.location'],
-    });
+    const item = await this.itemRepository
+      .createQueryBuilder('item')
+      .leftJoinAndSelect('item.categories', 'category')
+      .leftJoinAndSelect('item.tags', 'tag')
+      .leftJoinAndSelect('item.copies', 'copy', 'copy.archived_at IS NULL')
+      .leftJoinAndSelect('copy.location', 'location')
+      .where('item.id = :id', { id })
+      .getOne();
     if (!item) {
       throw new NotFoundException(`Item #${id} not found`);
     }

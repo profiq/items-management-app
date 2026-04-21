@@ -7,6 +7,7 @@ import {
   Param,
   UseGuards,
   ParseIntPipe,
+  NotFoundException,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@/auth/auth.guard';
@@ -14,7 +15,7 @@ import { RolesGuard } from '@/auth/roles.guard';
 import { Roles } from '@/auth/roles.decorator';
 import { UserRole } from '@/user/user.entity';
 import { ItemCopiesService } from '@/item-copies/item-copies.service';
-import { CreateItemCopyDto } from '@/item-copies/dto/create-item-copy.dto';
+import { CreateItemCopyBodyDto } from '@/item-copies/dto/create-item-copy-body.dto';
 import { UpdateItemCopyDto } from '@/item-copies/dto/update-item-copy.dto';
 import { ItemCopyResponseDto } from '@/item-copies/dto/item-copy-response.dto';
 
@@ -29,26 +30,37 @@ export class ItemCopiesAdminController {
   @Post()
   create(
     @Param('itemId', ParseIntPipe) itemId: number,
-    @Body() createItemCopyDto: CreateItemCopyDto
+    @Body() body: CreateItemCopyBodyDto
   ): Promise<ItemCopyResponseDto> {
-    return this.itemCopiesService.create({
-      ...createItemCopyDto,
-      item_id: itemId,
-    });
+    return this.itemCopiesService.create({ ...body, item_id: itemId });
   }
 
   @Put(':copyId')
-  update(
+  async update(
+    @Param('itemId', ParseIntPipe) itemId: number,
     @Param('copyId', ParseIntPipe) copyId: number,
     @Body() updateItemCopyDto: UpdateItemCopyDto
   ): Promise<ItemCopyResponseDto> {
+    const copy = await this.itemCopiesService.findOne(copyId);
+    if (copy.item_id !== itemId) {
+      throw new NotFoundException(
+        `ItemCopy #${copyId} not found for item #${itemId}`
+      );
+    }
     return this.itemCopiesService.update(copyId, updateItemCopyDto);
   }
 
   @Delete(':copyId')
-  archive(
+  async archive(
+    @Param('itemId', ParseIntPipe) itemId: number,
     @Param('copyId', ParseIntPipe) copyId: number
   ): Promise<ItemCopyResponseDto> {
+    const copy = await this.itemCopiesService.findOne(copyId);
+    if (copy.item_id !== itemId) {
+      throw new NotFoundException(
+        `ItemCopy #${copyId} not found for item #${itemId}`
+      );
+    }
     return this.itemCopiesService.archive(copyId);
   }
 }

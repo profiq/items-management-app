@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
-import { In, Repository } from 'typeorm';
+import { In, Repository, SelectQueryBuilder } from 'typeorm';
 import { ItemsService } from './items.service';
 import { Item } from './entities/item.entity';
 import { Category } from '@/categories/entities/category.entity';
@@ -24,14 +24,29 @@ const mockItem: Item = {
 };
 
 const mockItemRepository: jest.Mocked<
-  Pick<Repository<Item>, 'create' | 'save' | 'find' | 'findOne' | 'remove'>
+  Pick<
+    Repository<Item>,
+    'create' | 'save' | 'find' | 'findOne' | 'remove' | 'createQueryBuilder'
+  >
 > = {
   create: jest.fn(),
   save: jest.fn(),
   find: jest.fn(),
   findOne: jest.fn(),
   remove: jest.fn(),
+  createQueryBuilder: jest.fn(),
 };
+
+function setupFindOneQb(returnValue: Item | null): void {
+  const qb = {
+    leftJoinAndSelect: jest.fn().mockReturnThis(),
+    where: jest.fn().mockReturnThis(),
+    getOne: jest.fn().mockResolvedValue(returnValue),
+  };
+  mockItemRepository.createQueryBuilder.mockReturnValue(
+    qb as unknown as SelectQueryBuilder<Item>
+  );
+}
 
 const mockCategoryRepository: jest.Mocked<
   Pick<Repository<Category>, 'findBy'>
@@ -150,20 +165,19 @@ describe('ItemsService', (): void => {
   });
 
   describe('findOne', (): void => {
-    it('should return an item with relations by id', async (): Promise<void> => {
-      mockItemRepository.findOne.mockResolvedValue(mockItem);
+    it('should return an item with only non-archived copies', async (): Promise<void> => {
+      setupFindOneQb(mockItem);
 
       const result = await service.findOne(1);
 
-      expect(mockItemRepository.findOne).toHaveBeenCalledWith({
-        where: { id: 1 },
-        relations: ['categories', 'tags', 'copies', 'copies.location'],
-      });
+      expect(mockItemRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'item'
+      );
       expect(result).toEqual(mockItem);
     });
 
     it('should throw NotFoundException when item does not exist', async (): Promise<void> => {
-      mockItemRepository.findOne.mockResolvedValue(null);
+      setupFindOneQb(null);
 
       await expect(service.findOne(99)).rejects.toThrow(NotFoundException);
       await expect(service.findOne(99)).rejects.toThrow('Item #99 not found');
@@ -178,7 +192,7 @@ describe('ItemsService', (): void => {
         name: 'Updated Code',
         default_loan_days: 7,
       };
-      mockItemRepository.findOne.mockResolvedValue({ ...mockItem });
+      setupFindOneQb({ ...mockItem });
       mockItemRepository.save.mockResolvedValue(updated);
 
       const result = await service.update(1, dto);
@@ -190,7 +204,7 @@ describe('ItemsService', (): void => {
 
     it('should replace categories when categoryIds provided', async (): Promise<void> => {
       const dto: UpdateItemDto = { categoryIds: [1] };
-      mockItemRepository.findOne.mockResolvedValue({ ...mockItem });
+      setupFindOneQb({ ...mockItem });
       mockCategoryRepository.findBy.mockResolvedValue([mockCategory]);
       mockItemRepository.save.mockResolvedValue({
         ...mockItem,
@@ -207,10 +221,7 @@ describe('ItemsService', (): void => {
 
     it('should clear categories when categoryIds is empty array', async (): Promise<void> => {
       const dto: UpdateItemDto = { categoryIds: [] };
-      mockItemRepository.findOne.mockResolvedValue({
-        ...mockItem,
-        categories: [mockCategory],
-      });
+      setupFindOneQb({ ...mockItem, categories: [mockCategory] });
       mockItemRepository.save.mockResolvedValue({
         ...mockItem,
         categories: [],
@@ -223,7 +234,7 @@ describe('ItemsService', (): void => {
     });
 
     it('should throw NotFoundException when item does not exist', async (): Promise<void> => {
-      mockItemRepository.findOne.mockResolvedValue(null);
+      setupFindOneQb(null);
 
       await expect(service.update(99, { name: 'X' })).rejects.toThrow(
         NotFoundException
@@ -233,7 +244,7 @@ describe('ItemsService', (): void => {
 
   describe('remove', (): void => {
     it('should remove the item', async (): Promise<void> => {
-      mockItemRepository.findOne.mockResolvedValue(mockItem);
+      setupFindOneQb(mockItem);
       mockItemRepository.remove.mockResolvedValue(mockItem);
 
       await service.remove(1);
@@ -242,7 +253,7 @@ describe('ItemsService', (): void => {
     });
 
     it('should throw NotFoundException when item does not exist', async (): Promise<void> => {
-      mockItemRepository.findOne.mockResolvedValue(null);
+      setupFindOneQb(null);
 
       await expect(service.remove(99)).rejects.toThrow(NotFoundException);
     });

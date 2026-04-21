@@ -37,7 +37,12 @@ export class ItemCopy {
   @ApiProperty()
   location_id: number;
 
-  @Column({ type: 'varchar', nullable: true, default: null })
+  @Column({
+    type: 'simple-enum',
+    enum: ItemCondition,
+    nullable: true,
+    default: null,
+  })
   @ApiPropertyOptional({ enum: ItemCondition, nullable: true })
   condition: ItemCondition | null;
 
