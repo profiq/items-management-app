@@ -4,9 +4,12 @@ import { ItemCopiesAdminController } from './item-copies.admin.controller';
 import { ItemCopiesService } from '@/item-copies/item-copies.service';
 import { AuthGuard } from '@/auth/auth.guard';
 import { RolesGuard } from '@/auth/roles.guard';
-import { ItemCopy } from '@/item-copies/entities/item-copy.entity';
-import { CreateItemCopyDto } from '@/item-copies/dto/create-item-copy.dto';
+import {
+  ItemCopy,
+  ItemCondition,
+} from '@/item-copies/entities/item-copy.entity';
 import { UpdateItemCopyDto } from '@/item-copies/dto/update-item-copy.dto';
+import { ItemCopyResponseDto } from '@/item-copies/dto/item-copy-response.dto';
 
 const mockItemCopy: ItemCopy = {
   id: 1,
@@ -29,21 +32,16 @@ const mockItemCopy: ItemCopy = {
     archived_at: null,
   },
   location_id: 1,
-  condition: 'good',
+  condition: ItemCondition.Good,
   archived_at: null,
 };
 
 const mockService: jest.Mocked<
-  Pick<
-    ItemCopiesService,
-    'create' | 'findAll' | 'findOne' | 'update' | 'remove'
-  >
+  Pick<ItemCopiesService, 'create' | 'update' | 'archive'>
 > = {
   create: jest.fn(),
-  findAll: jest.fn(),
-  findOne: jest.fn(),
   update: jest.fn(),
-  remove: jest.fn(),
+  archive: jest.fn(),
 };
 
 describe('ItemCopiesAdminController', (): void => {
@@ -67,59 +65,34 @@ describe('ItemCopiesAdminController', (): void => {
   });
 
   describe('create', (): void => {
-    it('should create and return an item copy', async (): Promise<void> => {
-      const dto: CreateItemCopyDto = {
-        item_id: 1,
-        location_id: 1,
-        condition: 'good',
-      };
+    it('should create an item copy with itemId from route param', async (): Promise<void> => {
       mockService.create.mockResolvedValue(mockItemCopy);
 
-      const result: ItemCopy = await controller.create(dto);
+      const result: ItemCopyResponseDto = await controller.create(1, {
+        item_id: 99,
+        location_id: 1,
+        condition: ItemCondition.Good,
+      });
 
-      expect(mockService.create).toHaveBeenCalledWith(dto);
+      expect(mockService.create).toHaveBeenCalledWith({
+        item_id: 1,
+        location_id: 1,
+        condition: ItemCondition.Good,
+      });
       expect(result).toBe(mockItemCopy);
-    });
-  });
-
-  describe('findAll', (): void => {
-    it('should return all item copies', async (): Promise<void> => {
-      const copies: ItemCopy[] = [mockItemCopy];
-      mockService.findAll.mockResolvedValue(copies);
-
-      const result: ItemCopy[] = await controller.findAll();
-
-      expect(mockService.findAll).toHaveBeenCalled();
-      expect(result).toBe(copies);
-    });
-  });
-
-  describe('findOne', (): void => {
-    it('should return an item copy by id', async (): Promise<void> => {
-      mockService.findOne.mockResolvedValue(mockItemCopy);
-
-      const result: ItemCopy = await controller.findOne(1);
-
-      expect(mockService.findOne).toHaveBeenCalledWith(1);
-      expect(result).toBe(mockItemCopy);
-    });
-
-    it('should propagate NotFoundException when item copy does not exist', async (): Promise<void> => {
-      mockService.findOne.mockRejectedValue(
-        new NotFoundException('ItemCopy #99 not found')
-      );
-
-      await expect(controller.findOne(99)).rejects.toThrow(NotFoundException);
     });
   });
 
   describe('update', (): void => {
     it('should update and return the item copy', async (): Promise<void> => {
-      const dto: UpdateItemCopyDto = { condition: 'damaged' };
-      const updated: ItemCopy = { ...mockItemCopy, condition: 'damaged' };
+      const dto: UpdateItemCopyDto = { condition: ItemCondition.Damaged };
+      const updated: ItemCopy = {
+        ...mockItemCopy,
+        condition: ItemCondition.Damaged,
+      };
       mockService.update.mockResolvedValue(updated);
 
-      const result: ItemCopy = await controller.update(1, dto);
+      const result: ItemCopyResponseDto = await controller.update(1, dto);
 
       expect(mockService.update).toHaveBeenCalledWith(1, dto);
       expect(result).toBe(updated);
@@ -131,26 +104,28 @@ describe('ItemCopiesAdminController', (): void => {
       );
 
       await expect(
-        controller.update(99, { condition: 'damaged' })
+        controller.update(99, { condition: ItemCondition.Damaged })
       ).rejects.toThrow(NotFoundException);
     });
   });
 
-  describe('remove', (): void => {
-    it('should remove the item copy', async (): Promise<void> => {
-      mockService.remove.mockResolvedValue(undefined);
+  describe('archive', (): void => {
+    it('should archive the item copy', async (): Promise<void> => {
+      const archived: ItemCopy = { ...mockItemCopy, archived_at: new Date() };
+      mockService.archive.mockResolvedValue(archived);
 
-      await controller.remove(1);
+      const result: ItemCopyResponseDto = await controller.archive(1);
 
-      expect(mockService.remove).toHaveBeenCalledWith(1);
+      expect(mockService.archive).toHaveBeenCalledWith(1);
+      expect(result.archived_at).not.toBeNull();
     });
 
     it('should propagate NotFoundException when item copy does not exist', async (): Promise<void> => {
-      mockService.remove.mockRejectedValue(
+      mockService.archive.mockRejectedValue(
         new NotFoundException('ItemCopy #99 not found')
       );
 
-      await expect(controller.remove(99)).rejects.toThrow(NotFoundException);
+      await expect(controller.archive(99)).rejects.toThrow(NotFoundException);
     });
   });
 });

@@ -25,6 +25,13 @@ export class ItemCopiesService {
     return this.itemCopyRepository.find();
   }
 
+  findByItemId(itemId: number): Promise<ItemCopy[]> {
+    return this.itemCopyRepository.find({
+      where: { item_id: itemId },
+      relations: ['location'],
+    });
+  }
+
   async findOne(id: number): Promise<ItemCopy> {
     const itemCopy: ItemCopy | null = await this.itemCopyRepository.findOneBy({
       id,
@@ -44,8 +51,9 @@ export class ItemCopiesService {
     return this.itemCopyRepository.save(itemCopy);
   }
 
-  async remove(id: number): Promise<void> {
+  async archive(id: number): Promise<ItemCopy> {
     const itemCopy: ItemCopy = await this.findOne(id);
-    await this.itemCopyRepository.remove(itemCopy);
+    itemCopy.archived_at = new Date();
+    return this.itemCopyRepository.save(itemCopy);
   }
 }

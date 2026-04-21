@@ -4,10 +4,12 @@ import {
   Entity,
   JoinTable,
   ManyToMany,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 import { Category } from '@/categories/entities/category.entity';
 import { Tag } from '@/tags/entities/tag.entity';
+import { ItemCopy } from '@/item-copies/entities/item-copy.entity';
 
 @Entity()
 export class Item {
@@ -50,4 +52,8 @@ export class Item {
     inverseJoinColumn: { name: 'tag_id' },
   })
   tags: Tag[];
+
+  @OneToMany(() => ItemCopy, copy => copy.item, { eager: false })
+  @ApiPropertyOptional({ type: () => ItemCopy, isArray: true })
+  copies?: ItemCopy[];
 }

@@ -157,7 +157,7 @@ describe('ItemsService', (): void => {
 
       expect(mockItemRepository.findOne).toHaveBeenCalledWith({
         where: { id: 1 },
-        relations: ['categories', 'tags'],
+        relations: ['categories', 'tags', 'copies', 'copies.location'],
       });
       expect(result).toEqual(mockItem);
     });

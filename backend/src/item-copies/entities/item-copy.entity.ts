@@ -6,8 +6,14 @@ import {
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { Item } from '../../items/entities/item.entity';
-import { Location } from '../../locations/entities/location.entity';
+import { Item } from '@/items/entities/item.entity';
+import { Location } from '@/locations/entities/location.entity';
+
+export enum ItemCondition {
+  Good = 'good',
+  Damaged = 'damaged',
+  Lost = 'lost',
+}
 
 @Entity()
 export class ItemCopy {
@@ -15,7 +21,7 @@ export class ItemCopy {
   @ApiProperty()
   id: number;
 
-  @ManyToOne(() => Item, { nullable: false, eager: false })
+  @ManyToOne(() => Item, item => item.copies, { nullable: false, eager: false })
   @JoinColumn({ name: 'item_id' })
   item: Item;
 
@@ -32,8 +38,8 @@ export class ItemCopy {
   location_id: number;
 
   @Column({ type: 'varchar', nullable: true, default: null })
-  @ApiPropertyOptional({ nullable: true })
-  condition: string | null;
+  @ApiPropertyOptional({ enum: ItemCondition, nullable: true })
+  condition: ItemCondition | null;
 
   @Column({ type: 'datetime', nullable: true, default: null })
   @ApiPropertyOptional({ type: String, format: 'date-time', nullable: true })

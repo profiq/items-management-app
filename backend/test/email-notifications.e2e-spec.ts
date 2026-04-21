@@ -74,8 +74,8 @@ describe('EmailNotificationsModule (e2e)', (): void => {
     const locationId = (locationRes.body as { id: number }).id;
 
     const copyRes: Response = await request(app.getHttpServer())
-      .post('/admin/item-copies')
-      .send({ item_id: itemId, location_id: locationId, condition: 'good' });
+      .post(`/admin/items/${itemId}/copies`)
+      .send({ location_id: locationId, condition: 'good' });
     const copyId = (copyRes.body as { id: number }).id;
 
     const loanRes: Response = await request(app.getHttpServer())

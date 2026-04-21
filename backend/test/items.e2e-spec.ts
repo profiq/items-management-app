@@ -6,6 +6,8 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { StatusCodes } from 'http-status-codes';
 import { ItemsModule } from '@/items/items.module';
 import { ItemsAdminController } from '@/admin/items.admin.controller';
+import { CategoriesAdminController } from '@/admin/categories.admin.controller';
+import { TagsAdminController } from '@/admin/tags.admin.controller';
 import { AuthGuard } from '@/auth/auth.guard';
 import { RolesGuard } from '@/auth/roles.guard';
 import { CategoriesModule } from '@/categories/categories.module';
@@ -26,7 +28,11 @@ describe('ItemsModule (e2e)', (): void => {
         TagsModule,
         TypeOrmModule.forRoot(dbConfig),
       ],
-      controllers: [ItemsAdminController],
+      controllers: [
+        ItemsAdminController,
+        CategoriesAdminController,
+        TagsAdminController,
+      ],
     })
       .overrideGuard(AuthGuard)
       .useValue({ canActivate: () => true })
@@ -80,10 +86,10 @@ describe('ItemsModule (e2e)', (): void => {
 
     it('should create an item with categories and tags', async (): Promise<void> => {
       const catRes: Response = await request(app.getHttpServer())
-        .post('/categories')
+        .post('/admin/categories')
         .send({ name: 'Books' });
       const tagRes: Response = await request(app.getHttpServer())
-        .post('/tags')
+        .post('/admin/tags')
         .send({ name: 'fiction' });
 
       const categoryId = (catRes.body as Category).id;
@@ -140,7 +146,7 @@ describe('ItemsModule (e2e)', (): void => {
   describe('/items/:id (GET)', (): void => {
     it('should return an item with categories and tags', async (): Promise<void> => {
       const catRes: Response = await request(app.getHttpServer())
-        .post('/categories')
+        .post('/admin/categories')
         .send({ name: 'Books' });
       const categoryId = (catRes.body as Category).id;
 
@@ -202,7 +208,7 @@ describe('ItemsModule (e2e)', (): void => {
 
     it('should replace categories on update', async (): Promise<void> => {
       const catRes: Response = await request(app.getHttpServer())
-        .post('/categories')
+        .post('/admin/categories')
         .send({ name: 'Books' });
       const categoryId = (catRes.body as Category).id;
 

@@ -1,11 +1,10 @@
 import {
   Controller,
-  Get,
   Post,
-  Body,
-  Patch,
-  Param,
+  Put,
   Delete,
+  Body,
+  Param,
   UseGuards,
   ParseIntPipe,
 } from '@nestjs/common';
@@ -17,41 +16,39 @@ import { UserRole } from '@/user/user.entity';
 import { ItemCopiesService } from '@/item-copies/item-copies.service';
 import { CreateItemCopyDto } from '@/item-copies/dto/create-item-copy.dto';
 import { UpdateItemCopyDto } from '@/item-copies/dto/update-item-copy.dto';
-import { ItemCopy } from '@/item-copies/entities/item-copy.entity';
+import { ItemCopyResponseDto } from '@/item-copies/dto/item-copy-response.dto';
 
 @ApiTags('admin')
 @ApiBearerAuth()
 @UseGuards(AuthGuard, RolesGuard)
 @Roles(UserRole.Admin)
-@Controller('admin/item-copies')
+@Controller('admin/items/:itemId/copies')
 export class ItemCopiesAdminController {
   constructor(private readonly itemCopiesService: ItemCopiesService) {}
 
-  @Get()
-  findAll(): Promise<ItemCopy[]> {
-    return this.itemCopiesService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id', ParseIntPipe) id: number): Promise<ItemCopy> {
-    return this.itemCopiesService.findOne(id);
-  }
-
   @Post()
-  create(@Body() createItemCopyDto: CreateItemCopyDto): Promise<ItemCopy> {
-    return this.itemCopiesService.create(createItemCopyDto);
+  create(
+    @Param('itemId', ParseIntPipe) itemId: number,
+    @Body() createItemCopyDto: CreateItemCopyDto
+  ): Promise<ItemCopyResponseDto> {
+    return this.itemCopiesService.create({
+      ...createItemCopyDto,
+      item_id: itemId,
+    });
   }
 
-  @Patch(':id')
+  @Put(':copyId')
   update(
-    @Param('id', ParseIntPipe) id: number,
+    @Param('copyId', ParseIntPipe) copyId: number,
     @Body() updateItemCopyDto: UpdateItemCopyDto
-  ): Promise<ItemCopy> {
-    return this.itemCopiesService.update(id, updateItemCopyDto);
+  ): Promise<ItemCopyResponseDto> {
+    return this.itemCopiesService.update(copyId, updateItemCopyDto);
   }
 
-  @Delete(':id')
-  remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    return this.itemCopiesService.remove(id);
+  @Delete(':copyId')
+  archive(
+    @Param('copyId', ParseIntPipe) copyId: number
+  ): Promise<ItemCopyResponseDto> {
+    return this.itemCopiesService.archive(copyId);
   }
 }

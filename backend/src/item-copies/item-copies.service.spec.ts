@@ -3,7 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { ItemCopiesService } from './item-copies.service';
-import { ItemCopy } from './entities/item-copy.entity';
+import { ItemCopy, ItemCondition } from './entities/item-copy.entity';
 import { CreateItemCopyDto } from './dto/create-item-copy.dto';
 import { UpdateItemCopyDto } from './dto/update-item-copy.dto';
 
@@ -28,21 +28,17 @@ const mockItemCopy: ItemCopy = {
     archived_at: null,
   },
   location_id: 1,
-  condition: 'good',
+  condition: ItemCondition.Good,
   archived_at: null,
 };
 
 const mockRepository: jest.Mocked<
-  Pick<
-    Repository<ItemCopy>,
-    'create' | 'save' | 'find' | 'findOneBy' | 'remove'
-  >
+  Pick<Repository<ItemCopy>, 'create' | 'save' | 'find' | 'findOneBy'>
 > = {
   create: jest.fn(),
   save: jest.fn(),
   find: jest.fn(),
   findOneBy: jest.fn(),
-  remove: jest.fn(),
 };
 
 describe('ItemCopiesService', (): void => {
@@ -68,7 +64,7 @@ describe('ItemCopiesService', (): void => {
       const dto: CreateItemCopyDto = {
         item_id: 1,
         location_id: 1,
-        condition: 'good',
+        condition: ItemCondition.Good,
       };
       mockRepository.create.mockReturnValue(mockItemCopy);
       mockRepository.save.mockResolvedValue(mockItemCopy);
@@ -78,7 +74,7 @@ describe('ItemCopiesService', (): void => {
       expect(mockRepository.create).toHaveBeenCalledWith({
         item_id: 1,
         location_id: 1,
-        condition: 'good',
+        condition: ItemCondition.Good,
         archived_at: null,
       });
       expect(mockRepository.save).toHaveBeenCalledWith(mockItemCopy);
@@ -108,11 +104,26 @@ describe('ItemCopiesService', (): void => {
       expect(mockRepository.find).toHaveBeenCalled();
       expect(result).toEqual(copies);
     });
+  });
 
-    it('should return empty array when no item copies exist', async (): Promise<void> => {
+  describe('findByItemId', (): void => {
+    it('should return copies for a given item', async (): Promise<void> => {
+      const copies: ItemCopy[] = [mockItemCopy];
+      mockRepository.find.mockResolvedValue(copies);
+
+      const result: ItemCopy[] = await service.findByItemId(1);
+
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: { item_id: 1 },
+        relations: ['location'],
+      });
+      expect(result).toEqual(copies);
+    });
+
+    it('should return empty array when item has no copies', async (): Promise<void> => {
       mockRepository.find.mockResolvedValue([]);
 
-      const result: ItemCopy[] = await service.findAll();
+      const result: ItemCopy[] = await service.findByItemId(99);
 
       expect(result).toEqual([]);
     });
@@ -140,8 +151,11 @@ describe('ItemCopiesService', (): void => {
 
   describe('update', (): void => {
     it('should update and return the item copy', async (): Promise<void> => {
-      const dto: UpdateItemCopyDto = { condition: 'damaged' };
-      const updated: ItemCopy = { ...mockItemCopy, condition: 'damaged' };
+      const dto: UpdateItemCopyDto = { condition: ItemCondition.Damaged };
+      const updated: ItemCopy = {
+        ...mockItemCopy,
+        condition: ItemCondition.Damaged,
+      };
       mockRepository.findOneBy.mockResolvedValue(mockItemCopy);
       mockRepository.save.mockResolvedValue(updated);
 
@@ -149,7 +163,7 @@ describe('ItemCopiesService', (): void => {
 
       expect(mockRepository.save).toHaveBeenCalledWith({
         ...mockItemCopy,
-        condition: 'damaged',
+        condition: ItemCondition.Damaged,
       });
       expect(result).toEqual(updated);
     });
@@ -158,25 +172,29 @@ describe('ItemCopiesService', (): void => {
       mockRepository.findOneBy.mockResolvedValue(null);
 
       await expect(
-        service.update(99, { condition: 'damaged' })
+        service.update(99, { condition: ItemCondition.Damaged })
       ).rejects.toThrow(NotFoundException);
     });
   });
 
-  describe('remove', (): void => {
-    it('should remove the item copy', async (): Promise<void> => {
+  describe('archive', (): void => {
+    it('should set archived_at and return the item copy', async (): Promise<void> => {
+      const archived: ItemCopy = { ...mockItemCopy, archived_at: new Date() };
       mockRepository.findOneBy.mockResolvedValue(mockItemCopy);
-      mockRepository.remove.mockResolvedValue(mockItemCopy);
+      mockRepository.save.mockResolvedValue(archived);
 
-      await service.remove(1);
+      const result: ItemCopy = await service.archive(1);
 
-      expect(mockRepository.remove).toHaveBeenCalledWith(mockItemCopy);
+      expect(mockRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ archived_at: archived.archived_at })
+      );
+      expect(result.archived_at).not.toBeNull();
     });
 
     it('should throw NotFoundException when item copy does not exist', async (): Promise<void> => {
       mockRepository.findOneBy.mockResolvedValue(null);
 
-      await expect(service.remove(99)).rejects.toThrow(NotFoundException);
+      await expect(service.archive(99)).rejects.toThrow(NotFoundException);
     });
   });
 });

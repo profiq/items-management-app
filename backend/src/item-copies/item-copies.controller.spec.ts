@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { ItemCopiesController } from './item-copies.controller';
 import { ItemCopiesService } from './item-copies.service';
-import { ItemCopy } from './entities/item-copy.entity';
+import { ItemCopy, ItemCondition } from './entities/item-copy.entity';
 
 const mockItemCopy: ItemCopy = {
   id: 1,
@@ -25,7 +25,7 @@ const mockItemCopy: ItemCopy = {
     archived_at: null,
   },
   location_id: 1,
-  condition: 'good',
+  condition: ItemCondition.Good,
   archived_at: null,
 };
 
