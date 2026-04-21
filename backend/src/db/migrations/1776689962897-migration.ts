@@ -8,7 +8,7 @@ export class Migration1776689962897 implements MigrationInterface {
       `CREATE TABLE "temporary_item_category" ("item_id" integer NOT NULL, "category_id" integer NOT NULL, CONSTRAINT "FK_42bc3af8906e12365293438a937" FOREIGN KEY ("item_id") REFERENCES "item" ("id") ON DELETE CASCADE ON UPDATE CASCADE, CONSTRAINT "FK_638552fc7d9a2035c2b53182d8a" FOREIGN KEY ("category_id") REFERENCES "category" ("id") ON DELETE CASCADE ON UPDATE CASCADE, PRIMARY KEY ("item_id", "category_id"))`
     );
     await queryRunner.query(
-      `INSERT INTO "temporary_item_category"("item_id", "category_id") SELECT "item_id", "category_id" FROM "item_category"`
+      `INSERT INTO "temporary_item_category"("item_id", "category_id") SELECT DISTINCT "item_id", "category_id" FROM "item_category"`
     );
     await queryRunner.query(`DROP TABLE "item_category"`);
     await queryRunner.query(
@@ -25,7 +25,7 @@ export class Migration1776689962897 implements MigrationInterface {
       `CREATE TABLE "temporary_item_tag" ("item_id" integer NOT NULL, "tag_id" integer NOT NULL, CONSTRAINT "FK_39b492fda03c7ac846afe164b58" FOREIGN KEY ("item_id") REFERENCES "item" ("id") ON DELETE CASCADE ON UPDATE CASCADE, CONSTRAINT "FK_16ab8afb42f763f7cbaa4bff66a" FOREIGN KEY ("tag_id") REFERENCES "tag" ("id") ON DELETE CASCADE ON UPDATE CASCADE, PRIMARY KEY ("item_id", "tag_id"))`
     );
     await queryRunner.query(
-      `INSERT INTO "temporary_item_tag"("item_id", "tag_id") SELECT "item_id", "tag_id" FROM "item_tag"`
+      `INSERT INTO "temporary_item_tag"("item_id", "tag_id") SELECT DISTINCT "item_id", "tag_id" FROM "item_tag"`
     );
     await queryRunner.query(`DROP TABLE "item_tag"`);
     await queryRunner.query(

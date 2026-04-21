@@ -1,32 +1,38 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { ItemCopiesService } from './item-copies.service';
 import { ItemCopy, ItemCondition } from './entities/item-copy.entity';
 import { CreateItemCopyDto } from './dto/create-item-copy.dto';
 import { UpdateItemCopyDto } from './dto/update-item-copy.dto';
+import { Item } from '@/items/entities/item.entity';
+import { Location } from '@/locations/entities/location.entity';
+
+const mockItem: Item = {
+  id: 1,
+  name: 'Clean Code',
+  description: null,
+  image_url: null,
+  default_loan_days: 14,
+  archived_at: null,
+  categories: [],
+  tags: [],
+};
+
+const mockLocation: Location = {
+  id: 1,
+  name: 'Central Library',
+  city: { id: 1, name: 'Prague', archived_at: null },
+  city_id: 1,
+  archived_at: null,
+};
 
 const mockItemCopy: ItemCopy = {
   id: 1,
-  item: {
-    id: 1,
-    name: 'Clean Code',
-    description: null,
-    image_url: null,
-    default_loan_days: 14,
-    archived_at: null,
-    categories: [],
-    tags: [],
-  },
+  item: mockItem,
   item_id: 1,
-  location: {
-    id: 1,
-    name: 'Central Library',
-    city: { id: 1, name: 'Prague', archived_at: null },
-    city_id: 1,
-    archived_at: null,
-  },
+  location: mockLocation,
   location_id: 1,
   condition: ItemCondition.Good,
   archived_at: null,
@@ -41,6 +47,16 @@ const mockRepository: jest.Mocked<
   findOneBy: jest.fn(),
 };
 
+const mockItemRepository: jest.Mocked<Pick<Repository<Item>, 'findOneBy'>> = {
+  findOneBy: jest.fn(),
+};
+
+const mockLocationRepository: jest.Mocked<
+  Pick<Repository<Location>, 'findOneBy'>
+> = {
+  findOneBy: jest.fn(),
+};
+
 describe('ItemCopiesService', (): void => {
   let service: ItemCopiesService;
 
@@ -48,9 +64,11 @@ describe('ItemCopiesService', (): void => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         ItemCopiesService,
+        { provide: getRepositoryToken(ItemCopy), useValue: mockRepository },
+        { provide: getRepositoryToken(Item), useValue: mockItemRepository },
         {
-          provide: getRepositoryToken(ItemCopy),
-          useValue: mockRepository,
+          provide: getRepositoryToken(Location),
+          useValue: mockLocationRepository,
         },
       ],
     }).compile();
@@ -66,11 +84,15 @@ describe('ItemCopiesService', (): void => {
         location_id: 1,
         condition: ItemCondition.Good,
       };
+      mockItemRepository.findOneBy.mockResolvedValue(mockItem);
+      mockLocationRepository.findOneBy.mockResolvedValue(mockLocation);
       mockRepository.create.mockReturnValue(mockItemCopy);
       mockRepository.save.mockResolvedValue(mockItemCopy);
 
       const result: ItemCopy = await service.create(dto);
 
+      expect(mockItemRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(mockLocationRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
       expect(mockRepository.create).toHaveBeenCalledWith({
         item_id: 1,
         location_id: 1,
@@ -83,6 +105,8 @@ describe('ItemCopiesService', (): void => {
 
     it('should default condition to null when not provided', async (): Promise<void> => {
       const dto: CreateItemCopyDto = { item_id: 1, location_id: 1 };
+      mockItemRepository.findOneBy.mockResolvedValue(mockItem);
+      mockLocationRepository.findOneBy.mockResolvedValue(mockLocation);
       mockRepository.create.mockReturnValue(mockItemCopy);
       mockRepository.save.mockResolvedValue(mockItemCopy);
 
@@ -91,6 +115,25 @@ describe('ItemCopiesService', (): void => {
       expect(mockRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({ condition: null })
       );
+    });
+
+    it('should throw NotFoundException when item does not exist', async (): Promise<void> => {
+      mockItemRepository.findOneBy.mockResolvedValue(null);
+
+      await expect(
+        service.create({ item_id: 99, location_id: 1 })
+      ).rejects.toThrow(NotFoundException);
+      expect(mockRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw NotFoundException when location does not exist', async (): Promise<void> => {
+      mockItemRepository.findOneBy.mockResolvedValue(mockItem);
+      mockLocationRepository.findOneBy.mockResolvedValue(null);
+
+      await expect(
+        service.create({ item_id: 1, location_id: 99 })
+      ).rejects.toThrow(NotFoundException);
+      expect(mockRepository.save).not.toHaveBeenCalled();
     });
   });
 
@@ -107,14 +150,14 @@ describe('ItemCopiesService', (): void => {
   });
 
   describe('findByItemId', (): void => {
-    it('should return copies for a given item', async (): Promise<void> => {
+    it('should return non-archived copies for a given item', async (): Promise<void> => {
       const copies: ItemCopy[] = [mockItemCopy];
       mockRepository.find.mockResolvedValue(copies);
 
       const result: ItemCopy[] = await service.findByItemId(1);
 
       expect(mockRepository.find).toHaveBeenCalledWith({
-        where: { item_id: 1 },
+        where: { item_id: 1, archived_at: IsNull() },
         relations: ['location'],
       });
       expect(result).toEqual(copies);
@@ -186,7 +229,9 @@ describe('ItemCopiesService', (): void => {
       const result: ItemCopy = await service.archive(1);
 
       expect(mockRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining({ archived_at: archived.archived_at })
+        expect.objectContaining({
+          archived_at: expect.any(Date) as unknown as Date,
+        })
       );
       expect(result.archived_at).not.toBeNull();
     });

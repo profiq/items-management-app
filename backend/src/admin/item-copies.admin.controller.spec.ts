@@ -8,7 +8,7 @@ import {
   ItemCopy,
   ItemCondition,
 } from '@/item-copies/entities/item-copy.entity';
-import { UpdateItemCopyDto } from '@/item-copies/dto/update-item-copy.dto';
+import { UpdateItemCopyBodyDto } from '@/item-copies/dto/update-item-copy-body.dto';
 import { ItemCopyResponseDto } from '@/item-copies/dto/item-copy-response.dto';
 
 const mockItemCopy: ItemCopy = {
@@ -85,7 +85,7 @@ describe('ItemCopiesAdminController', (): void => {
 
   describe('update', (): void => {
     it('should update and return the item copy', async (): Promise<void> => {
-      const dto: UpdateItemCopyDto = { condition: ItemCondition.Damaged };
+      const dto: UpdateItemCopyBodyDto = { condition: ItemCondition.Damaged };
       const updated: ItemCopy = {
         ...mockItemCopy,
         condition: ItemCondition.Damaged,
