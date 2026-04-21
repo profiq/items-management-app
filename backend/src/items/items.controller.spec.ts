@@ -3,6 +3,8 @@ import { NotFoundException } from '@nestjs/common';
 import { ItemsController } from './items.controller';
 import { ItemsService } from './items.service';
 import { Item } from './entities/item.entity';
+import { FindItemsQueryDto } from './dto/find-items-query.dto';
+import { PaginatedItemsResponseDto } from './dto/paginated-items-response.dto';
 
 const mockItem: Item = {
   id: 1,
@@ -13,6 +15,13 @@ const mockItem: Item = {
   archived_at: null,
   categories: [],
   tags: [],
+};
+
+const mockPaginatedResponse: PaginatedItemsResponseDto = {
+  data: [mockItem],
+  total: 1,
+  page: 1,
+  limit: 20,
 };
 
 const mockService: jest.Mocked<Pick<ItemsService, 'findAll' | 'findOne'>> = {
@@ -39,14 +48,29 @@ describe('ItemsController', (): void => {
   });
 
   describe('findAll', (): void => {
-    it('should return all items', async (): Promise<void> => {
-      const items: Item[] = [mockItem];
-      mockService.findAll.mockResolvedValue(items);
+    it('should pass query to service and return paginated response', async (): Promise<void> => {
+      mockService.findAll.mockResolvedValue(mockPaginatedResponse);
+      const query: FindItemsQueryDto = { search: 'laptop', page: 1, limit: 20 };
 
-      const result: Item[] = await controller.findAll();
+      const result: PaginatedItemsResponseDto = await controller.findAll(query);
 
-      expect(mockService.findAll).toHaveBeenCalled();
-      expect(result).toBe(items);
+      expect(mockService.findAll).toHaveBeenCalledWith(query);
+      expect(result).toBe(mockPaginatedResponse);
+    });
+
+    it('should return paginated response with empty data when no items match', async (): Promise<void> => {
+      const emptyResponse: PaginatedItemsResponseDto = {
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+      };
+      mockService.findAll.mockResolvedValue(emptyResponse);
+
+      const result = await controller.findAll({} as FindItemsQueryDto);
+
+      expect(result.data).toEqual([]);
+      expect(result.total).toBe(0);
     });
   });
 

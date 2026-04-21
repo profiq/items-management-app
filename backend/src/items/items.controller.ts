@@ -1,7 +1,9 @@
-import { Controller, Get, Param } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Param, Query } from '@nestjs/common';
+import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { ItemsService } from './items.service';
 import { Item } from './entities/item.entity';
+import { FindItemsQueryDto } from './dto/find-items-query.dto';
+import { PaginatedItemsResponseDto } from './dto/paginated-items-response.dto';
 
 @ApiTags('items')
 @Controller('items')
@@ -9,8 +11,11 @@ export class ItemsController {
   constructor(private readonly itemsService: ItemsService) {}
 
   @Get()
-  findAll(): Promise<Item[]> {
-    return this.itemsService.findAll();
+  @ApiOkResponse({ type: PaginatedItemsResponseDto })
+  findAll(
+    @Query() query: FindItemsQueryDto
+  ): Promise<PaginatedItemsResponseDto> {
+    return this.itemsService.findAll(query);
   }
 
   @Get(':id')

@@ -8,6 +8,7 @@ import { Category } from '@/categories/entities/category.entity';
 import { Tag } from '@/tags/entities/tag.entity';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
+import { FindItemsQueryDto } from './dto/find-items-query.dto';
 
 const mockCategory: Category = { id: 1, name: 'Books', archived_at: null };
 const mockTag: Tag = { id: 1, name: 'fiction' };
@@ -143,24 +144,113 @@ describe('ItemsService', (): void => {
   });
 
   describe('findAll', (): void => {
-    it('should return all items with relations', async (): Promise<void> => {
-      const items: Item[] = [mockItem];
-      mockItemRepository.find.mockResolvedValue(items);
+    let mockQb: jest.Mocked<{
+      distinct: jest.Mock;
+      leftJoinAndSelect: jest.Mock;
+      innerJoin: jest.Mock;
+      where: jest.Mock;
+      andWhere: jest.Mock;
+      skip: jest.Mock;
+      take: jest.Mock;
+      getManyAndCount: jest.Mock;
+    }>;
 
-      const result = await service.findAll();
-
-      expect(mockItemRepository.find).toHaveBeenCalledWith({
-        relations: ['categories', 'tags'],
-      });
-      expect(result).toEqual(items);
+    beforeEach((): void => {
+      mockQb = {
+        distinct: jest.fn().mockReturnThis(),
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        skip: jest.fn().mockReturnThis(),
+        take: jest.fn().mockReturnThis(),
+        getManyAndCount: jest.fn(),
+      };
+      mockItemRepository.createQueryBuilder.mockReturnValue(
+        mockQb as unknown as SelectQueryBuilder<Item>
+      );
     });
 
-    it('should return empty array when no items exist', async (): Promise<void> => {
-      mockItemRepository.find.mockResolvedValue([]);
+    it('should return paginated active items with default page and limit', async (): Promise<void> => {
+      const items: Item[] = [mockItem];
+      mockQb.getManyAndCount.mockResolvedValue([items, 1]);
 
-      const result = await service.findAll();
+      const result = await service.findAll({} as FindItemsQueryDto);
 
-      expect(result).toEqual([]);
+      expect(mockItemRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'item'
+      );
+      expect(mockQb.distinct).toHaveBeenCalledWith(true);
+      expect(mockQb.where).toHaveBeenCalledWith('item.archived_at IS NULL');
+      expect(mockQb.skip).toHaveBeenCalledWith(0);
+      expect(mockQb.take).toHaveBeenCalledWith(20);
+      expect(result).toEqual({ data: items, total: 1, page: 1, limit: 20 });
+    });
+
+    it('should return empty result when no items exist', async (): Promise<void> => {
+      mockQb.getManyAndCount.mockResolvedValue([[], 0]);
+
+      const result = await service.findAll({} as FindItemsQueryDto);
+
+      expect(result).toEqual({ data: [], total: 0, page: 1, limit: 20 });
+    });
+
+    it('should apply search filter on name and description', async (): Promise<void> => {
+      mockQb.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.findAll({ search: 'laptop' } as FindItemsQueryDto);
+
+      expect(mockQb.andWhere).toHaveBeenCalledWith(
+        '(item.name LIKE :search OR item.description LIKE :search)',
+        { search: '%laptop%' }
+      );
+    });
+
+    it('should apply category filter via inner join', async (): Promise<void> => {
+      mockQb.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.findAll({ categoryId: 1 } as FindItemsQueryDto);
+
+      expect(mockQb.innerJoin).toHaveBeenCalledWith(
+        'item.categories',
+        'filterCategory',
+        'filterCategory.id = :categoryId',
+        { categoryId: 1 }
+      );
+    });
+
+    it('should apply availability filter with EXISTS subquery', async (): Promise<void> => {
+      mockQb.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.findAll({ available: true } as FindItemsQueryDto);
+
+      expect(mockQb.andWhere).toHaveBeenCalledWith(
+        expect.stringContaining('EXISTS')
+      );
+    });
+
+    it('should apply unavailable filter when available is false', async (): Promise<void> => {
+      mockQb.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.findAll({ available: false } as FindItemsQueryDto);
+
+      expect(mockQb.andWhere).toHaveBeenCalledWith(
+        expect.stringContaining('NOT EXISTS')
+      );
+    });
+
+    it('should paginate correctly with custom page and limit', async (): Promise<void> => {
+      mockQb.getManyAndCount.mockResolvedValue([[], 0]);
+
+      const result = await service.findAll({
+        page: 3,
+        limit: 10,
+      } as FindItemsQueryDto);
+
+      expect(mockQb.skip).toHaveBeenCalledWith(20);
+      expect(mockQb.take).toHaveBeenCalledWith(10);
+      expect(result.page).toBe(3);
+      expect(result.limit).toBe(10);
     });
   });
 

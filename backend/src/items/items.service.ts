@@ -4,6 +4,8 @@ import { In, Repository } from 'typeorm';
 import { Item } from './entities/item.entity';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
+import { FindItemsQueryDto } from './dto/find-items-query.dto';
+import { PaginatedItemsResponseDto } from './dto/paginated-items-response.dto';
 import { Category } from '@/categories/entities/category.entity';
 import { Tag } from '@/tags/entities/tag.entity';
 
@@ -39,8 +41,55 @@ export class ItemsService {
     return this.itemRepository.save(item);
   }
 
-  findAll(): Promise<Item[]> {
-    return this.itemRepository.find({ relations: ['categories', 'tags'] });
+  async findAll(query: FindItemsQueryDto): Promise<PaginatedItemsResponseDto> {
+    const { search, categoryId, available, page = 1, limit = 20 } = query;
+    const availableCopyExistsClause = `EXISTS (
+      SELECT 1 FROM item_copy copy
+      WHERE copy.item_id = item.id
+        AND copy.archived_at IS NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM loan
+          WHERE loan.copy_id = copy.id
+            AND loan.returned_at IS NULL
+        )
+    )`;
+
+    const qb = this.itemRepository
+      .createQueryBuilder('item')
+      .distinct(true)
+      .leftJoinAndSelect('item.categories', 'category')
+      .leftJoinAndSelect('item.tags', 'tag')
+      .where('item.archived_at IS NULL');
+
+    if (search) {
+      qb.andWhere('(item.name LIKE :search OR item.description LIKE :search)', {
+        search: `%${search}%`,
+      });
+    }
+
+    if (categoryId) {
+      qb.innerJoin(
+        'item.categories',
+        'filterCategory',
+        'filterCategory.id = :categoryId',
+        { categoryId }
+      );
+    }
+
+    if (available === true) {
+      qb.andWhere(availableCopyExistsClause);
+    }
+
+    if (available === false) {
+      qb.andWhere(`NOT ${availableCopyExistsClause}`);
+    }
+
+    const [data, total] = await qb
+      .skip((page - 1) * limit)
+      .take(limit)
+      .getManyAndCount();
+
+    return { data, total, page, limit };
   }
 
   async findOne(id: number): Promise<Item> {
