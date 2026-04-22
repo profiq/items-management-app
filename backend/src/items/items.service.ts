@@ -20,6 +20,32 @@ export class ItemsService {
     private readonly tagRepository: Repository<Tag>
   ) {}
 
+  private async findCategoriesOrThrow(ids: number[]): Promise<Category[]> {
+    const uniqueIds = [...new Set(ids)];
+    const categories = await this.categoryRepository.findBy({
+      id: In(uniqueIds),
+    });
+    const foundIds = categories.map(c => c.id);
+    const missingIds = uniqueIds.filter(id => !foundIds.includes(id));
+    if (missingIds.length) {
+      throw new NotFoundException(
+        `Categories not found: ${missingIds.join(', ')}`
+      );
+    }
+    return categories;
+  }
+
+  private async findTagsOrThrow(ids: number[]): Promise<Tag[]> {
+    const uniqueIds = [...new Set(ids)];
+    const tags = await this.tagRepository.findBy({ id: In(uniqueIds) });
+    const foundIds = tags.map(t => t.id);
+    const missingIds = uniqueIds.filter(id => !foundIds.includes(id));
+    if (missingIds.length) {
+      throw new NotFoundException(`Tags not found: ${missingIds.join(', ')}`);
+    }
+    return tags;
+  }
+
   async create(createItemDto: CreateItemDto): Promise<Item> {
     const { categoryIds, tagIds, ...itemData } = createItemDto;
 
@@ -31,12 +57,10 @@ export class ItemsService {
     });
 
     item.categories = categoryIds?.length
-      ? await this.categoryRepository.findBy({ id: In(categoryIds) })
+      ? await this.findCategoriesOrThrow(categoryIds)
       : [];
 
-    item.tags = tagIds?.length
-      ? await this.tagRepository.findBy({ id: In(tagIds) })
-      : [];
+    item.tags = tagIds?.length ? await this.findTagsOrThrow(tagIds) : [];
 
     return this.itemRepository.save(item);
   }
@@ -85,6 +109,7 @@ export class ItemsService {
     }
 
     const [data, total] = await qb
+      .orderBy('item.id', 'ASC')
       .skip((page - 1) * limit)
       .take(limit)
       .getManyAndCount();
@@ -100,6 +125,7 @@ export class ItemsService {
       .leftJoinAndSelect('item.copies', 'copy', 'copy.archived_at IS NULL')
       .leftJoinAndSelect('copy.location', 'location')
       .where('item.id = :id', { id })
+      .andWhere('item.archived_at IS NULL')
       .getOne();
     if (!item) {
       throw new NotFoundException(`Item #${id} not found`);
@@ -115,14 +141,12 @@ export class ItemsService {
 
     if (categoryIds !== undefined) {
       item.categories = categoryIds.length
-        ? await this.categoryRepository.findBy({ id: In(categoryIds) })
+        ? await this.findCategoriesOrThrow(categoryIds)
         : [];
     }
 
     if (tagIds !== undefined) {
-      item.tags = tagIds.length
-        ? await this.tagRepository.findBy({ id: In(tagIds) })
-        : [];
+      item.tags = tagIds.length ? await this.findTagsOrThrow(tagIds) : [];
     }
 
     return this.itemRepository.save(item);

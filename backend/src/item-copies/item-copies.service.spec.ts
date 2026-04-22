@@ -186,7 +186,7 @@ describe('ItemCopiesService', (): void => {
       const result: ItemCopy = await service.archive(1);
 
       expect(mockRepository.save).toHaveBeenCalledWith(
-        expect.objectContaining({ archived_at: archived.archived_at })
+        expect.objectContaining({ archived_at: expect.any(Date) as Date })
       );
       expect(result.archived_at).not.toBeNull();
     });

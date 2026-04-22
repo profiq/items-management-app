@@ -15,8 +15,8 @@ import { RolesGuard } from '@/auth/roles.guard';
 import { Roles } from '@/auth/roles.decorator';
 import { UserRole } from '@/user/user.entity';
 import { ItemCopiesService } from '@/item-copies/item-copies.service';
+import { ItemsService } from '@/items/items.service';
 import { CreateItemCopyBodyDto } from '@/item-copies/dto/create-item-copy-body.dto';
-import { UpdateItemCopyDto } from '@/item-copies/dto/update-item-copy.dto';
 import { ItemCopyResponseDto } from '@/item-copies/dto/item-copy-response.dto';
 
 @ApiTags('admin')
@@ -25,13 +25,17 @@ import { ItemCopyResponseDto } from '@/item-copies/dto/item-copy-response.dto';
 @Roles(UserRole.Admin)
 @Controller('admin/items/:itemId/copies')
 export class ItemCopiesAdminController {
-  constructor(private readonly itemCopiesService: ItemCopiesService) {}
+  constructor(
+    private readonly itemCopiesService: ItemCopiesService,
+    private readonly itemsService: ItemsService
+  ) {}
 
   @Post()
-  create(
+  async create(
     @Param('itemId', ParseIntPipe) itemId: number,
     @Body() body: CreateItemCopyBodyDto
   ): Promise<ItemCopyResponseDto> {
+    await this.itemsService.findOne(itemId);
     return this.itemCopiesService.create({ ...body, item_id: itemId });
   }
 
@@ -39,7 +43,7 @@ export class ItemCopiesAdminController {
   async update(
     @Param('itemId', ParseIntPipe) itemId: number,
     @Param('copyId', ParseIntPipe) copyId: number,
-    @Body() updateItemCopyDto: UpdateItemCopyDto
+    @Body() body: CreateItemCopyBodyDto
   ): Promise<ItemCopyResponseDto> {
     const copy = await this.itemCopiesService.findOne(copyId);
     if (copy.item_id !== itemId) {
@@ -47,7 +51,7 @@ export class ItemCopiesAdminController {
         `ItemCopy #${copyId} not found for item #${itemId}`
       );
     }
-    return this.itemCopiesService.update(copyId, updateItemCopyDto);
+    return this.itemCopiesService.update(copyId, body);
   }
 
   @Delete(':copyId')

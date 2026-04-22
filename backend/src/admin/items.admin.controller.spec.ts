@@ -7,6 +7,8 @@ import { RolesGuard } from '@/auth/roles.guard';
 import { Item } from '@/items/entities/item.entity';
 import { CreateItemDto } from '@/items/dto/create-item.dto';
 import { UpdateItemDto } from '@/items/dto/update-item.dto';
+import { FindItemsQueryDto } from '@/items/dto/find-items-query.dto';
+import { PaginatedItemsResponseDto } from '@/items/dto/paginated-items-response.dto';
 
 const mockItem: Item = {
   id: 1,
@@ -60,14 +62,20 @@ describe('ItemsAdminController', (): void => {
   });
 
   describe('findAll', (): void => {
-    it('should return all items', async (): Promise<void> => {
-      const items: Item[] = [mockItem];
-      mockService.findAll.mockResolvedValue(items);
+    it('should return paginated items', async (): Promise<void> => {
+      const response: PaginatedItemsResponseDto = {
+        data: [mockItem],
+        total: 1,
+        page: 1,
+        limit: 20,
+      };
+      const query = {} as FindItemsQueryDto;
+      mockService.findAll.mockResolvedValue(response);
 
-      const result: Item[] = await controller.findAll();
+      const result = await controller.findAll(query);
 
-      expect(mockService.findAll).toHaveBeenCalled();
-      expect(result).toBe(items);
+      expect(mockService.findAll).toHaveBeenCalledWith(query);
+      expect(result).toBe(response);
     });
   });
 

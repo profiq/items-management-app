@@ -18,6 +18,7 @@ export class FindItemsQueryDto {
   @ApiPropertyOptional({ description: 'Filter by category ID' })
   @IsOptional()
   @IsInt()
+  @Min(1)
   @Type(() => Number)
   categoryId?: number;
 
@@ -36,7 +37,7 @@ export class FindItemsQueryDto {
     if (value === 'false' || value === false) {
       return false;
     }
-    return value;
+    return value as boolean;
   })
   available?: boolean;
 

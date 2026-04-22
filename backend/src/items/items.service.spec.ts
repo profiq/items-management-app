@@ -38,15 +38,22 @@ const mockItemRepository: jest.Mocked<
   createQueryBuilder: jest.fn(),
 };
 
-function setupFindOneQb(returnValue: Item | null): void {
+function setupFindOneQb(returnValue: Item | null): {
+  leftJoinAndSelect: jest.Mock;
+  where: jest.Mock;
+  andWhere: jest.Mock;
+  getOne: jest.Mock;
+} {
   const qb = {
     leftJoinAndSelect: jest.fn().mockReturnThis(),
     where: jest.fn().mockReturnThis(),
+    andWhere: jest.fn().mockReturnThis(),
     getOne: jest.fn().mockResolvedValue(returnValue),
   };
   mockItemRepository.createQueryBuilder.mockReturnValue(
     qb as unknown as SelectQueryBuilder<Item>
   );
+  return qb;
 }
 
 const mockCategoryRepository: jest.Mocked<
@@ -150,6 +157,7 @@ describe('ItemsService', (): void => {
       innerJoin: jest.Mock;
       where: jest.Mock;
       andWhere: jest.Mock;
+      orderBy: jest.Mock;
       skip: jest.Mock;
       take: jest.Mock;
       getManyAndCount: jest.Mock;
@@ -162,6 +170,7 @@ describe('ItemsService', (): void => {
         innerJoin: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
         take: jest.fn().mockReturnThis(),
         getManyAndCount: jest.fn(),
@@ -235,7 +244,7 @@ describe('ItemsService', (): void => {
       await service.findAll({ available: false } as FindItemsQueryDto);
 
       expect(mockQb.andWhere).toHaveBeenCalledWith(
-        expect.stringContaining('NOT EXISTS')
+        expect.stringMatching(/NOT EXISTS[\s\S]+item_copy/)
       );
     });
 
@@ -256,12 +265,17 @@ describe('ItemsService', (): void => {
 
   describe('findOne', (): void => {
     it('should return an item with only non-archived copies', async (): Promise<void> => {
-      setupFindOneQb(mockItem);
+      const qb = setupFindOneQb(mockItem);
 
       const result = await service.findOne(1);
 
       expect(mockItemRepository.createQueryBuilder).toHaveBeenCalledWith(
         'item'
+      );
+      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith(
+        'item.copies',
+        'copy',
+        'copy.archived_at IS NULL'
       );
       expect(result).toEqual(mockItem);
     });

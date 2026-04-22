@@ -8,6 +8,7 @@ import {
   Delete,
   UseGuards,
   ParseIntPipe,
+  Query,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@/auth/auth.guard';
@@ -17,6 +18,8 @@ import { UserRole } from '@/user/user.entity';
 import { ItemsService } from '@/items/items.service';
 import { CreateItemDto } from '@/items/dto/create-item.dto';
 import { UpdateItemDto } from '@/items/dto/update-item.dto';
+import { FindItemsQueryDto } from '@/items/dto/find-items-query.dto';
+import { PaginatedItemsResponseDto } from '@/items/dto/paginated-items-response.dto';
 import { Item } from '@/items/entities/item.entity';
 
 @ApiTags('admin')
@@ -28,8 +31,10 @@ export class ItemsAdminController {
   constructor(private readonly itemsService: ItemsService) {}
 
   @Get()
-  findAll(): Promise<Item[]> {
-    return this.itemsService.findAll();
+  findAll(
+    @Query() query: FindItemsQueryDto
+  ): Promise<PaginatedItemsResponseDto> {
+    return this.itemsService.findAll(query);
   }
 
   @Get(':id')
