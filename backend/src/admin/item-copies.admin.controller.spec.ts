@@ -2,13 +2,14 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
 import { ItemCopiesAdminController } from './item-copies.admin.controller';
 import { ItemCopiesService } from '@/item-copies/item-copies.service';
+import { ItemsService } from '@/items/items.service';
 import { AuthGuard } from '@/auth/auth.guard';
 import { RolesGuard } from '@/auth/roles.guard';
 import {
   ItemCopy,
   ItemCondition,
 } from '@/item-copies/entities/item-copy.entity';
-import { UpdateItemCopyDto } from '@/item-copies/dto/update-item-copy.dto';
+import { CreateItemCopyBodyDto } from '@/item-copies/dto/create-item-copy-body.dto';
 import { ItemCopyResponseDto } from '@/item-copies/dto/item-copy-response.dto';
 
 const mockItemCopy: ItemCopy = {
@@ -45,13 +46,20 @@ const mockService: jest.Mocked<
   archive: jest.fn(),
 };
 
+const mockItemsService: jest.Mocked<Pick<ItemsService, 'findOne'>> = {
+  findOne: jest.fn(),
+};
+
 describe('ItemCopiesAdminController', (): void => {
   let controller: ItemCopiesAdminController;
 
   beforeEach(async (): Promise<void> => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ItemCopiesAdminController],
-      providers: [{ provide: ItemCopiesService, useValue: mockService }],
+      providers: [
+        { provide: ItemCopiesService, useValue: mockService },
+        { provide: ItemsService, useValue: mockItemsService },
+      ],
     })
       .overrideGuard(AuthGuard)
       .useValue({ canActivate: () => true })
@@ -67,6 +75,7 @@ describe('ItemCopiesAdminController', (): void => {
 
   describe('create', (): void => {
     it('should create an item copy with itemId from route param', async (): Promise<void> => {
+      mockItemsService.findOne.mockResolvedValue(mockItemCopy.item);
       mockService.create.mockResolvedValue(mockItemCopy);
 
       const result: ItemCopyResponseDto = await controller.create(1, {
@@ -74,6 +83,7 @@ describe('ItemCopiesAdminController', (): void => {
         condition: ItemCondition.Good,
       });
 
+      expect(mockItemsService.findOne).toHaveBeenCalledWith(1);
       expect(mockService.create).toHaveBeenCalledWith({
         item_id: 1,
         location_id: 1,
@@ -81,11 +91,25 @@ describe('ItemCopiesAdminController', (): void => {
       });
       expect(result).toBe(mockItemCopy);
     });
+
+    it('should propagate NotFoundException when parent item does not exist', async (): Promise<void> => {
+      mockItemsService.findOne.mockRejectedValue(
+        new NotFoundException('Item #99 not found')
+      );
+
+      await expect(controller.create(99, { location_id: 1 })).rejects.toThrow(
+        NotFoundException
+      );
+      expect(mockService.create).not.toHaveBeenCalled();
+    });
   });
 
   describe('update', (): void => {
     it('should update and return the item copy', async (): Promise<void> => {
-      const dto: UpdateItemCopyDto = { condition: ItemCondition.Damaged };
+      const dto: CreateItemCopyBodyDto = {
+        location_id: 1,
+        condition: ItemCondition.Damaged,
+      };
       const updated: ItemCopy = {
         ...mockItemCopy,
         condition: ItemCondition.Damaged,
@@ -104,7 +128,10 @@ describe('ItemCopiesAdminController', (): void => {
       mockService.findOne.mockResolvedValue({ ...mockItemCopy, item_id: 99 });
 
       await expect(
-        controller.update(1, 1, { condition: ItemCondition.Damaged })
+        controller.update(1, 1, {
+          location_id: 1,
+          condition: ItemCondition.Damaged,
+        })
       ).rejects.toThrow(NotFoundException);
       expect(mockService.update).not.toHaveBeenCalled();
     });
@@ -115,7 +142,10 @@ describe('ItemCopiesAdminController', (): void => {
       );
 
       await expect(
-        controller.update(1, 99, { condition: ItemCondition.Damaged })
+        controller.update(1, 99, {
+          location_id: 1,
+          condition: ItemCondition.Damaged,
+        })
       ).rejects.toThrow(NotFoundException);
     });
   });
