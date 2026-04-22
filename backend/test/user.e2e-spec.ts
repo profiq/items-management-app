@@ -20,17 +20,19 @@ function buildDecodedToken(
   email: string,
   uid: string
 ): DecodedIdToken {
+  const issuedAt = Math.floor(Date.now() / 1000);
+
   return {
     aud: 'test-audience',
-    auth_time: 0,
+    auth_time: issuedAt,
     email,
     email_verified: true,
-    exp: 0,
+    exp: issuedAt + 3600,
     firebase: {
       identities: { 'google.com': [googleWorkspaceUid] },
       sign_in_provider: 'google.com',
     },
-    iat: 0,
+    iat: issuedAt,
     iss: 'https://securetoken.google.com/pq-reference-app-dev',
     sub: uid,
     uid,
@@ -150,7 +152,7 @@ describe('UserModule', () => {
       .set('Authorization', `Bearer ${validToken}`)
       .expect(StatusCodes.FORBIDDEN);
 
-    return request(app.getHttpServer())
+    await request(app.getHttpServer())
       .get('/users')
       .set('Authorization', `Bearer ${validToken}`)
       .expect(StatusCodes.OK)
