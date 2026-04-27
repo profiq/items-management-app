@@ -22,7 +22,15 @@ Fill in the required values in `.env` (see [Environment Variables](#environment-
 
 ## Running in Development
 
-You need three terminals:
+### Option A — all-in-one
+
+```bash
+npm run dev:all
+```
+
+Starts the backend, frontend, and Firebase emulators in a single command.
+
+### Option B — separate terminals
 
 **Terminal 1 — Firebase emulators (Auth + Storage)**
 
@@ -47,20 +55,33 @@ Open [http://localhost:5173](http://localhost:5173).
 
 The Swagger API docs are available at [http://localhost:3000/api](http://localhost:3000/api).
 
+### Option C — Docker Compose
+
+```bash
+docker compose up
+```
+
+Uses `compose.yml` at the repository root to build and run the backend container.
+
 ## Environment Variables
 
-| Variable                            | Description                                                |
-| ----------------------------------- | ---------------------------------------------------------- |
-| `VITE_FIREBASE_API_KEY`             | Firebase project API key                                   |
-| `VITE_FIREBASE_AUTH_DOMAIN`         | Firebase auth domain                                       |
-| `VITE_FIREBASE_PROJECT_ID`          | Firebase project ID                                        |
-| `VITE_FIREBASE_STORAGE_BUCKET`      | Firebase storage bucket                                    |
-| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID                               |
-| `VITE_FIREBASE_APP_ID`              | Firebase app ID                                            |
-| `GOOGLE_CLIENT_EMAIL`               | Firebase Admin SDK service account email                   |
-| `GOOGLE_PRIVATE_KEY`                | Firebase Admin SDK service account private key             |
-| `VITE_API_URL`                      | Backend URL (default: `http://localhost:3000`)             |
-| `FIRST_ADMIN_EMAIL`                 | Email of the first admin user (provisioned on first start) |
+| Variable                            | Description                                                            |
+| ----------------------------------- | ---------------------------------------------------------------------- |
+| `VITE_FIREBASE_API_KEY`             | Firebase project API key                                               |
+| `VITE_FIREBASE_AUTH_DOMAIN`         | Firebase auth domain                                                   |
+| `VITE_FIREBASE_PROJECT_ID`          | Firebase project ID                                                    |
+| `VITE_FIREBASE_STORAGE_BUCKET`      | Firebase storage bucket                                                |
+| `VITE_FIREBASE_MESSAGING_SENDER_ID` | Firebase messaging sender ID                                           |
+| `VITE_FIREBASE_APP_ID`              | Firebase app ID                                                        |
+| `VITE_FIREBASE_MEASUREMENT_ID`      | Firebase Measurement ID (optional, for Analytics)                      |
+| `VITE_FIREBASE_EMULATE`             | Set to `true` to use Firebase emulators instead of a real project      |
+| `VITE_FIREBASE_EMULATOR_URL`        | Firebase Auth emulator URL (default: `http://localhost:9099`)          |
+| `GOOGLE_CLIENT_EMAIL`               | Firebase Admin SDK service account email                               |
+| `GOOGLE_PRIVATE_KEY`                | Firebase Admin SDK service account private key                         |
+| `VITE_API_URL`                      | Backend URL (default: `http://localhost:3000`)                         |
+| `FIRST_ADMIN_EMAIL`                 | Email of the first admin user (provisioned on first start)             |
+| `GOOGLE_STORAGE_BUCKET`             | Google Cloud Storage bucket name (required for item image upload)      |
+| `FIREBASE_STORAGE_EMULATOR_HOST`    | Firebase Storage emulator host (local dev only, e.g. `localhost:9199`) |
 
 For local development, `VITE_FIREBASE_EMULATE=true` is set by default in `.env.example` — the Firebase emulators are used instead of a real Firebase project, so the Firebase API key variables can be left blank.
 
@@ -78,11 +99,6 @@ For local development, `VITE_FIREBASE_EMULATE=true` is set by default in `.env.e
 - Item list with search, category filter, and availability filter
 - Item detail with copy locations and per-copy availability
 - Borrow a copy directly from the detail page
-
-#### Loans (Reader)
-
-- "My loans" page with active loans and loan history
-- Return a loan from the active loans list
 
 #### Admin — Catalog Management
 
@@ -132,35 +148,4 @@ For local development, `VITE_FIREBASE_EMULATE=true` is set by default in `.env.e
 | **Loans**               | A borrowing event linking a Copy to a User, with borrow date, due date, and return info.                   |
 | **Email Notifications** | Tracks emails sent for a loan (type + send timestamp).                                                     |
 
-## API Overview
-
-### Auth
-
-- `POST /auth/login`
-- `POST /auth/logout`
-- `GET /auth/me`
-
-### Catalog (Reader)
-
-- `GET /items` — list with search, category filter, availability filter, pagination
-- `GET /items/:id` — detail with copies
-
-### Loans (Reader)
-
-- `GET /loans/my` — active loans + history for current user
-- `POST /loans` — create a loan `{ copyId }`
-- `PUT /loans/:id/return` — return a loan
-
-### Admin — Items
-
-- `GET /admin/categories`, `POST /admin/categories`, `PUT /admin/categories/:id`, `DELETE /admin/categories/:id`
-- `GET /admin/items`, `POST /admin/items`, `PUT /admin/items/:id`, `DELETE /admin/items/:id`
-- `POST /admin/items/:id/copies`, `PUT /admin/items/:id/copies/:copyId`, `DELETE /admin/items/:id/copies/:copyId`
-
-### Admin — Loans
-
-- `GET /admin/loans` — all loans, filterable by status
-- `PUT /admin/loans/:id/return`
-- `PUT /admin/loans/:id/extend` `{ dueDays }`
-
-Full interactive docs: [http://localhost:3000/api](http://localhost:3000/api) (Swagger)
+Full interactive API docs: [http://localhost:3000/api](http://localhost:3000/api) (Swagger)
