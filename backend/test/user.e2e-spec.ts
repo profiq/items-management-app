@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { App } from 'supertest/types';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 import { UserModule } from '@/user/user.module';
 import { AuthService } from '@/auth/auth.service';
 import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
@@ -14,9 +15,34 @@ import { dbConfig } from './database';
 import { HttpAdapterHost } from '@nestjs/core';
 import { CustomExceptionsFilter } from '@/exception_filter/custom_exceptions.filter';
 
+function buildDecodedToken(
+  googleWorkspaceUid: string,
+  email: string,
+  uid: string
+): DecodedIdToken {
+  const issuedAt = Math.floor(Date.now() / 1000);
+
+  return {
+    aud: 'test-audience',
+    auth_time: issuedAt,
+    email,
+    email_verified: true,
+    exp: issuedAt + 3600,
+    firebase: {
+      identities: { 'google.com': [googleWorkspaceUid] },
+      sign_in_provider: 'google.com',
+    },
+    iat: issuedAt,
+    iss: 'https://securetoken.google.com/pq-reference-app-dev',
+    sub: uid,
+    uid,
+  };
+}
+
 describe('UserModule', () => {
   let app: INestApplication<App>;
   let authService: AuthService;
+  let dataSource: DataSource;
   let validToken: string;
   let invalidToken: string;
 
@@ -41,7 +67,7 @@ describe('UserModule', () => {
     const httpAdapterHost = app.get(HttpAdapterHost);
     app.useGlobalFilters(new CustomExceptionsFilter(httpAdapterHost));
     await app.init();
-    const dataSource = moduleFixture.get<DataSource>(getDataSourceToken());
+    dataSource = moduleFixture.get<DataSource>(getDataSourceToken());
     const userRepository = dataSource.getRepository(User);
     const user = new User();
     user.id = 1;
@@ -50,6 +76,10 @@ describe('UserModule', () => {
     //await userRepository.save(user);
     await dataSource.manager.save(user);
     await userRepository.insert([{ id: 2, name: 'Eve', employee_id: '2' }]);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
   });
 
   it('/users (GET)', async () => {
@@ -110,7 +140,18 @@ describe('UserModule', () => {
       .expect(StatusCodes.NOT_FOUND);
   });
 
-  it('/users/:id (DELETE)', async () => {
+  it('/users/:id (DELETE) (Non-admin)', async () => {
+    jest
+      .spyOn(authService, 'verifyToken')
+      .mockResolvedValue(
+        buildDecodedToken('1', 'user@profiq.com', 'firebase-user')
+      );
+
+    await request(app.getHttpServer())
+      .delete('/users/2')
+      .set('Authorization', `Bearer ${validToken}`)
+      .expect(StatusCodes.FORBIDDEN);
+
     await request(app.getHttpServer())
       .get('/users')
       .set('Authorization', `Bearer ${validToken}`)
@@ -129,6 +170,15 @@ describe('UserModule', () => {
           role: UserRole.User,
         },
       ]);
+  });
+
+  it('/users/:id (DELETE) (Admin)', async () => {
+    await dataSource.getRepository(User).update(1, { role: UserRole.Admin });
+    jest
+      .spyOn(authService, 'verifyToken')
+      .mockResolvedValue(
+        buildDecodedToken('1', 'admin@profiq.com', 'firebase-admin')
+      );
 
     await request(app.getHttpServer())
       .delete('/users/2')
@@ -144,12 +194,14 @@ describe('UserModule', () => {
           id: 1,
           name: 'abcd abcd',
           employee_id: '1',
-          role: UserRole.User,
+          role: UserRole.Admin,
         },
       ]);
   });
 
   afterAll(async () => {
-    await app.close();
+    if (app) {
+      await app.close();
+    }
   });
 });

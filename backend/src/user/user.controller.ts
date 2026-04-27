@@ -96,8 +96,10 @@ export class UserController {
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.Admin)
   @ApiOkResponse()
-  async deleteUser(@Param('id') id: number) {
+  async deleteUser(@Param('id', ParseIntPipe) id: number) {
     const deleted = await this.userService.deleteUser(id);
     if (!deleted) {
       throw new UnknownUserException();
