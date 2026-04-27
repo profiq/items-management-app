@@ -16,8 +16,19 @@ import { LocationsAdminController } from '@/admin/locations.admin.controller';
 import { ItemCopiesAdminController } from '@/admin/item-copies.admin.controller';
 import { AuthGuard } from '@/auth/auth.guard';
 import { RolesGuard } from '@/auth/roles.guard';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 import { Loan } from '@/loans/entities/loan.entity';
-import { User } from '@/user/user.entity';
+import { Item } from '@/items/entities/item.entity';
+import { City } from '@/cities/entities/city.entity';
+import { Location } from '@/locations/entities/location.entity';
+import {
+  ItemCopy,
+  ItemCondition,
+} from '@/item-copies/entities/item-copy.entity';
+import { User, UserRole } from '@/user/user.entity';
+import { AuthService } from '@/auth/auth.service';
+import { TimeDuration } from '@/lib/time';
+import { setupAuth } from './auth';
 import { dbConfig } from './database';
 
 describe('LoansModule (e2e)', (): void => {
@@ -202,6 +213,247 @@ describe('LoansModule (e2e)', (): void => {
       await request(app.getHttpServer())
         .delete('/loans/9999')
         .expect(StatusCodes.NOT_FOUND);
+    });
+  });
+});
+
+function buildDecodedToken(
+  googleWorkspaceUid: string,
+  email: string,
+  uid: string
+): DecodedIdToken {
+  const issuedAt = Math.floor(Date.now() / 1000);
+  return {
+    aud: 'test-audience',
+    auth_time: issuedAt,
+    email,
+    email_verified: true,
+    exp: issuedAt + 3600,
+    firebase: {
+      identities: { 'google.com': [googleWorkspaceUid] },
+      sign_in_provider: 'google.com',
+    },
+    iat: issuedAt,
+    iss: 'https://securetoken.google.com/pq-reference-app-dev',
+    sub: uid,
+    uid,
+  };
+}
+
+describe('LoansModule auth (e2e)', (): void => {
+  let app: INestApplication<App>;
+  let authService: AuthService;
+  let validToken: string;
+  let invalidToken: string;
+  let dataSource: DataSource;
+  let copyId: number;
+  let userId: number;
+
+  beforeAll(async (): Promise<void> => {
+    const authSetup = await setupAuth();
+    authService = authSetup.authService;
+    validToken = authSetup.validToken;
+    invalidToken = authSetup.invalidToken;
+  }, 30 * TimeDuration.Second);
+
+  beforeEach(async (): Promise<void> => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [
+        LoansModule,
+        ItemCopiesModule,
+        ItemsModule,
+        LocationsModule,
+        CitiesModule,
+        TypeOrmModule.forRoot(dbConfig),
+      ],
+    })
+      .overrideProvider(AuthService)
+      .useValue(authService)
+      .compile();
+
+    app = moduleFixture.createNestApplication();
+    await app.init();
+    dataSource = moduleFixture.get<DataSource>(getDataSourceToken());
+
+    const user = new User();
+    user.name = 'John Doe';
+    user.employee_id = 'emp1';
+    const savedUser = await dataSource.manager.save(user);
+    userId = savedUser.id;
+
+    const item = new Item();
+    item.name = 'Clean Code';
+    item.default_loan_days = 14;
+    const savedItem = await dataSource.manager.save(item);
+
+    const city = new City();
+    city.name = 'Prague';
+    const savedCity = await dataSource.manager.save(city);
+
+    const location = new Location();
+    location.name = 'Central Library';
+    location.city_id = savedCity.id;
+    const savedLocation = await dataSource.manager.save(location);
+
+    const copy = new ItemCopy();
+    copy.item_id = savedItem.id;
+    copy.location_id = savedLocation.id;
+    copy.condition = ItemCondition.Good;
+    const savedCopy = await dataSource.manager.save(copy);
+    copyId = savedCopy.id;
+  });
+
+  afterEach(async (): Promise<void> => {
+    jest.restoreAllMocks();
+    await app.close();
+  });
+
+  describe('unauthenticated access', (): void => {
+    it('GET /loans returns 403 without token', (): Promise<void> => {
+      return request(app.getHttpServer())
+        .get('/loans')
+        .expect(StatusCodes.FORBIDDEN);
+    });
+
+    it('GET /loans/:id returns 403 without token', (): Promise<void> => {
+      return request(app.getHttpServer())
+        .get('/loans/1')
+        .expect(StatusCodes.FORBIDDEN);
+    });
+
+    it('POST /loans returns 403 without token', (): Promise<void> => {
+      return request(app.getHttpServer())
+        .post('/loans')
+        .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' })
+        .expect(StatusCodes.FORBIDDEN);
+    });
+
+    it('PATCH /loans/:id returns 403 without token', (): Promise<void> => {
+      return request(app.getHttpServer())
+        .patch('/loans/1')
+        .send({ returned_at: new Date().toISOString() })
+        .expect(StatusCodes.FORBIDDEN);
+    });
+
+    it('DELETE /loans/:id returns 403 without token', (): Promise<void> => {
+      return request(app.getHttpServer())
+        .delete('/loans/1')
+        .expect(StatusCodes.FORBIDDEN);
+    });
+  });
+
+  describe('wrong domain token', (): void => {
+    it('GET /loans returns 403 for non-profiq.com token', (): Promise<void> => {
+      return request(app.getHttpServer())
+        .get('/loans')
+        .set('Authorization', `Bearer ${invalidToken}`)
+        .expect(StatusCodes.FORBIDDEN);
+    });
+
+    it('POST /loans returns 403 for non-profiq.com token', (): Promise<void> => {
+      return request(app.getHttpServer())
+        .post('/loans')
+        .set('Authorization', `Bearer ${invalidToken}`)
+        .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' })
+        .expect(StatusCodes.FORBIDDEN);
+    });
+  });
+
+  describe('authenticated non-admin access', (): void => {
+    beforeEach((): void => {
+      jest
+        .spyOn(authService, 'verifyToken')
+        .mockResolvedValue(
+          buildDecodedToken('emp1', 'user@profiq.com', 'firebase-user')
+        );
+    });
+
+    it('GET /loans returns 200 for authenticated non-admin', (): Promise<void> => {
+      return request(app.getHttpServer())
+        .get('/loans')
+        .set('Authorization', `Bearer ${validToken}`)
+        .expect(StatusCodes.OK);
+    });
+
+    it('GET /loans/:id returns 404 for authenticated non-admin (loan does not exist)', (): Promise<void> => {
+      return request(app.getHttpServer())
+        .get('/loans/9999')
+        .set('Authorization', `Bearer ${validToken}`)
+        .expect(StatusCodes.NOT_FOUND);
+    });
+
+    it('POST /loans returns 403 for authenticated non-admin', (): Promise<void> => {
+      return request(app.getHttpServer())
+        .post('/loans')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' })
+        .expect(StatusCodes.FORBIDDEN);
+    });
+
+    it('PATCH /loans/:id returns 403 for authenticated non-admin', (): Promise<void> => {
+      return request(app.getHttpServer())
+        .patch('/loans/1')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ returned_at: new Date().toISOString() })
+        .expect(StatusCodes.FORBIDDEN);
+    });
+
+    it('DELETE /loans/:id returns 403 for authenticated non-admin', (): Promise<void> => {
+      return request(app.getHttpServer())
+        .delete('/loans/1')
+        .set('Authorization', `Bearer ${validToken}`)
+        .expect(StatusCodes.FORBIDDEN);
+    });
+  });
+
+  describe('authenticated admin access', (): void => {
+    beforeEach(async (): Promise<void> => {
+      await dataSource
+        .getRepository(User)
+        .update(userId, { role: UserRole.Admin });
+      jest
+        .spyOn(authService, 'verifyToken')
+        .mockResolvedValue(
+          buildDecodedToken('emp1', 'admin@profiq.com', 'firebase-admin')
+        );
+    });
+
+    it('POST /loans returns 201 for admin', (): Promise<void> => {
+      return request(app.getHttpServer())
+        .post('/loans')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' })
+        .expect(StatusCodes.CREATED);
+    });
+
+    it('PATCH /loans/:id returns 200 for admin', async (): Promise<void> => {
+      const created: Response = await request(app.getHttpServer())
+        .post('/loans')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' });
+      const loanId = (created.body as { id: number }).id;
+
+      return request(app.getHttpServer())
+        .patch(`/loans/${loanId}`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({
+          returned_at: new Date().toISOString(),
+          returned_by_user_id: userId,
+        })
+        .expect(StatusCodes.OK);
+    });
+
+    it('DELETE /loans/:id returns 200 for admin', async (): Promise<void> => {
+      const created: Response = await request(app.getHttpServer())
+        .post('/loans')
+        .set('Authorization', `Bearer ${validToken}`)
+        .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' });
+      const loanId = (created.body as { id: number }).id;
+
+      return request(app.getHttpServer())
+        .delete(`/loans/${loanId}`)
+        .set('Authorization', `Bearer ${validToken}`)
+        .expect(StatusCodes.OK);
     });
   });
 });
