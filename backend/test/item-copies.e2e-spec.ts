@@ -8,7 +8,19 @@ import { ItemCopiesModule } from '@/item-copies/item-copies.module';
 import { ItemsModule } from '@/items/items.module';
 import { LocationsModule } from '@/locations/locations.module';
 import { CitiesModule } from '@/cities/cities.module';
-import { ItemCopy } from '@/item-copies/entities/item-copy.entity';
+import { CategoriesModule } from '@/categories/categories.module';
+import { TagsModule } from '@/tags/tags.module';
+import { ItemCopiesAdminController } from '@/admin/item-copies.admin.controller';
+import { ItemsAdminController } from '@/admin/items.admin.controller';
+import { LocationsAdminController } from '@/admin/locations.admin.controller';
+import { CitiesAdminController } from '@/admin/cities.admin.controller';
+import { AuthGuard } from '@/auth/auth.guard';
+import { RolesGuard } from '@/auth/roles.guard';
+import {
+  ItemCopy,
+  ItemCondition,
+} from '@/item-copies/entities/item-copy.entity';
+import { Item } from '@/items/entities/item.entity';
 import { dbConfig } from './database';
 
 describe('ItemCopiesModule (e2e)', (): void => {
@@ -23,25 +35,38 @@ describe('ItemCopiesModule (e2e)', (): void => {
         ItemsModule,
         LocationsModule,
         CitiesModule,
+        CategoriesModule,
+        TagsModule,
         TypeOrmModule.forRoot(dbConfig),
       ],
-    }).compile();
+      controllers: [
+        ItemCopiesAdminController,
+        ItemsAdminController,
+        LocationsAdminController,
+        CitiesAdminController,
+      ],
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
 
     const itemRes: Response = await request(app.getHttpServer())
-      .post('/items')
+      .post('/admin/items')
       .send({ name: 'Clean Code', default_loan_days: 14 });
     itemId = (itemRes.body as { id: number }).id;
 
     const cityRes: Response = await request(app.getHttpServer())
-      .post('/cities')
+      .post('/admin/cities')
       .send({ name: 'Prague' });
     const cityId = (cityRes.body as { id: number }).id;
 
     const locationRes: Response = await request(app.getHttpServer())
-      .post('/locations')
+      .post('/admin/locations')
       .send({ name: 'Central Library', city_id: cityId });
     locationId = (locationRes.body as { id: number }).id;
   });
@@ -50,26 +75,26 @@ describe('ItemCopiesModule (e2e)', (): void => {
     await app.close();
   });
 
-  describe('/item-copies (POST)', (): void => {
+  describe('/admin/items/:itemId/copies (POST)', (): void => {
     it('should create an item copy', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .post('/item-copies')
-        .send({ item_id: itemId, location_id: locationId, condition: 'good' })
+        .post(`/admin/items/${itemId}/copies`)
+        .send({ location_id: locationId, condition: ItemCondition.Good })
         .expect(StatusCodes.CREATED)
         .expect((res: Response) => {
           const body = res.body as ItemCopy;
           expect(body.id).toBeDefined();
           expect(body.item_id).toBe(itemId);
           expect(body.location_id).toBe(locationId);
-          expect(body.condition).toBe('good');
+          expect(body.condition).toBe(ItemCondition.Good);
           expect(body.archived_at).toBeNull();
         });
     });
 
     it('should create an item copy without condition', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .post('/item-copies')
-        .send({ item_id: itemId, location_id: locationId })
+        .post(`/admin/items/${itemId}/copies`)
+        .send({ location_id: locationId })
         .expect(StatusCodes.CREATED)
         .expect((res: Response) => {
           const body = res.body as ItemCopy;
@@ -78,110 +103,84 @@ describe('ItemCopiesModule (e2e)', (): void => {
     });
   });
 
-  describe('/item-copies (GET)', (): void => {
-    it('should return all item copies', async (): Promise<void> => {
-      await request(app.getHttpServer())
-        .post('/item-copies')
-        .send({ item_id: itemId, location_id: locationId, condition: 'good' });
-      await request(app.getHttpServer())
-        .post('/item-copies')
-        .send({
-          item_id: itemId,
-          location_id: locationId,
-          condition: 'damaged',
-        });
-
-      await request(app.getHttpServer())
-        .get('/item-copies')
-        .expect(StatusCodes.OK)
-        .expect((res: Response) => {
-          const body = res.body as ItemCopy[];
-          expect(Array.isArray(body)).toBe(true);
-          expect(body).toHaveLength(2);
-        });
-    });
-
-    it('should return empty array when no item copies exist', async (): Promise<void> => {
-      await request(app.getHttpServer())
-        .get('/item-copies')
-        .expect(StatusCodes.OK)
-        .expect([]);
-    });
-  });
-
-  describe('/item-copies/:id (GET)', (): void => {
-    it('should return an item copy by id', async (): Promise<void> => {
-      const created: Response = await request(app.getHttpServer())
-        .post('/item-copies')
-        .send({ item_id: itemId, location_id: locationId, condition: 'good' });
-
-      const createdBody = created.body as ItemCopy;
-
-      await request(app.getHttpServer())
-        .get(`/item-copies/${createdBody.id}`)
-        .expect(StatusCodes.OK)
-        .expect((res: Response) => {
-          const body = res.body as ItemCopy;
-          expect(body.id).toBe(createdBody.id);
-          expect(body.condition).toBe('good');
-        });
-    });
-
-    it('should return 404 when item copy does not exist', async (): Promise<void> => {
-      await request(app.getHttpServer())
-        .get('/item-copies/9999')
-        .expect(StatusCodes.NOT_FOUND);
-    });
-  });
-
-  describe('/item-copies/:id (PATCH)', (): void => {
+  describe('/admin/items/:itemId/copies/:copyId (PUT)', (): void => {
     it('should update an item copy', async (): Promise<void> => {
       const created: Response = await request(app.getHttpServer())
-        .post('/item-copies')
-        .send({ item_id: itemId, location_id: locationId, condition: 'good' });
+        .post(`/admin/items/${itemId}/copies`)
+        .send({ location_id: locationId, condition: ItemCondition.Good });
 
       const createdBody = created.body as ItemCopy;
 
       await request(app.getHttpServer())
-        .patch(`/item-copies/${createdBody.id}`)
-        .send({ condition: 'damaged' })
+        .put(`/admin/items/${itemId}/copies/${createdBody.id}`)
+        .send({ condition: ItemCondition.Damaged })
         .expect(StatusCodes.OK)
         .expect((res: Response) => {
           const body = res.body as ItemCopy;
-          expect(body.condition).toBe('damaged');
+          expect(body.condition).toBe(ItemCondition.Damaged);
           expect(body.id).toBe(createdBody.id);
         });
     });
 
     it('should return 404 when item copy does not exist', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .patch('/item-copies/9999')
-        .send({ condition: 'damaged' })
+        .put(`/admin/items/${itemId}/copies/9999`)
+        .send({ condition: ItemCondition.Damaged })
         .expect(StatusCodes.NOT_FOUND);
     });
   });
 
-  describe('/item-copies/:id (DELETE)', (): void => {
-    it('should delete an item copy', async (): Promise<void> => {
+  describe('/admin/items/:itemId/copies/:copyId (DELETE)', (): void => {
+    it('should soft delete (archive) an item copy', async (): Promise<void> => {
       const created: Response = await request(app.getHttpServer())
-        .post('/item-copies')
-        .send({ item_id: itemId, location_id: locationId, condition: 'good' });
+        .post(`/admin/items/${itemId}/copies`)
+        .send({ location_id: locationId, condition: ItemCondition.Good });
 
       const createdBody = created.body as ItemCopy;
 
       await request(app.getHttpServer())
-        .delete(`/item-copies/${createdBody.id}`)
-        .expect(StatusCodes.OK);
-
-      await request(app.getHttpServer())
-        .get(`/item-copies/${createdBody.id}`)
-        .expect(StatusCodes.NOT_FOUND);
+        .delete(`/admin/items/${itemId}/copies/${createdBody.id}`)
+        .expect(StatusCodes.OK)
+        .expect((res: Response) => {
+          const body = res.body as ItemCopy;
+          expect(body.archived_at).not.toBeNull();
+        });
     });
 
     it('should return 404 when item copy does not exist', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .delete('/item-copies/9999')
+        .delete(`/admin/items/${itemId}/copies/9999`)
         .expect(StatusCodes.NOT_FOUND);
+    });
+  });
+
+  describe('/items/:id (GET) — includes copies', (): void => {
+    it('should include copies with location in item detail', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .post(`/admin/items/${itemId}/copies`)
+        .send({ location_id: locationId, condition: ItemCondition.Good });
+
+      await request(app.getHttpServer())
+        .get(`/items/${itemId}`)
+        .expect(StatusCodes.OK)
+        .expect((res: Response) => {
+          const body = res.body as Item;
+          expect(body.copies).toBeDefined();
+          expect(Array.isArray(body.copies)).toBe(true);
+          expect((body.copies ?? []).length).toBe(1);
+          expect((body.copies ?? [])[0].location).toBeDefined();
+          expect((body.copies ?? [])[0].condition).toBe(ItemCondition.Good);
+        });
+    });
+
+    it('should return empty copies array when item has no copies', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .get(`/items/${itemId}`)
+        .expect(StatusCodes.OK)
+        .expect((res: Response) => {
+          const body = res.body as Item;
+          expect(body.copies).toEqual([]);
+        });
     });
   });
 });

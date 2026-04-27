@@ -8,8 +8,6 @@ import { Location } from '@/locations/entities/location.entity';
 import { ItemCopy } from '@/item-copies/entities/item-copy.entity';
 import { Loan } from '@/loans/entities/loan.entity';
 import { EmailNotification } from '@/email-notifications/entities/email-notification.entity';
-import { ItemCategory } from '@/item-categories/entities/item-category.entity';
-import { ItemTag } from '@/item-tags/entities/item-tag.entity';
 
 export const dbConfig: TypeOrmModuleOptions = {
   type: 'sqlite',
@@ -24,8 +22,6 @@ export const dbConfig: TypeOrmModuleOptions = {
     ItemCopy,
     Loan,
     EmailNotification,
-    ItemCategory,
-    ItemTag,
   ],
   synchronize: true,
   dropSchema: true,

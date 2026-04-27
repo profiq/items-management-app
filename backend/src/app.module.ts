@@ -13,8 +13,6 @@ import { LocationsModule } from './locations/locations.module';
 import { ItemCopiesModule } from './item-copies/item-copies.module';
 import { LoansModule } from './loans/loans.module';
 import { EmailNotificationsModule } from './email-notifications/email-notifications.module';
-import { ItemCategoriesModule } from './item-categories/item-categories.module';
-import { ItemTagsModule } from './item-tags/item-tags.module';
 import { AdminModule } from './admin/admin.module';
 
 @Module({
@@ -35,8 +33,6 @@ import { AdminModule } from './admin/admin.module';
     ItemCopiesModule,
     LoansModule,
     EmailNotificationsModule,
-    ItemCategoriesModule,
-    ItemTagsModule,
     AdminModule,
   ],
 })

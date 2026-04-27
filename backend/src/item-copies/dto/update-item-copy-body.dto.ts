@@ -2,12 +2,11 @@ import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsEnum, IsInt, IsOptional } from 'class-validator';
 import { ItemCondition } from '../entities/item-copy.entity';
 
-export class CreateItemCopyDto {
+export class UpdateItemCopyBodyDto {
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsInt()
-  item_id: number;
-
-  @IsInt()
-  location_id: number;
+  location_id?: number;
 
   @ApiPropertyOptional({ enum: ItemCondition, nullable: true })
   @IsOptional()

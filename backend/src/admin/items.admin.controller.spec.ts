@@ -1,0 +1,141 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { NotFoundException } from '@nestjs/common';
+import { ItemsAdminController } from './items.admin.controller';
+import { ItemsService } from '@/items/items.service';
+import { AuthGuard } from '@/auth/auth.guard';
+import { RolesGuard } from '@/auth/roles.guard';
+import { Item } from '@/items/entities/item.entity';
+import { CreateItemDto } from '@/items/dto/create-item.dto';
+import { UpdateItemDto } from '@/items/dto/update-item.dto';
+import { FindItemsQueryDto } from '@/items/dto/find-items-query.dto';
+import { PaginatedItemsResponseDto } from '@/items/dto/paginated-items-response.dto';
+
+const mockItem: Item = {
+  id: 1,
+  name: 'Clean Code',
+  description: 'A book about clean code',
+  image_url: null,
+  default_loan_days: 14,
+  archived_at: null,
+  categories: [],
+  tags: [],
+};
+
+const mockService: jest.Mocked<
+  Pick<ItemsService, 'create' | 'findAll' | 'findOne' | 'update' | 'remove'>
+> = {
+  create: jest.fn(),
+  findAll: jest.fn(),
+  findOne: jest.fn(),
+  update: jest.fn(),
+  remove: jest.fn(),
+};
+
+describe('ItemsAdminController', (): void => {
+  let controller: ItemsAdminController;
+
+  beforeEach(async (): Promise<void> => {
+    const module: TestingModule = await Test.createTestingModule({
+      controllers: [ItemsAdminController],
+      providers: [{ provide: ItemsService, useValue: mockService }],
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
+
+    controller = module.get<ItemsAdminController>(ItemsAdminController);
+    jest.clearAllMocks();
+  });
+
+  describe('create', (): void => {
+    it('should create and return an item', async (): Promise<void> => {
+      const dto: CreateItemDto = { name: 'Clean Code', default_loan_days: 14 };
+      mockService.create.mockResolvedValue(mockItem);
+
+      const result: Item = await controller.create(dto);
+
+      expect(mockService.create).toHaveBeenCalledWith(dto);
+      expect(result).toBe(mockItem);
+    });
+  });
+
+  describe('findAll', (): void => {
+    it('should return paginated items', async (): Promise<void> => {
+      const response: PaginatedItemsResponseDto = {
+        data: [mockItem],
+        total: 1,
+        page: 1,
+        limit: 20,
+      };
+      const query = {} as FindItemsQueryDto;
+      mockService.findAll.mockResolvedValue(response);
+
+      const result = await controller.findAll(query);
+
+      expect(mockService.findAll).toHaveBeenCalledWith(query);
+      expect(result).toBe(response);
+    });
+  });
+
+  describe('findOne', (): void => {
+    it('should return an item by id', async (): Promise<void> => {
+      mockService.findOne.mockResolvedValue(mockItem);
+
+      const result: Item = await controller.findOne(1);
+
+      expect(mockService.findOne).toHaveBeenCalledWith(1);
+      expect(result).toBe(mockItem);
+    });
+
+    it('should propagate NotFoundException when item does not exist', async (): Promise<void> => {
+      mockService.findOne.mockRejectedValue(
+        new NotFoundException('Item #99 not found')
+      );
+
+      await expect(controller.findOne(99)).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('update', (): void => {
+    it('should update and return the item', async (): Promise<void> => {
+      const dto: UpdateItemDto = { name: 'Updated' };
+      const updated: Item = { ...mockItem, name: 'Updated' };
+      mockService.update.mockResolvedValue(updated);
+
+      const result: Item = await controller.update(1, dto);
+
+      expect(mockService.update).toHaveBeenCalledWith(1, dto);
+      expect(result).toBe(updated);
+    });
+
+    it('should propagate NotFoundException when item does not exist', async (): Promise<void> => {
+      mockService.update.mockRejectedValue(
+        new NotFoundException('Item #99 not found')
+      );
+
+      await expect(controller.update(99, { name: 'X' })).rejects.toThrow(
+        NotFoundException
+      );
+    });
+  });
+
+  describe('remove', (): void => {
+    it('should remove the item', async (): Promise<void> => {
+      mockService.remove.mockResolvedValue(undefined);
+
+      await controller.remove(1);
+
+      expect(mockService.remove).toHaveBeenCalledWith(1);
+    });
+
+    it('should propagate NotFoundException when item does not exist', async (): Promise<void> => {
+      mockService.remove.mockRejectedValue(
+        new NotFoundException('Item #99 not found')
+      );
+
+      await expect(controller.remove(99)).rejects.toThrow(NotFoundException);
+    });
+  });
+});

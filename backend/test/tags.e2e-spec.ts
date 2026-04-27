@@ -5,6 +5,9 @@ import { App } from 'supertest/types';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { StatusCodes } from 'http-status-codes';
 import { TagsModule } from '@/tags/tags.module';
+import { TagsAdminController } from '@/admin/tags.admin.controller';
+import { AuthGuard } from '@/auth/auth.guard';
+import { RolesGuard } from '@/auth/roles.guard';
 import { Tag } from '@/tags/entities/tag.entity';
 import { dbConfig } from './database';
 
@@ -14,7 +17,13 @@ describe('TagsModule (e2e)', (): void => {
   beforeEach(async (): Promise<void> => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [TagsModule, TypeOrmModule.forRoot(dbConfig)],
-    }).compile();
+      controllers: [TagsAdminController],
+    })
+      .overrideGuard(AuthGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
@@ -24,10 +33,10 @@ describe('TagsModule (e2e)', (): void => {
     await app.close();
   });
 
-  describe('/tags (POST)', (): void => {
+  describe('/admin/tags (POST)', (): void => {
     it('should create a tag', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .post('/tags')
+        .post('/admin/tags')
         .send({ name: 'Fiction' })
         .expect(StatusCodes.CREATED)
         .expect((res: Response) => {
@@ -41,10 +50,10 @@ describe('TagsModule (e2e)', (): void => {
   describe('/tags (GET)', (): void => {
     it('should return all tags', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .post('/tags')
+        .post('/admin/tags')
         .send({ name: 'Fiction' });
       await request(app.getHttpServer())
-        .post('/tags')
+        .post('/admin/tags')
         .send({ name: 'Science' });
 
       await request(app.getHttpServer())
@@ -70,7 +79,7 @@ describe('TagsModule (e2e)', (): void => {
   describe('/tags/:id (GET)', (): void => {
     it('should return a tag by id', async (): Promise<void> => {
       const created: Response = await request(app.getHttpServer())
-        .post('/tags')
+        .post('/admin/tags')
         .send({ name: 'Fiction' });
 
       const createdBody = created.body as Tag;
@@ -92,16 +101,16 @@ describe('TagsModule (e2e)', (): void => {
     });
   });
 
-  describe('/tags/:id (PATCH)', (): void => {
+  describe('/admin/tags/:id (PATCH)', (): void => {
     it('should update a tag', async (): Promise<void> => {
       const created: Response = await request(app.getHttpServer())
-        .post('/tags')
+        .post('/admin/tags')
         .send({ name: 'Fiction' });
 
       const createdBody = created.body as Tag;
 
       await request(app.getHttpServer())
-        .patch(`/tags/${createdBody.id}`)
+        .patch(`/admin/tags/${createdBody.id}`)
         .send({ name: 'Updated Fiction' })
         .expect(StatusCodes.OK)
         .expect((res: Response) => {
@@ -113,22 +122,22 @@ describe('TagsModule (e2e)', (): void => {
 
     it('should return 404 when tag does not exist', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .patch('/tags/9999')
+        .patch('/admin/tags/9999')
         .send({ name: 'X' })
         .expect(StatusCodes.NOT_FOUND);
     });
   });
 
-  describe('/tags/:id (DELETE)', (): void => {
+  describe('/admin/tags/:id (DELETE)', (): void => {
     it('should delete a tag', async (): Promise<void> => {
       const created: Response = await request(app.getHttpServer())
-        .post('/tags')
+        .post('/admin/tags')
         .send({ name: 'Fiction' });
 
       const createdBody = created.body as Tag;
 
       await request(app.getHttpServer())
-        .delete(`/tags/${createdBody.id}`)
+        .delete(`/admin/tags/${createdBody.id}`)
         .expect(StatusCodes.OK);
 
       await request(app.getHttpServer())
@@ -138,7 +147,7 @@ describe('TagsModule (e2e)', (): void => {
 
     it('should return 404 when tag does not exist', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .delete('/tags/9999')
+        .delete('/admin/tags/9999')
         .expect(StatusCodes.NOT_FOUND);
     });
   });
