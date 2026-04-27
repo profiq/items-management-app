@@ -17,6 +17,7 @@ import { UserRole } from '@/user/user.entity';
 import { ItemCopiesService } from '@/item-copies/item-copies.service';
 import { ItemsService } from '@/items/items.service';
 import { CreateItemCopyBodyDto } from '@/item-copies/dto/create-item-copy-body.dto';
+import { UpdateItemCopyBodyDto } from '@/item-copies/dto/update-item-copy-body.dto';
 import { ItemCopyResponseDto } from '@/item-copies/dto/item-copy-response.dto';
 
 @ApiTags('admin')
@@ -43,7 +44,7 @@ export class ItemCopiesAdminController {
   async update(
     @Param('itemId', ParseIntPipe) itemId: number,
     @Param('copyId', ParseIntPipe) copyId: number,
-    @Body() body: CreateItemCopyBodyDto
+    @Body() body: UpdateItemCopyBodyDto
   ): Promise<ItemCopyResponseDto> {
     const copy = await this.itemCopiesService.findOne(copyId);
     if (copy.item_id !== itemId) {
