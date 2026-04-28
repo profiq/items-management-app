@@ -16,7 +16,6 @@ import { LocationsAdminController } from '@/admin/locations.admin.controller';
 import { ItemCopiesAdminController } from '@/admin/item-copies.admin.controller';
 import { AuthGuard } from '@/auth/auth.guard';
 import { RolesGuard } from '@/auth/roles.guard';
-import type { DecodedIdToken } from 'firebase-admin/auth';
 import { Loan } from '@/loans/entities/loan.entity';
 import { Item } from '@/items/entities/item.entity';
 import { City } from '@/cities/entities/city.entity';
@@ -28,7 +27,7 @@ import {
 import { User, UserRole } from '@/user/user.entity';
 import { AuthService } from '@/auth/auth.service';
 import { TimeDuration } from '@/lib/time';
-import { setupAuth } from './auth';
+import { buildDecodedToken, setupAuth } from './auth';
 import { dbConfig } from './database';
 
 describe('LoansModule (e2e)', (): void => {
@@ -217,29 +216,6 @@ describe('LoansModule (e2e)', (): void => {
   });
 });
 
-function buildDecodedToken(
-  googleWorkspaceUid: string,
-  email: string,
-  uid: string
-): DecodedIdToken {
-  const issuedAt = Math.floor(Date.now() / 1000);
-  return {
-    aud: 'test-audience',
-    auth_time: issuedAt,
-    email,
-    email_verified: true,
-    exp: issuedAt + 3600,
-    firebase: {
-      identities: { 'google.com': [googleWorkspaceUid] },
-      sign_in_provider: 'google.com',
-    },
-    iat: issuedAt,
-    iss: 'https://securetoken.google.com/pq-reference-app-dev',
-    sub: uid,
-    uid,
-  };
-}
-
 describe('LoansModule auth (e2e)', (): void => {
   let app: INestApplication<App>;
   let authService: AuthService;
@@ -357,17 +333,45 @@ describe('LoansModule auth (e2e)', (): void => {
         .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' })
         .expect(StatusCodes.FORBIDDEN);
     });
+
+    it('PATCH /loans/:id returns 403 for non-profiq.com token', async (): Promise<void> => {
+      const loan = new Loan();
+      loan.copy_id = copyId;
+      loan.user_id = userId;
+      loan.borrowed_at = new Date();
+      loan.due_date = '2026-05-01';
+      loan.returned_at = null;
+      loan.returned_by_user_id = null;
+      const created = await dataSource.manager.save(loan);
+
+      return request(app.getHttpServer())
+        .patch(`/loans/${created.id}`)
+        .set('Authorization', `Bearer ${invalidToken}`)
+        .send({
+          returned_at: new Date().toISOString(),
+          returned_by_user_id: userId,
+        })
+        .expect(StatusCodes.FORBIDDEN);
+    });
+
+    it('DELETE /loans/:id returns 403 for non-profiq.com token', async (): Promise<void> => {
+      const loan = new Loan();
+      loan.copy_id = copyId;
+      loan.user_id = userId;
+      loan.borrowed_at = new Date();
+      loan.due_date = '2026-05-01';
+      loan.returned_at = null;
+      loan.returned_by_user_id = null;
+      const created = await dataSource.manager.save(loan);
+
+      return request(app.getHttpServer())
+        .delete(`/loans/${created.id}`)
+        .set('Authorization', `Bearer ${invalidToken}`)
+        .expect(StatusCodes.FORBIDDEN);
+    });
   });
 
   describe('authenticated non-admin access', (): void => {
-    beforeEach((): void => {
-      jest
-        .spyOn(authService, 'verifyToken')
-        .mockResolvedValue(
-          buildDecodedToken('emp1', 'user@profiq.com', 'firebase-user')
-        );
-    });
-
     it('GET /loans returns 200 for authenticated non-admin', (): Promise<void> => {
       return request(app.getHttpServer())
         .get('/loans')

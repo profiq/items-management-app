@@ -2,42 +2,17 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { INestApplication } from '@nestjs/common';
 import { App } from 'supertest/types';
-import type { DecodedIdToken } from 'firebase-admin/auth';
 import { UserModule } from '@/user/user.module';
 import { AuthService } from '@/auth/auth.service';
 import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
 import { User, UserRole } from '@/user/user.entity';
 import { DataSource } from 'typeorm';
 import { TimeDuration } from '@/lib/time';
-import { setupAuth } from './auth';
+import { buildDecodedToken, setupAuth } from './auth';
 import { StatusCodes } from 'http-status-codes';
 import { dbConfig } from './database';
 import { HttpAdapterHost } from '@nestjs/core';
 import { CustomExceptionsFilter } from '@/exception_filter/custom_exceptions.filter';
-
-function buildDecodedToken(
-  googleWorkspaceUid: string,
-  email: string,
-  uid: string
-): DecodedIdToken {
-  const issuedAt = Math.floor(Date.now() / 1000);
-
-  return {
-    aud: 'test-audience',
-    auth_time: issuedAt,
-    email,
-    email_verified: true,
-    exp: issuedAt + 3600,
-    firebase: {
-      identities: { 'google.com': [googleWorkspaceUid] },
-      sign_in_provider: 'google.com',
-    },
-    iat: issuedAt,
-    iss: 'https://securetoken.google.com/pq-reference-app-dev',
-    sub: uid,
-    uid,
-  };
-}
 
 describe('UserModule', () => {
   let app: INestApplication<App>;
