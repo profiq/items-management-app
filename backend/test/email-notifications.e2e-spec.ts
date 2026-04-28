@@ -5,99 +5,228 @@ import { App } from 'supertest/types';
 import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
 import { StatusCodes } from 'http-status-codes';
+import { AuthService } from '@/auth/auth.service';
+import { TimeDuration } from '@/lib/time';
 import { EmailNotificationsModule } from '@/email-notifications/email-notifications.module';
-import { LoansModule } from '@/loans/loans.module';
-import { ItemCopiesModule } from '@/item-copies/item-copies.module';
-import { ItemsModule } from '@/items/items.module';
-import { LocationsModule } from '@/locations/locations.module';
-import { CitiesModule } from '@/cities/cities.module';
-import { ItemsAdminController } from '@/admin/items.admin.controller';
-import { CitiesAdminController } from '@/admin/cities.admin.controller';
-import { LocationsAdminController } from '@/admin/locations.admin.controller';
-import { ItemCopiesAdminController } from '@/admin/item-copies.admin.controller';
-import { AuthGuard } from '@/auth/auth.guard';
-import { RolesGuard } from '@/auth/roles.guard';
 import { EmailNotification } from '@/email-notifications/entities/email-notification.entity';
-import { User } from '@/user/user.entity';
+import { User, UserRole } from '@/user/user.entity';
+import { City } from '@/cities/entities/city.entity';
+import { Location } from '@/locations/entities/location.entity';
+import { Item } from '@/items/entities/item.entity';
+import {
+  ItemCondition,
+  ItemCopy,
+} from '@/item-copies/entities/item-copy.entity';
+import { Loan } from '@/loans/entities/loan.entity';
 import { dbConfig } from './database';
+import { buildDecodedToken, setupAuth } from './auth';
 
 describe('EmailNotificationsModule (e2e)', (): void => {
   let app: INestApplication<App>;
-  let loanId: number;
+  let dataSource: DataSource;
+  let authService: AuthService;
+  let validToken: string;
+  let invalidToken: string;
+  let readerLoanId: number;
+  let otherLoanId: number;
+
+  beforeAll(async (): Promise<void> => {
+    const authSetup = await setupAuth();
+    authService = authSetup.authService;
+    validToken = authSetup.validToken;
+    invalidToken = authSetup.invalidToken;
+  }, 30 * TimeDuration.Second);
 
   beforeEach(async (): Promise<void> => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        EmailNotificationsModule,
-        LoansModule,
-        ItemCopiesModule,
-        ItemsModule,
-        LocationsModule,
-        CitiesModule,
-        TypeOrmModule.forRoot(dbConfig),
-      ],
-      controllers: [
-        ItemsAdminController,
-        CitiesAdminController,
-        LocationsAdminController,
-        ItemCopiesAdminController,
-      ],
+      imports: [EmailNotificationsModule, TypeOrmModule.forRoot(dbConfig)],
     })
-      .overrideGuard(AuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
+      .overrideProvider(AuthService)
+      .useValue(authService)
       .compile();
 
     app = moduleFixture.createNestApplication();
     await app.init();
 
-    const dataSource = moduleFixture.get<DataSource>(getDataSourceToken());
-    const user = new User();
-    user.name = 'John Doe';
-    user.employee_id = 'emp1';
-    const savedUser = await dataSource.manager.save(user);
+    dataSource = moduleFixture.get<DataSource>(getDataSourceToken());
 
-    const itemRes: Response = await request(app.getHttpServer())
-      .post('/admin/items')
-      .send({ name: 'Clean Code', default_loan_days: 14 });
-    const itemId = (itemRes.body as { id: number }).id;
+    const adminUser = await dataSource.getRepository(User).save({
+      name: 'Admin User',
+      employee_id: 'admin-employee',
+      role: UserRole.Admin,
+    });
 
-    const cityRes: Response = await request(app.getHttpServer())
-      .post('/admin/cities')
-      .send({ name: 'Prague' });
-    const cityId = (cityRes.body as { id: number }).id;
+    const readerUser = await dataSource.getRepository(User).save({
+      name: 'Reader User',
+      employee_id: 'reader-employee',
+      role: UserRole.User,
+    });
 
-    const locationRes: Response = await request(app.getHttpServer())
-      .post('/admin/locations')
-      .send({ name: 'Central Library', city_id: cityId });
-    const locationId = (locationRes.body as { id: number }).id;
+    const otherUser = await dataSource.getRepository(User).save({
+      name: 'Other User',
+      employee_id: 'other-employee',
+      role: UserRole.User,
+    });
 
-    const copyRes: Response = await request(app.getHttpServer())
-      .post(`/admin/items/${itemId}/copies`)
-      .send({ location_id: locationId, condition: 'good' });
-    const copyId = (copyRes.body as { id: number }).id;
+    const city = await dataSource.getRepository(City).save({
+      name: 'Prague',
+      archived_at: null,
+    });
 
-    const loanRes: Response = await request(app.getHttpServer())
-      .post('/loans')
-      .send({ copy_id: copyId, user_id: savedUser.id, due_date: '2026-05-01' });
-    loanId = (loanRes.body as { id: number }).id;
+    const location = await dataSource.getRepository(Location).save({
+      name: 'Central Library',
+      city_id: city.id,
+      archived_at: null,
+    });
+
+    const readerItem = await dataSource.getRepository(Item).save({
+      name: 'Clean Code',
+      description: null,
+      image_url: null,
+      default_loan_days: 14,
+      archived_at: null,
+      categories: [],
+      tags: [],
+    });
+
+    const otherItem = await dataSource.getRepository(Item).save({
+      name: 'Refactoring',
+      description: null,
+      image_url: null,
+      default_loan_days: 14,
+      archived_at: null,
+      categories: [],
+      tags: [],
+    });
+
+    const readerCopy = await dataSource.getRepository(ItemCopy).save({
+      item_id: readerItem.id,
+      location_id: location.id,
+      condition: ItemCondition.Good,
+      archived_at: null,
+    });
+
+    const otherCopy = await dataSource.getRepository(ItemCopy).save({
+      item_id: otherItem.id,
+      location_id: location.id,
+      condition: ItemCondition.Good,
+      archived_at: null,
+    });
+
+    const readerLoan = await dataSource.getRepository(Loan).save({
+      copy_id: readerCopy.id,
+      user_id: readerUser.id,
+      borrowed_at: new Date('2026-04-01T10:00:00Z'),
+      due_date: '2026-05-01',
+      returned_at: null,
+      returned_by_user_id: null,
+    });
+    readerLoanId = readerLoan.id;
+
+    const otherLoan = await dataSource.getRepository(Loan).save({
+      copy_id: otherCopy.id,
+      user_id: otherUser.id,
+      borrowed_at: new Date('2026-04-02T10:00:00Z'),
+      due_date: '2026-05-02',
+      returned_at: null,
+      returned_by_user_id: null,
+    });
+    otherLoanId = otherLoan.id;
+
+    expect(adminUser.role).toBe(UserRole.Admin);
   });
 
   afterEach(async (): Promise<void> => {
+    jest.restoreAllMocks();
     await app.close();
   });
 
-  describe('/email-notifications (POST)', (): void => {
-    it('should create a notification', async (): Promise<void> => {
+  const adminAuthHeader = (): string => {
+    jest
+      .spyOn(authService, 'verifyToken')
+      .mockResolvedValue(
+        buildDecodedToken(
+          'admin-employee',
+          'admin@profiq.com',
+          'firebase-admin'
+        )
+      );
+    return `Bearer ${validToken}`;
+  };
+
+  const readerAuthHeader = (): string => {
+    jest
+      .spyOn(authService, 'verifyToken')
+      .mockResolvedValue(
+        buildDecodedToken(
+          'reader-employee',
+          'reader@profiq.com',
+          'firebase-user'
+        )
+      );
+    return `Bearer ${validToken}`;
+  };
+
+  async function seedNotification(
+    loanId: number,
+    type: string
+  ): Promise<EmailNotification> {
+    return dataSource.getRepository(EmailNotification).save({
+      loan_id: loanId,
+      type,
+      sent_at: new Date('2026-04-10T12:00:00Z'),
+    });
+  }
+
+  describe('authentication', (): void => {
+    it('should reject unauthenticated reads', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .get('/email-notifications')
+        .expect(StatusCodes.FORBIDDEN);
+    });
+
+    it('should reject unauthenticated writes', async (): Promise<void> => {
       await request(app.getHttpServer())
         .post('/email-notifications')
-        .send({ loan_id: loanId, type: 'due_soon' })
+        .send({ loan_id: readerLoanId, type: 'due_soon' })
+        .expect(StatusCodes.FORBIDDEN);
+    });
+
+    it('should reject wrong-domain reads', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .get('/email-notifications')
+        .set('Authorization', `Bearer ${invalidToken}`)
+        .expect(StatusCodes.FORBIDDEN);
+    });
+
+    it('should reject wrong-domain writes', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .post('/email-notifications')
+        .set('Authorization', `Bearer ${invalidToken}`)
+        .send({ loan_id: readerLoanId, type: 'due_soon' })
+        .expect(StatusCodes.FORBIDDEN);
+    });
+  });
+
+  describe('/email-notifications (POST)', (): void => {
+    it('should reject non-admin users', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .post('/email-notifications')
+        .set('Authorization', readerAuthHeader())
+        .send({ loan_id: readerLoanId, type: 'due_soon' })
+        .expect(StatusCodes.FORBIDDEN);
+    });
+
+    it('should create a notification for admins', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .post('/email-notifications')
+        .set('Authorization', adminAuthHeader())
+        .send({ loan_id: readerLoanId, type: 'due_soon' })
         .expect(StatusCodes.CREATED)
         .expect((res: Response) => {
           const body = res.body as EmailNotification;
           expect(body.id).toBeDefined();
-          expect(body.loan_id).toBe(loanId);
+          expect(body.loan_id).toBe(readerLoanId);
           expect(body.type).toBe('due_soon');
           expect(body.sent_at).toBeDefined();
         });
@@ -105,79 +234,87 @@ describe('EmailNotificationsModule (e2e)', (): void => {
   });
 
   describe('/email-notifications (GET)', (): void => {
-    it('should return all notifications', async (): Promise<void> => {
-      await request(app.getHttpServer())
-        .post('/email-notifications')
-        .send({ loan_id: loanId, type: 'due_soon' });
-      await request(app.getHttpServer())
-        .post('/email-notifications')
-        .send({ loan_id: loanId, type: 'overdue' });
+    it('should return all notifications for admins', async (): Promise<void> => {
+      await seedNotification(readerLoanId, 'due_soon');
+      await seedNotification(otherLoanId, 'overdue');
 
       await request(app.getHttpServer())
         .get('/email-notifications')
+        .set('Authorization', adminAuthHeader())
         .expect(StatusCodes.OK)
         .expect((res: Response) => {
           const body = res.body as EmailNotification[];
-          expect(Array.isArray(body)).toBe(true);
           expect(body).toHaveLength(2);
-          expect(body[0].type).toBe('due_soon');
-          expect(body[1].type).toBe('overdue');
+          expect(body.map(notification => notification.loan_id)).toEqual([
+            readerLoanId,
+            otherLoanId,
+          ]);
         });
     });
 
-    it('should return empty array when no notifications exist', async (): Promise<void> => {
+    it('should return only notifications owned by the current user', async (): Promise<void> => {
+      await seedNotification(readerLoanId, 'due_soon');
+      await seedNotification(otherLoanId, 'overdue');
+
       await request(app.getHttpServer())
         .get('/email-notifications')
+        .set('Authorization', readerAuthHeader())
         .expect(StatusCodes.OK)
-        .expect([]);
+        .expect((res: Response) => {
+          const body = res.body as EmailNotification[];
+          expect(body).toHaveLength(1);
+          expect(body[0].loan_id).toBe(readerLoanId);
+          expect(body[0].type).toBe('due_soon');
+        });
     });
   });
 
   describe('/email-notifications/:id (GET)', (): void => {
-    it('should return a notification by id', async (): Promise<void> => {
-      const created: Response = await request(app.getHttpServer())
-        .post('/email-notifications')
-        .send({ loan_id: loanId, type: 'due_soon' });
-
-      const createdBody = created.body as EmailNotification;
+    it('should return the current user notification', async (): Promise<void> => {
+      const notification = await seedNotification(readerLoanId, 'due_soon');
 
       await request(app.getHttpServer())
-        .get(`/email-notifications/${createdBody.id}`)
+        .get(`/email-notifications/${notification.id}`)
+        .set('Authorization', readerAuthHeader())
         .expect(StatusCodes.OK)
         .expect((res: Response) => {
           const body = res.body as EmailNotification;
-          expect(body.id).toBe(createdBody.id);
-          expect(body.type).toBe('due_soon');
+          expect(body.id).toBe(notification.id);
+          expect(body.loan_id).toBe(readerLoanId);
         });
     });
 
-    it('should return 404 when notification does not exist', async (): Promise<void> => {
+    it('should hide notifications that belong to another user', async (): Promise<void> => {
+      const notification = await seedNotification(otherLoanId, 'overdue');
+
       await request(app.getHttpServer())
-        .get('/email-notifications/9999')
+        .get(`/email-notifications/${notification.id}`)
+        .set('Authorization', readerAuthHeader())
         .expect(StatusCodes.NOT_FOUND);
     });
   });
 
   describe('/email-notifications/:id (DELETE)', (): void => {
-    it('should delete a notification', async (): Promise<void> => {
-      const created: Response = await request(app.getHttpServer())
-        .post('/email-notifications')
-        .send({ loan_id: loanId, type: 'due_soon' });
-
-      const createdBody = created.body as EmailNotification;
+    it('should reject non-admin users', async (): Promise<void> => {
+      const notification = await seedNotification(readerLoanId, 'due_soon');
 
       await request(app.getHttpServer())
-        .delete(`/email-notifications/${createdBody.id}`)
+        .delete(`/email-notifications/${notification.id}`)
+        .set('Authorization', readerAuthHeader())
+        .expect(StatusCodes.FORBIDDEN);
+    });
+
+    it('should delete a notification for admins', async (): Promise<void> => {
+      const notification = await seedNotification(otherLoanId, 'overdue');
+
+      await request(app.getHttpServer())
+        .delete(`/email-notifications/${notification.id}`)
+        .set('Authorization', adminAuthHeader())
         .expect(StatusCodes.OK);
 
       await request(app.getHttpServer())
-        .get(`/email-notifications/${createdBody.id}`)
-        .expect(StatusCodes.NOT_FOUND);
-    });
-
-    it('should return 404 when notification does not exist', async (): Promise<void> => {
-      await request(app.getHttpServer())
-        .delete('/email-notifications/9999')
+        .get(`/email-notifications/${notification.id}`)
+        .set('Authorization', adminAuthHeader())
         .expect(StatusCodes.NOT_FOUND);
     });
   });
