@@ -13,6 +13,8 @@ import { StatusCodes } from 'http-status-codes';
 import { dbConfig } from './database';
 import { HttpAdapterHost } from '@nestjs/core';
 import { CustomExceptionsFilter } from '@/exception_filter/custom_exceptions.filter';
+import { EmployeeService } from '@/employee/employee.service';
+import { IEmployee } from '@/employee/interfaces/employee.interface';
 
 describe('UserModule', () => {
   let app: INestApplication<App>;
@@ -20,6 +22,20 @@ describe('UserModule', () => {
   let dataSource: DataSource;
   let validToken: string;
   let invalidToken: string;
+
+  const employeeService = {
+    getEmployee: jest.fn((id: string): IEmployee | null => {
+      if (id !== '3') {
+        return null;
+      }
+      return {
+        id: '3',
+        name: 'New User',
+        email: 'new.user@profiq.com',
+        photoUrl: '',
+      };
+    }),
+  };
 
   // Auth emulator is lazy loaded and not particularly fast at that,
   // so load AuthModule only once per test suite
@@ -34,6 +50,8 @@ describe('UserModule', () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [UserModule, TypeOrmModule.forRoot(dbConfig)],
     })
+      .overrideProvider(EmployeeService)
+      .useValue(employeeService)
       .overrideProvider(AuthService)
       .useValue(authService)
       .compile();
@@ -113,6 +131,85 @@ describe('UserModule', () => {
       .get('/users/3')
       .set('Authorization', `Bearer ${validToken}`)
       .expect(StatusCodes.NOT_FOUND);
+  });
+
+  it('/users (POST) (Non-admin)', async () => {
+    jest
+      .spyOn(authService, 'verifyToken')
+      .mockResolvedValue(
+        buildDecodedToken('1', 'user@profiq.com', 'firebase-user')
+      );
+
+    await request(app.getHttpServer())
+      .post('/users')
+      .set('Authorization', `Bearer ${validToken}`)
+      .send({ name: 'Ignored', workspace_id: '3' })
+      .expect(StatusCodes.FORBIDDEN);
+
+    await request(app.getHttpServer())
+      .get('/users')
+      .set('Authorization', `Bearer ${validToken}`)
+      .expect(StatusCodes.OK)
+      .expect([
+        {
+          id: 1,
+          name: 'abcd abcd',
+          employee_id: '1',
+          role: UserRole.User,
+        },
+        {
+          id: 2,
+          name: 'Eve',
+          employee_id: '2',
+          role: UserRole.User,
+        },
+      ]);
+  });
+
+  it('/users (POST) (Admin)', async () => {
+    await dataSource.getRepository(User).update(1, { role: UserRole.Admin });
+    jest
+      .spyOn(authService, 'verifyToken')
+      .mockResolvedValue(
+        buildDecodedToken('1', 'admin@profiq.com', 'firebase-admin')
+      );
+
+    await request(app.getHttpServer())
+      .post('/users')
+      .set('Authorization', `Bearer ${validToken}`)
+      .send({ name: 'Ignored', workspace_id: '3' })
+      .expect(StatusCodes.CREATED)
+      .expect({
+        id: 3,
+        name: 'New User',
+        employee_id: '3',
+        role: UserRole.User,
+      });
+
+    await request(app.getHttpServer())
+      .get('/users')
+      .set('Authorization', `Bearer ${validToken}`)
+      .expect(StatusCodes.OK)
+      .expect([
+        {
+          id: 1,
+          name: 'abcd abcd',
+          employee_id: '1',
+          role: UserRole.Admin,
+        },
+        {
+          id: 2,
+          name: 'Eve',
+          employee_id: '2',
+          role: UserRole.User,
+        },
+        {
+          id: 3,
+          name: 'New User',
+          employee_id: '3',
+          role: UserRole.User,
+        },
+      ]);
   });
 
   it('/users/:id (DELETE) (Non-admin)', async () => {
