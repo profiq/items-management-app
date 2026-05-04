@@ -89,34 +89,28 @@ For local development, `VITE_FIREBASE_EMULATE=true` is set by default in `.env.e
 
 ### User Roles
 
-- **Reader** — browses the catalog, borrows and returns items, views their loan history
-- **Admin** — manages items, categories, locations, and loans
+- **Reader** — authenticated application user in the backend role model
+- **Admin** — authenticated user with access to admin-only endpoints and the `/admin` frontend route
 
 ### Features
 
-#### Catalog (Reader)
+#### Current Frontend
 
-- Item list with search, category filter, and availability filter
-- Item detail with copy locations and per-copy availability
-- Borrow a copy directly from the detail page
+- Firebase login flow
+- Protected profile page
+- Protected employee directory
+- Admin data browser for selected backend tables
 
-#### Admin — Catalog Management
+#### Backend Capabilities
 
-- Create / edit / archive categories, items, item copies, and locations
-- Image upload for items via Firebase Storage
-- Archiving sets an `archived_at` timestamp (soft delete)
+- Read endpoints for items, item copies, categories, cities, locations, and tags
+- Loan CRUD endpoints
+- Admin CRUD endpoints for catalog data
+- Employee sync and user-management endpoints
 
-#### Admin — Loan Management
+#### Current Gap
 
-- View all loans across all users
-- Overdue loans highlighted separately
-- Return or extend any loan on behalf of a user
-
-#### Email Notifications
-
-- Reminder email 3 days before due date
-- Overdue email on the due date
-- Follow-up overdue email every 7 days while unreturned
+- A dedicated reader-facing loans UI is not currently implemented in the frontend
 
 ## Architecture
 
@@ -147,5 +141,18 @@ For local development, `VITE_FIREBASE_EMULATE=true` is set by default in `.env.e
 | **Item Copies**         | A specific physical copy of an item, assigned to a Location with an optional condition. Soft-deletable.    |
 | **Loans**               | A borrowing event linking a Copy to a User, with borrow date, due date, and return info.                   |
 | **Email Notifications** | Tracks emails sent for a loan (type + send timestamp).                                                     |
+
+## API Overview
+
+The full source of truth is Swagger: [http://localhost:3000/api](http://localhost:3000/api).
+
+- **Auth**: `POST /auth/login`, `POST /auth/logout`, `GET /auth/me`
+- **Catalog and lookups**: `GET /items`, `GET /items/:id`, `GET /item-copies`, `GET /item-copies/:id`, `GET /categories`, `GET /categories/:id`, `GET /cities`, `GET /cities/:id`, `GET /locations`, `GET /locations/:id`, `GET /tags`, `GET /tags/:id`
+- **Loans**: `POST /loans`, `GET /loans`, `GET /loans/:id`, `PATCH /loans/:id`, `DELETE /loans/:id`
+- **Users and employees**: `GET /users`, `GET /users/:id`, `POST /users`, `PATCH /users/:id/role`, `DELETE /users/:id`, `GET /employees`, `POST /employees/sync`
+- **Admin**: `GET /admin/tables` plus CRUD under `POST/GET/PATCH/DELETE /admin/items`, `POST/PUT/DELETE /admin/items/:itemId/copies`, `POST/GET/PATCH/DELETE /admin/categories`, `POST/GET/PATCH/DELETE /admin/cities`, `POST/GET/PATCH/DELETE /admin/locations`, and `POST/GET/PATCH/DELETE /admin/tags`
+- **Email notifications**: `POST /email-notifications`, `GET /email-notifications`, `GET /email-notifications/:id`, `DELETE /email-notifications/:id`
+
+Some endpoints are protected by Firebase-authenticated Bearer tokens and/or admin role checks; Swagger reflects the current DTOs and auth requirements more precisely than this summary.
 
 Full interactive API docs: [http://localhost:3000/api](http://localhost:3000/api) (Swagger)
