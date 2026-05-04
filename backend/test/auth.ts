@@ -9,6 +9,7 @@ import {
 import { faker } from '@faker-js/faker';
 import { FirebaseService } from '@/firebase/firebase.service';
 import { ConfigService } from '@nestjs/config';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 
 type setupAuthType = {
   authService: AuthService;
@@ -53,6 +54,30 @@ export async function setupAuth(): Promise<setupAuthType> {
   const validToken = await getToken(firebaseAuth, valid_email, password);
   const invalidToken = await getToken(firebaseAuth, invalid_email, password);
   return { authService, validToken, invalidToken };
+}
+
+export function buildDecodedToken(
+  googleWorkspaceUid: string,
+  email: string,
+  uid: string
+): DecodedIdToken {
+  const issuedAt = Math.floor(Date.now() / 1000);
+
+  return {
+    aud: 'test-audience',
+    auth_time: issuedAt,
+    email,
+    email_verified: true,
+    exp: issuedAt + 3600,
+    firebase: {
+      identities: { 'google.com': [googleWorkspaceUid] },
+      sign_in_provider: 'google.com',
+    },
+    iat: issuedAt,
+    iss: 'https://securetoken.google.com/pq-reference-app-dev',
+    sub: uid,
+    uid,
+  };
 }
 
 async function getToken(auth: Auth, email: string, password: string) {

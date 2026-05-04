@@ -6,8 +6,13 @@ import {
   Patch,
   Param,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
-import { ApiTags } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { AuthGuard } from '@/auth/auth.guard';
+import { RolesGuard } from '@/auth/roles.guard';
+import { Roles } from '@/auth/roles.decorator';
+import { UserRole } from '@/user/user.entity';
 import { LoansService } from './loans.service';
 import { CreateLoanDto } from './dto/create-loan.dto';
 import { UpdateLoanDto } from './dto/update-loan.dto';
@@ -15,10 +20,14 @@ import { Loan } from './entities/loan.entity';
 
 @ApiTags('loans')
 @Controller('loans')
+@ApiBearerAuth()
+@UseGuards(AuthGuard)
 export class LoansController {
   constructor(private readonly loansService: LoansService) {}
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.Admin)
   create(@Body() createLoanDto: CreateLoanDto): Promise<Loan> {
     return this.loansService.create(createLoanDto);
   }
@@ -34,6 +43,8 @@ export class LoansController {
   }
 
   @Patch(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.Admin)
   update(
     @Param('id') id: string,
     @Body() updateLoanDto: UpdateLoanDto
@@ -42,6 +53,8 @@ export class LoansController {
   }
 
   @Delete(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.Admin)
   remove(@Param('id') id: string): Promise<void> {
     return this.loansService.remove(+id);
   }
