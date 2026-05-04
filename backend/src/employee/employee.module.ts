@@ -4,6 +4,7 @@ import { EmployeeController } from './employee.controller';
 import { AuthModule } from '@/auth/auth.module';
 import { UserModule } from '@/user/user.module';
 import { ConfigModule } from '@nestjs/config';
+import { RolesGuard } from '@/auth/roles.guard';
 
 @Module({
   imports: [
@@ -11,7 +12,7 @@ import { ConfigModule } from '@nestjs/config';
     forwardRef(() => UserModule),
     ConfigModule,
   ],
-  providers: [EmployeeService],
+  providers: [EmployeeService, RolesGuard],
   controllers: [EmployeeController],
   exports: [EmployeeService],
 })
