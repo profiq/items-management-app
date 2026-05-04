@@ -133,6 +133,12 @@ describe('UserModule', () => {
       });
   });
 
+  it('/users/:id (GET) (Unauthenticated)', () => {
+    return request(app.getHttpServer())
+      .get('/users/1')
+      .expect(StatusCodes.FORBIDDEN);
+  });
+
   it('/users/:id (GET) (Non-admin)', async () => {
     mockCurrentUser('1', 'user@profiq.com', 'firebase-user');
 
