@@ -59,6 +59,8 @@ describe('UserService', (): void => {
       expect(mockRepository.findOne).toHaveBeenCalledWith({
         where: { employee_id: 'google-workspace-uid' },
       });
+      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(mockEmployeeService.getEmployee).not.toHaveBeenCalled();
       expect(result).toBe(mockUser);
     });
 
@@ -80,13 +82,57 @@ describe('UserService', (): void => {
     });
   });
 
+  describe('findByGoogleWorkspaceToken', (): void => {
+    it('should return user without writing when google.com identity exists', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue(mockUser);
+      const token = {
+        uid: 'firebase-uid',
+        firebase: { identities: { 'google.com': ['google-workspace-uid'] } },
+      };
+
+      const result = await service.findByGoogleWorkspaceToken(token);
+
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
+        where: { employee_id: 'google-workspace-uid' },
+      });
+      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(mockEmployeeService.getEmployee).not.toHaveBeenCalled();
+      expect(result).toEqual({ user: mockUser });
+    });
+
+    it('should return not-in-directory when no local user exists', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue(null);
+      const token = {
+        uid: 'firebase-uid',
+        firebase: { identities: { 'google.com': ['google-workspace-uid'] } },
+      };
+
+      const result = await service.findByGoogleWorkspaceToken(token);
+
+      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(mockEmployeeService.getEmployee).not.toHaveBeenCalled();
+      expect(result).toEqual({ error: 'not-in-directory' });
+    });
+
+    it('should return no-google-identity when token has no google identity', async (): Promise<void> => {
+      const token = { uid: 'firebase-uid', firebase: { identities: {} } };
+
+      const result = await service.findByGoogleWorkspaceToken(token);
+
+      expect(mockRepository.findOne).not.toHaveBeenCalled();
+      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(mockEmployeeService.getEmployee).not.toHaveBeenCalled();
+      expect(result).toEqual({ error: 'no-google-identity' });
+    });
+  });
+
   describe('updateUserRole', (): void => {
     it('should update and return user with new role', async (): Promise<void> => {
       const updated: User = { ...mockUser, role: UserRole.Admin };
       mockRepository.findOne.mockResolvedValue({ ...mockUser });
       mockRepository.save.mockResolvedValue(updated);
 
-      const result = await service.updateUserRole(1, UserRole.Admin);
+      const result = await service.updateUserRole(1, UserRole.Admin, 999);
 
       expect(mockRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ role: UserRole.Admin })
@@ -97,7 +143,7 @@ describe('UserService', (): void => {
     it('should return null when user not found', async (): Promise<void> => {
       mockRepository.findOne.mockResolvedValue(null);
 
-      const result = await service.updateUserRole(99, UserRole.Admin);
+      const result = await service.updateUserRole(99, UserRole.Admin, 1);
 
       expect(mockRepository.save).not.toHaveBeenCalled();
       expect(result).toBeNull();

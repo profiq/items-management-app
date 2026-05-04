@@ -77,6 +77,21 @@ export class UserService {
     return this.getUserByEmployeeId(googleUid);
   }
 
+  async findByGoogleWorkspaceToken(token: {
+    uid: string;
+    firebase?: { identities?: Record<string, unknown> };
+  }): Promise<UpsertResult> {
+    const googleUid = this.extractGoogleUid(token);
+    if (!googleUid) {
+      return { error: 'no-google-identity' };
+    }
+    const user = await this.getUserByEmployeeId(googleUid);
+    if (!user) {
+      return { error: 'not-in-directory' };
+    }
+    return { user };
+  }
+
   async upsertByGoogleWorkspaceToken(token: {
     uid: string;
     firebase?: { identities?: Record<string, unknown> };

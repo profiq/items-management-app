@@ -66,7 +66,7 @@ export class AuthController {
   @Get('me')
   @ApiOkResponse({ type: UserResponseDto })
   async getMe(@Req() req: FirebaseRequest): Promise<UserResponseDto> {
-    const result = await this.userService.upsertByGoogleWorkspaceToken(
+    const result = await this.userService.findByGoogleWorkspaceToken(
       req.firebaseUser
     );
     if ('error' in result) {
