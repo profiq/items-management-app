@@ -17,12 +17,13 @@ const mockNotification: EmailNotification = {
 const mockRepository: jest.Mocked<
   Pick<
     Repository<EmailNotification>,
-    'create' | 'save' | 'find' | 'findOneBy' | 'remove'
+    'create' | 'save' | 'find' | 'findOne' | 'findOneBy' | 'remove'
   >
 > = {
   create: jest.fn(),
   save: jest.fn(),
   find: jest.fn(),
+  findOne: jest.fn(),
   findOneBy: jest.fn(),
   remove: jest.fn(),
 };
@@ -57,7 +58,7 @@ describe('EmailNotificationsService', (): void => {
         expect.objectContaining({ loan_id: 1, type: 'due_soon' })
       );
       expect(mockRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({ sent_at: expect.any(Date) })
+        expect.objectContaining({ sent_at: expect.any(Date) as Date })
       );
       expect(mockRepository.save).toHaveBeenCalledWith(mockNotification);
       expect(result).toEqual(mockNotification);
@@ -71,7 +72,9 @@ describe('EmailNotificationsService', (): void => {
 
       const result: EmailNotification[] = await service.findAll();
 
-      expect(mockRepository.find).toHaveBeenCalled();
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        order: { id: 'ASC' },
+      });
       expect(result).toEqual(notifications);
     });
 
@@ -81,6 +84,21 @@ describe('EmailNotificationsService', (): void => {
       const result: EmailNotification[] = await service.findAll();
 
       expect(result).toEqual([]);
+    });
+  });
+
+  describe('findAllForUser', (): void => {
+    it('should return only notifications for the given user loans', async (): Promise<void> => {
+      const notifications: EmailNotification[] = [mockNotification];
+      mockRepository.find.mockResolvedValue(notifications);
+
+      const result = await service.findAllForUser(7);
+
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: { loan: { user_id: 7 } },
+        order: { id: 'ASC' },
+      });
+      expect(result).toEqual(notifications);
     });
   });
 
@@ -99,6 +117,30 @@ describe('EmailNotificationsService', (): void => {
 
       await expect(service.findOne(99)).rejects.toThrow(NotFoundException);
       await expect(service.findOne(99)).rejects.toThrow(
+        'EmailNotification #99 not found'
+      );
+    });
+  });
+
+  describe('findOneForUser', (): void => {
+    it('should return the owned notification by id', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue(mockNotification);
+
+      const result = await service.findOneForUser(1, 7);
+
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 1, loan: { user_id: 7 } },
+      });
+      expect(result).toEqual(mockNotification);
+    });
+
+    it('should throw NotFoundException when the notification is not owned by the user', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue(null);
+
+      await expect(service.findOneForUser(99, 7)).rejects.toThrow(
+        NotFoundException
+      );
+      await expect(service.findOneForUser(99, 7)).rejects.toThrow(
         'EmailNotification #99 not found'
       );
     });

@@ -21,12 +21,35 @@ export class EmailNotificationsService {
   }
 
   findAll(): Promise<EmailNotification[]> {
-    return this.emailNotificationRepository.find();
+    return this.emailNotificationRepository.find({
+      order: { id: 'ASC' },
+    });
+  }
+
+  findAllForUser(userId: number): Promise<EmailNotification[]> {
+    return this.emailNotificationRepository.find({
+      where: { loan: { user_id: userId } },
+      order: { id: 'ASC' },
+    });
   }
 
   async findOne(id: number): Promise<EmailNotification> {
     const notification: EmailNotification | null =
       await this.emailNotificationRepository.findOneBy({ id });
+    if (!notification) {
+      throw new NotFoundException(`EmailNotification #${id} not found`);
+    }
+    return notification;
+  }
+
+  async findOneForUser(id: number, userId: number): Promise<EmailNotification> {
+    const notification: EmailNotification | null =
+      await this.emailNotificationRepository.findOne({
+        where: {
+          id,
+          loan: { user_id: userId },
+        },
+      });
     if (!notification) {
       throw new NotFoundException(`EmailNotification #${id} not found`);
     }
