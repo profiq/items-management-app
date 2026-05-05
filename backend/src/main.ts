@@ -20,7 +20,7 @@ async function bootstrap() {
     .build();
   app.enableCors();
   app.disable('x-powered-by');
-  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  app.useGlobalPipes(new ValidationPipe({ transform: true, whitelist: true }));
 
   const httpAdapterHost = app.get(HttpAdapterHost);
   app.useGlobalFilters(new CustomExceptionsFilter(httpAdapterHost));
