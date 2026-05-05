@@ -32,7 +32,7 @@ export class FirebaseService {
   }
 
   getBucket(): Bucket {
-    return getStorage().bucket();
+    return getStorage(this.firebaseApp).bucket();
   }
 
   async upload(name: string, contents: SaveData): Promise<string> {
