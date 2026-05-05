@@ -1,7 +1,12 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { Loan } from './entities/loan.entity';
+import { ItemCopy } from '@/item-copies/entities/item-copy.entity';
 import { CreateLoanDto } from './dto/create-loan.dto';
 import { UpdateLoanDto } from './dto/update-loan.dto';
 
@@ -9,10 +14,32 @@ import { UpdateLoanDto } from './dto/update-loan.dto';
 export class LoansService {
   constructor(
     @InjectRepository(Loan)
-    private readonly loanRepository: Repository<Loan>
+    private readonly loanRepository: Repository<Loan>,
+    @InjectRepository(ItemCopy)
+    private readonly itemCopyRepository: Repository<ItemCopy>
   ) {}
 
-  create(createLoanDto: CreateLoanDto): Promise<Loan> {
+  async create(createLoanDto: CreateLoanDto): Promise<Loan> {
+    const copy = await this.itemCopyRepository.findOneBy({
+      id: createLoanDto.copy_id,
+      archived_at: IsNull(),
+    });
+    if (!copy) {
+      throw new NotFoundException(
+        `ItemCopy #${createLoanDto.copy_id} not found`
+      );
+    }
+
+    const activeLoan = await this.loanRepository.findOneBy({
+      copy_id: createLoanDto.copy_id,
+      returned_at: IsNull(),
+    });
+    if (activeLoan) {
+      throw new ConflictException(
+        `ItemCopy #${createLoanDto.copy_id} is already on loan`
+      );
+    }
+
     const loan: Loan = this.loanRepository.create({
       ...createLoanDto,
       borrowed_at: new Date(),
