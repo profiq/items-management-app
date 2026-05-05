@@ -145,6 +145,15 @@ export class UserService {
     await this.userRepository.save(user);
   }
 
+  async saveUsers(users: User[]): Promise<void> {
+    if (users.length === 0) {
+      return;
+    }
+    await this.userRepository.manager.transaction(async manager => {
+      await manager.save(User, users);
+    });
+  }
+
   async deleteUser(id: number): Promise<boolean> {
     const deleted = await this.userRepository.delete({ id });
     return (deleted.affected ?? 0) > 0;
