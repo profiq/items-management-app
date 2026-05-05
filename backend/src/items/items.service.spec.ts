@@ -191,6 +191,11 @@ describe('ItemsService', (): void => {
         'item'
       );
       expect(mockQb.distinct).toHaveBeenCalledWith(true);
+      expect(mockQb.leftJoinAndSelect).toHaveBeenCalledWith(
+        'item.categories',
+        'category',
+        'category.archived_at IS NULL'
+      );
       expect(mockQb.where).toHaveBeenCalledWith('item.archived_at IS NULL');
       expect(mockQb.skip).toHaveBeenCalledWith(0);
       expect(mockQb.take).toHaveBeenCalledWith(20);
@@ -272,6 +277,11 @@ describe('ItemsService', (): void => {
 
       expect(mockItemRepository.createQueryBuilder).toHaveBeenCalledWith(
         'item'
+      );
+      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith(
+        'item.categories',
+        'category',
+        'category.archived_at IS NULL'
       );
       expect(qb.leftJoinAndSelect).toHaveBeenCalledWith(
         'item.copies',
