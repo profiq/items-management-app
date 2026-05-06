@@ -145,7 +145,22 @@ export class UserService {
     await this.userRepository.save(user);
   }
 
-  async deleteUser(id: number): Promise<boolean> {
+  async deleteUser(id: number, currentUserId: number): Promise<boolean> {
+    if (id === currentUserId) {
+      throw new ForbiddenException('Cannot delete yourself');
+    }
+    const user = await this.getUserById(id);
+    if (!user) {
+      return false;
+    }
+    if (user.role === UserRole.Admin) {
+      const adminCount = await this.userRepository.count({
+        where: { role: UserRole.Admin },
+      });
+      if (adminCount <= 1) {
+        throw new ForbiddenException('Cannot delete the last admin');
+      }
+    }
     const deleted = await this.userRepository.delete({ id });
     return (deleted.affected ?? 0) > 0;
   }

@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ForbiddenException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { UserService } from './user.service';
@@ -13,8 +14,12 @@ const mockUser: User = {
 };
 
 const mockRepository: jest.Mocked<
-  Pick<Repository<User>, 'find' | 'findOne' | 'findOneBy' | 'save' | 'delete'>
+  Pick<
+    Repository<User>,
+    'count' | 'find' | 'findOne' | 'findOneBy' | 'save' | 'delete'
+  >
 > = {
+  count: jest.fn(),
   find: jest.fn(),
   findOne: jest.fn(),
   findOneBy: jest.fn(),
@@ -101,6 +106,41 @@ describe('UserService', (): void => {
 
       expect(mockRepository.save).not.toHaveBeenCalled();
       expect(result).toBeNull();
+    });
+  });
+
+  describe('deleteUser', (): void => {
+    it('should delete a non-current user', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue({ ...mockUser, id: 2 });
+      mockRepository.delete.mockResolvedValue({ affected: 1, raw: {} });
+
+      const result = await service.deleteUser(2, 1);
+
+      expect(mockRepository.delete).toHaveBeenCalledWith({ id: 2 });
+      expect(result).toBe(true);
+    });
+
+    it('should throw ForbiddenException when deleting yourself', async (): Promise<void> => {
+      await expect(service.deleteUser(1, 1)).rejects.toThrow(
+        ForbiddenException
+      );
+
+      expect(mockRepository.delete).not.toHaveBeenCalled();
+    });
+
+    it('should throw ForbiddenException when deleting the last admin', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue({
+        ...mockUser,
+        id: 1,
+        role: UserRole.Admin,
+      });
+      mockRepository.count.mockResolvedValue(1);
+
+      await expect(service.deleteUser(1, 2)).rejects.toThrow(
+        ForbiddenException
+      );
+
+      expect(mockRepository.delete).not.toHaveBeenCalled();
     });
   });
 });
