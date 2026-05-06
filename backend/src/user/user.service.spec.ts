@@ -13,18 +13,65 @@ const mockUser: User = {
   role: UserRole.User,
 };
 
+type UserTransactionManager = {
+  connection: {
+    driver: {
+      escape: (value: string) => string;
+    };
+  };
+  getRepository: (target: typeof User) => Repository<User>;
+};
+type UserTransaction = <T>(
+  callback: (manager: UserTransactionManager) => Promise<T>
+) => Promise<T>;
+
 const mockRepository: jest.Mocked<
   Pick<
     Repository<User>,
     'count' | 'find' | 'findOne' | 'findOneBy' | 'save' | 'delete'
   >
-> = {
+> & {
+  manager: {
+    transaction: jest.MockedFunction<UserTransaction>;
+  };
+} = {
   count: jest.fn(),
   find: jest.fn(),
   findOne: jest.fn(),
   findOneBy: jest.fn(),
   save: jest.fn(),
   delete: jest.fn(),
+  manager: {
+    transaction: jest.fn() as jest.MockedFunction<UserTransaction>,
+  },
+};
+
+const mockAdminDeleteQueryBuilder = {
+  delete: jest.fn(),
+  from: jest.fn(),
+  where: jest.fn(),
+  andWhere: jest.fn(),
+  setParameter: jest.fn(),
+  execute: jest.fn(),
+};
+
+const mockTransactionalRepository = {
+  metadata: {
+    tableName: 'user',
+  },
+  findOne: jest.fn(),
+  delete: jest.fn(),
+  createQueryBuilder: jest.fn(),
+};
+
+const mockTransactionManager: UserTransactionManager = {
+  connection: {
+    driver: {
+      escape: (value: string) => `"${value}"`,
+    },
+  },
+  getRepository: () =>
+    mockTransactionalRepository as unknown as Repository<User>,
 };
 
 const mockEmployeeService: jest.Mocked<Pick<EmployeeService, 'getEmployee'>> = {
@@ -45,6 +92,27 @@ describe('UserService', (): void => {
 
     service = module.get<UserService>(UserService);
     jest.clearAllMocks();
+    mockAdminDeleteQueryBuilder.delete.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
+    mockAdminDeleteQueryBuilder.from.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
+    mockAdminDeleteQueryBuilder.where.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
+    mockAdminDeleteQueryBuilder.andWhere.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
+    mockAdminDeleteQueryBuilder.setParameter.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
+    mockTransactionalRepository.createQueryBuilder.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
+    mockRepository.manager.transaction.mockImplementation(async callback =>
+      callback(mockTransactionManager)
+    );
   });
 
   it('should be defined', (): void => {
@@ -111,12 +179,21 @@ describe('UserService', (): void => {
 
   describe('deleteUser', (): void => {
     it('should delete a non-current user', async (): Promise<void> => {
-      mockRepository.findOne.mockResolvedValue({ ...mockUser, id: 2 });
-      mockRepository.delete.mockResolvedValue({ affected: 1, raw: {} });
+      mockTransactionalRepository.findOne.mockResolvedValue({
+        ...mockUser,
+        id: 2,
+      });
+      mockTransactionalRepository.delete.mockResolvedValue({
+        affected: 1,
+        raw: {},
+      });
 
       const result = await service.deleteUser(2, 1);
 
-      expect(mockRepository.delete).toHaveBeenCalledWith({ id: 2 });
+      expect(mockRepository.manager.transaction).toHaveBeenCalledTimes(1);
+      expect(mockTransactionalRepository.delete).toHaveBeenCalledWith({
+        id: 2,
+      });
       expect(result).toBe(true);
     });
 
@@ -125,22 +202,55 @@ describe('UserService', (): void => {
         ForbiddenException
       );
 
-      expect(mockRepository.delete).not.toHaveBeenCalled();
+      expect(mockRepository.manager.transaction).not.toHaveBeenCalled();
+      expect(mockTransactionalRepository.delete).not.toHaveBeenCalled();
     });
 
     it('should throw ForbiddenException when deleting the last admin', async (): Promise<void> => {
-      mockRepository.findOne.mockResolvedValue({
+      mockTransactionalRepository.findOne.mockResolvedValue({
         ...mockUser,
         id: 1,
         role: UserRole.Admin,
       });
-      mockRepository.count.mockResolvedValue(1);
+      mockAdminDeleteQueryBuilder.execute.mockResolvedValue({
+        affected: 0,
+        raw: {},
+      });
 
       await expect(service.deleteUser(1, 2)).rejects.toThrow(
         ForbiddenException
       );
 
-      expect(mockRepository.delete).not.toHaveBeenCalled();
+      expect(mockTransactionalRepository.delete).not.toHaveBeenCalled();
+      expect(mockAdminDeleteQueryBuilder.execute).toHaveBeenCalledTimes(1);
+    });
+
+    it('should delete an admin when another admin remains', async (): Promise<void> => {
+      mockTransactionalRepository.findOne.mockResolvedValue({
+        ...mockUser,
+        id: 1,
+        role: UserRole.Admin,
+      });
+      mockAdminDeleteQueryBuilder.execute.mockResolvedValue({
+        affected: 1,
+        raw: {},
+      });
+
+      const result = await service.deleteUser(1, 2);
+
+      expect(result).toBe(true);
+      expect(mockTransactionalRepository.delete).not.toHaveBeenCalled();
+      expect(mockAdminDeleteQueryBuilder.where).toHaveBeenCalledWith(
+        'id = :id',
+        { id: 1 }
+      );
+      expect(mockAdminDeleteQueryBuilder.andWhere).toHaveBeenCalledWith(
+        '(SELECT COUNT(*) FROM "user" WHERE "role" = :adminRole) > 1'
+      );
+      expect(mockAdminDeleteQueryBuilder.setParameter).toHaveBeenCalledWith(
+        'adminRole',
+        UserRole.Admin
+      );
     });
   });
 });
