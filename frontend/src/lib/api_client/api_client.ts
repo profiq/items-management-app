@@ -104,7 +104,11 @@ async function request<T>(
         retriedAfterUnauthorized: true,
       });
     } catch (error) {
-      await signOutAndRedirectToLogin();
+      try {
+        await signOutAndRedirectToLogin();
+      } catch {
+        // swallow sign-out errors so unauthorizedResponse is always returned
+      }
       return unauthorizedResponse<T>(
         error instanceof Error ? error.message : 'Failed to refresh token'
       );
@@ -112,7 +116,11 @@ async function request<T>(
   }
 
   if (status === StatusCodes.UNAUTHORIZED && config.retriedAfterUnauthorized) {
-    await signOutAndRedirectToLogin();
+    try {
+      await signOutAndRedirectToLogin();
+    } catch {
+      // swallow sign-out errors so the 401 response is still returned
+    }
   }
 
   if (status == StatusCodes.OK || status == StatusCodes.CREATED) {
@@ -142,7 +150,14 @@ async function buildHeaders(
 
 async function parseResponse(response: Response): Promise<unknown> {
   const responseText = await response.text();
-  return responseText ? JSON.parse(responseText) : undefined;
+  if (!responseText) {
+    return undefined;
+  }
+  try {
+    return JSON.parse(responseText);
+  } catch {
+    return responseText;
+  }
 }
 
 async function signOutAndRedirectToLogin(): Promise<void> {
