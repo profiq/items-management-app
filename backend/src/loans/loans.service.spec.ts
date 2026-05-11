@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import {
+  BadRequestException,
   ConflictException,
   NotFoundException,
   UnprocessableEntityException,
@@ -243,6 +244,14 @@ describe('LoansService', (): void => {
         expect.objectContaining({ due_date: '2026-05-29' })
       );
       expect(result).toEqual(extended);
+    });
+
+    it('throws BadRequestException when dueDays is not positive', async (): Promise<void> => {
+      await expect(service.extendLoan(1, 0)).rejects.toThrow(
+        BadRequestException
+      );
+      expect(mockLoanRepository.findOneBy).not.toHaveBeenCalled();
+      expect(mockLoanRepository.save).not.toHaveBeenCalled();
     });
 
     it('throws NotFoundException when loan does not exist', async (): Promise<void> => {

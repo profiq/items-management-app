@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   NotFoundException,
@@ -96,6 +97,10 @@ export class LoansService {
   }
 
   async extendLoan(loanId: number, dueDays: number): Promise<Loan> {
+    if (dueDays <= 0) {
+      throw new BadRequestException('dueDays must be a positive integer');
+    }
+
     const loan = await this.findOne(loanId);
     if (loan.returned_at !== null) {
       throw new ConflictException('Cannot extend a returned loan');

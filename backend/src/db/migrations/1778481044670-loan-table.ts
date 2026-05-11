@@ -13,7 +13,7 @@ export class LoanTable1778481044670 implements MigrationInterface {
       `CREATE TABLE "temporary_user" ("id" integer PRIMARY KEY AUTOINCREMENT NOT NULL, "name" varchar NOT NULL, "employee_id" varchar NOT NULL, "role" varchar NOT NULL DEFAULT ('user'))`
     );
     await queryRunner.query(
-      `INSERT INTO "temporary_user"("id", "name", "employee_id") SELECT "id", "name", "employee_id" FROM "user"`
+      `INSERT INTO "temporary_user"("id", "name", "employee_id", "role") SELECT "id", "name", "employee_id", "role" FROM "user"`
     );
     await queryRunner.query(`DROP TABLE "user"`);
     await queryRunner.query(`ALTER TABLE "temporary_user" RENAME TO "user"`);
