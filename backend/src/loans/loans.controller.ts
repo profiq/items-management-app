@@ -1,61 +1,70 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
+  Controller,
+  ForbiddenException,
+  Get,
   Param,
-  Delete,
+  ParseIntPipe,
+  Post,
+  Put,
+  Req,
   UseGuards,
 } from '@nestjs/common';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from '@/auth/auth.guard';
-import { RolesGuard } from '@/auth/roles.guard';
-import { Roles } from '@/auth/roles.decorator';
-import { UserRole } from '@/user/user.entity';
+import { UserService } from '@/user/user.service';
+import { UnknownUserException } from '@/lib/errors';
 import { LoansService } from './loans.service';
-import { CreateLoanDto } from './dto/create-loan.dto';
-import { UpdateLoanDto } from './dto/update-loan.dto';
+import { BorrowLoanDto } from './dto/borrow-loan.dto';
 import { Loan } from './entities/loan.entity';
+
+type FirebaseRequest = { firebaseUser: DecodedIdToken };
 
 @ApiTags('loans')
 @Controller('loans')
 @ApiBearerAuth()
 @UseGuards(AuthGuard)
 export class LoansController {
-  constructor(private readonly loansService: LoansService) {}
+  constructor(
+    private readonly loansService: LoansService,
+    private readonly userService: UserService
+  ) {}
+
+  @Get('my')
+  async getMyLoans(@Req() req: FirebaseRequest): Promise<Loan[]> {
+    const user = await this.userService.getUserByGoogleWorkspaceUid(
+      req.firebaseUser
+    );
+    if (!user) throw new UnknownUserException();
+    return this.loansService.getMyLoans(user.id);
+  }
 
   @Post()
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.Admin)
-  create(@Body() createLoanDto: CreateLoanDto): Promise<Loan> {
-    return this.loansService.create(createLoanDto);
-  }
-
-  @Get()
-  findAll(): Promise<Loan[]> {
-    return this.loansService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string): Promise<Loan> {
-    return this.loansService.findOne(+id);
-  }
-
-  @Patch(':id')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.Admin)
-  update(
-    @Param('id') id: string,
-    @Body() updateLoanDto: UpdateLoanDto
+  async borrow(
+    @Req() req: FirebaseRequest,
+    @Body() body: BorrowLoanDto
   ): Promise<Loan> {
-    return this.loansService.update(+id, updateLoanDto);
+    const user = await this.userService.getUserByGoogleWorkspaceUid(
+      req.firebaseUser
+    );
+    if (!user) throw new UnknownUserException();
+    return this.loansService.borrow(body.copyId, user.id);
   }
 
-  @Delete(':id')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.Admin)
-  remove(@Param('id') id: string): Promise<void> {
-    return this.loansService.remove(+id);
+  @Put(':id/return')
+  async returnLoan(
+    @Req() req: FirebaseRequest,
+    @Param('id', ParseIntPipe) id: number
+  ): Promise<Loan> {
+    const user = await this.userService.getUserByGoogleWorkspaceUid(
+      req.firebaseUser
+    );
+    if (!user) throw new UnknownUserException();
+    const loan = await this.loansService.findOne(id);
+    if (loan.user_id !== user.id) {
+      throw new ForbiddenException('Only the borrower can return this loan');
+    }
+    return this.loansService.returnLoan(id, user.id);
   }
 }

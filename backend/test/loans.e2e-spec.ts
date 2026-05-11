@@ -1,8 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import request, { Response } from 'supertest';
-import { INestApplication } from '@nestjs/common';
+import {
+  ExecutionContext,
+  INestApplication,
+  ValidationPipe,
+} from '@nestjs/common';
 import { App } from 'supertest/types';
 import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
+import { DecodedIdToken } from 'firebase-admin/auth';
 import { DataSource } from 'typeorm';
 import { StatusCodes } from 'http-status-codes';
 import { LoansModule } from '@/loans/loans.module';
@@ -10,10 +15,12 @@ import { ItemCopiesModule } from '@/item-copies/item-copies.module';
 import { ItemsModule } from '@/items/items.module';
 import { LocationsModule } from '@/locations/locations.module';
 import { CitiesModule } from '@/cities/cities.module';
+import { UserModule } from '@/user/user.module';
 import { ItemsAdminController } from '@/admin/items.admin.controller';
 import { CitiesAdminController } from '@/admin/cities.admin.controller';
 import { LocationsAdminController } from '@/admin/locations.admin.controller';
 import { ItemCopiesAdminController } from '@/admin/item-copies.admin.controller';
+import { LoansAdminController } from '@/admin/loans.admin.controller';
 import { AuthGuard } from '@/auth/auth.guard';
 import { RolesGuard } from '@/auth/roles.guard';
 import { Loan } from '@/loans/entities/loan.entity';
@@ -26,211 +33,419 @@ import {
 } from '@/item-copies/entities/item-copy.entity';
 import { User, UserRole } from '@/user/user.entity';
 import { AuthService } from '@/auth/auth.service';
-import { TimeDuration } from '@/lib/time';
-import { buildDecodedToken, setupAuth } from './auth';
+import { FirebaseService } from '@/firebase/firebase.service';
+import { buildDecodedToken } from './auth';
 import { dbConfig } from './database';
+
+// The employee_id in this token must match the user seeded in beforeEach
+const MOCK_FIREBASE_USER = buildDecodedToken(
+  'emp1',
+  'test@profiq.com',
+  'test-uid'
+);
+
+type FirebaseRequest = { firebaseUser: DecodedIdToken };
+
+async function buildApp(): Promise<{
+  app: INestApplication<App>;
+  ds: DataSource;
+}> {
+  const moduleFixture: TestingModule = await Test.createTestingModule({
+    imports: [
+      LoansModule,
+      ItemCopiesModule,
+      ItemsModule,
+      LocationsModule,
+      CitiesModule,
+      UserModule,
+      TypeOrmModule.forRoot(dbConfig),
+    ],
+    controllers: [
+      ItemsAdminController,
+      CitiesAdminController,
+      LocationsAdminController,
+      ItemCopiesAdminController,
+      LoansAdminController,
+    ],
+  })
+    // Prevent Firebase Admin SDK initialization in unit-style happy-path suite
+    .overrideProvider(FirebaseService)
+    .useValue({})
+    .overrideProvider(AuthService)
+    .useValue({ verifyToken: jest.fn() })
+    .overrideGuard(AuthGuard)
+    .useValue({
+      canActivate: (ctx: ExecutionContext) => {
+        const req = ctx.switchToHttp().getRequest<FirebaseRequest>();
+        req.firebaseUser = MOCK_FIREBASE_USER;
+        return true;
+      },
+    })
+    .overrideGuard(RolesGuard)
+    .useValue({ canActivate: () => true })
+    .compile();
+
+  const app =
+    moduleFixture.createNestApplication() as unknown as INestApplication<App>;
+  app.useGlobalPipes(new ValidationPipe({ transform: true }));
+  await app.init();
+  const ds = moduleFixture.get<DataSource>(getDataSourceToken());
+  return { app, ds };
+}
+
+async function seedCopyWithItem(
+  app: INestApplication<App>,
+  defaultLoanDays = 14
+): Promise<{ copyId: number; itemId: number }> {
+  const itemRes: Response = await request(app.getHttpServer())
+    .post('/admin/items')
+    .send({ name: 'Clean Code', default_loan_days: defaultLoanDays });
+  const itemId = (itemRes.body as { id: number }).id;
+
+  const cityRes: Response = await request(app.getHttpServer())
+    .post('/admin/cities')
+    .send({ name: 'Prague' });
+  const cityId = (cityRes.body as { id: number }).id;
+
+  const locationRes: Response = await request(app.getHttpServer())
+    .post('/admin/locations')
+    .send({ name: 'Central Library', city_id: cityId });
+  const locationId = (locationRes.body as { id: number }).id;
+
+  const copyRes: Response = await request(app.getHttpServer())
+    .post(`/admin/items/${itemId}/copies`)
+    .send({ location_id: locationId, condition: 'good' });
+  const copyId = (copyRes.body as { id: number }).id;
+
+  return { copyId, itemId };
+}
+
+function expectDateTimeString(value: unknown): void {
+  expect(value).toEqual(expect.any(String));
+  expect(Number.isNaN(Date.parse(value as string))).toBe(false);
+}
+
+// ─── happy path ───────────────────────────────────────────────────────────────
 
 describe('LoansModule (e2e)', (): void => {
   let app: INestApplication<App>;
+  let ds: DataSource;
   let copyId: number;
   let userId: number;
 
   beforeEach(async (): Promise<void> => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        LoansModule,
-        ItemCopiesModule,
-        ItemsModule,
-        LocationsModule,
-        CitiesModule,
-        TypeOrmModule.forRoot(dbConfig),
-      ],
-      controllers: [
-        ItemsAdminController,
-        CitiesAdminController,
-        LocationsAdminController,
-        ItemCopiesAdminController,
-      ],
-    })
-      .overrideGuard(AuthGuard)
-      .useValue({ canActivate: () => true })
-      .overrideGuard(RolesGuard)
-      .useValue({ canActivate: () => true })
-      .compile();
+    ({ app, ds } = await buildApp());
 
-    app = moduleFixture.createNestApplication();
-    await app.init();
-
-    const dataSource = moduleFixture.get<DataSource>(getDataSourceToken());
     const user = new User();
-    user.name = 'John Doe';
+    user.name = 'Alice';
     user.employee_id = 'emp1';
-    const savedUser = await dataSource.manager.save(user);
+    const savedUser = await ds.manager.save(user);
     userId = savedUser.id;
 
-    const itemRes: Response = await request(app.getHttpServer())
-      .post('/admin/items')
-      .send({ name: 'Clean Code', default_loan_days: 14 });
-    const itemId = (itemRes.body as { id: number }).id;
-
-    const cityRes: Response = await request(app.getHttpServer())
-      .post('/admin/cities')
-      .send({ name: 'Prague' });
-    const cityId = (cityRes.body as { id: number }).id;
-
-    const locationRes: Response = await request(app.getHttpServer())
-      .post('/admin/locations')
-      .send({ name: 'Central Library', city_id: cityId });
-    const locationId = (locationRes.body as { id: number }).id;
-
-    const copyRes: Response = await request(app.getHttpServer())
-      .post(`/admin/items/${itemId}/copies`)
-      .send({ location_id: locationId, condition: 'good' });
-    copyId = (copyRes.body as { id: number }).id;
+    ({ copyId } = await seedCopyWithItem(app));
   });
 
   afterEach(async (): Promise<void> => {
     await app.close();
   });
 
-  describe('/loans (POST)', (): void => {
-    it('should create a loan', async (): Promise<void> => {
+  describe('POST /loans', (): void => {
+    it('creates a loan with auto-calculated due_date', async (): Promise<void> => {
       await request(app.getHttpServer())
         .post('/loans')
-        .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' })
+        .send({ copyId })
         .expect(StatusCodes.CREATED)
         .expect((res: Response) => {
           const body = res.body as Loan;
           expect(body.id).toBeDefined();
           expect(body.copy_id).toBe(copyId);
           expect(body.user_id).toBe(userId);
-          expect(body.due_date).toBe('2026-05-01');
+          expect(body.due_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
           expect(body.borrowed_at).toBeDefined();
           expect(body.returned_at).toBeNull();
-          expect(body.returned_by_user_id).toBeNull();
         });
+    });
+
+    it('returns 422 when borrowing an archived copy', async (): Promise<void> => {
+      await ds.manager.update(ItemCopy, copyId, { archived_at: new Date() });
+      await request(app.getHttpServer())
+        .post('/loans')
+        .send({ copyId })
+        .expect(StatusCodes.UNPROCESSABLE_ENTITY);
+    });
+
+    it('returns 409 when copy is already on loan', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .post('/loans')
+        .send({ copyId })
+        .expect(StatusCodes.CREATED);
+
+      await request(app.getHttpServer())
+        .post('/loans')
+        .send({ copyId })
+        .expect(StatusCodes.CONFLICT);
+    });
+
+    it('allows borrowing the same copy after it is returned', async (): Promise<void> => {
+      const firstLoanRes: Response = await request(app.getHttpServer())
+        .post('/loans')
+        .send({ copyId })
+        .expect(StatusCodes.CREATED);
+      const firstLoanId = (firstLoanRes.body as Loan).id;
+
+      await request(app.getHttpServer())
+        .put(`/loans/${firstLoanId}/return`)
+        .expect(StatusCodes.OK);
+
+      await request(app.getHttpServer())
+        .post('/loans')
+        .send({ copyId })
+        .expect(StatusCodes.CREATED)
+        .expect((res: Response) => {
+          const body = res.body as Loan;
+          expect(body.id).not.toBe(firstLoanId);
+          expect(body.copy_id).toBe(copyId);
+          expect(body.returned_at).toBeNull();
+        });
+    });
+
+    it('returns 404 when copy does not exist', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .post('/loans')
+        .send({ copyId: 9999 })
+        .expect(StatusCodes.NOT_FOUND);
     });
   });
 
-  describe('/loans (GET)', (): void => {
-    it('should return all loans', async (): Promise<void> => {
-      await request(app.getHttpServer())
-        .post('/loans')
-        .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' });
+  describe('GET /loans/my', (): void => {
+    it('returns loans for the current user', async (): Promise<void> => {
+      await request(app.getHttpServer()).post('/loans').send({ copyId });
 
       await request(app.getHttpServer())
-        .get('/loans')
+        .get('/loans/my')
         .expect(StatusCodes.OK)
         .expect((res: Response) => {
           const body = res.body as Loan[];
           expect(Array.isArray(body)).toBe(true);
           expect(body).toHaveLength(1);
+          expect(body[0].user_id).toBe(userId);
         });
     });
 
-    it('should return empty array when no loans exist', async (): Promise<void> => {
+    it('returns empty array when user has no loans', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .get('/loans')
+        .get('/loans/my')
         .expect(StatusCodes.OK)
         .expect([]);
     });
   });
 
-  describe('/loans/:id (GET)', (): void => {
-    it('should return a loan by id', async (): Promise<void> => {
-      const created: Response = await request(app.getHttpServer())
+  describe('PUT /loans/:id/return', (): void => {
+    it('returns the loan when caller is the borrower', async (): Promise<void> => {
+      const createRes: Response = await request(app.getHttpServer())
         .post('/loans')
-        .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' });
-
-      const createdBody = created.body as Loan;
+        .send({ copyId });
+      const loanId = (createRes.body as { id: number }).id;
 
       await request(app.getHttpServer())
-        .get(`/loans/${createdBody.id}`)
+        .put(`/loans/${loanId}/return`)
         .expect(StatusCodes.OK)
         .expect((res: Response) => {
           const body = res.body as Loan;
-          expect(body.id).toBe(createdBody.id);
-          expect(body.copy_id).toBe(copyId);
-        });
-    });
-
-    it('should return 404 when loan does not exist', async (): Promise<void> => {
-      await request(app.getHttpServer())
-        .get('/loans/9999')
-        .expect(StatusCodes.NOT_FOUND);
-    });
-  });
-
-  describe('/loans/:id (PATCH)', (): void => {
-    it('should mark loan as returned', async (): Promise<void> => {
-      const created: Response = await request(app.getHttpServer())
-        .post('/loans')
-        .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' });
-
-      const createdBody = created.body as Loan;
-
-      await request(app.getHttpServer())
-        .patch(`/loans/${createdBody.id}`)
-        .send({
-          returned_at: '2026-04-10T12:00:00Z',
-          returned_by_user_id: userId,
-        })
-        .expect(StatusCodes.OK)
-        .expect((res: Response) => {
-          const body = res.body as Loan;
-          expect(body.returned_at).toBeDefined();
+          expectDateTimeString(body.returned_at);
           expect(body.returned_by_user_id).toBe(userId);
         });
     });
 
-    it('should return 404 when loan does not exist', async (): Promise<void> => {
+    it('returns 409 when loan is already returned', async (): Promise<void> => {
+      const createRes: Response = await request(app.getHttpServer())
+        .post('/loans')
+        .send({ copyId });
+      const loanId = (createRes.body as { id: number }).id;
+
+      await request(app.getHttpServer()).put(`/loans/${loanId}/return`);
       await request(app.getHttpServer())
-        .patch('/loans/9999')
-        .send({ returned_at: '2026-04-10T12:00:00Z' })
+        .put(`/loans/${loanId}/return`)
+        .expect(StatusCodes.CONFLICT);
+    });
+
+    it('returns 404 when loan does not exist', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .put('/loans/9999/return')
+        .expect(StatusCodes.NOT_FOUND);
+    });
+
+    it('returns 403 when caller is not the borrower', async (): Promise<void> => {
+      const createRes: Response = await request(app.getHttpServer())
+        .post('/loans')
+        .send({ copyId });
+      const loanId = (createRes.body as { id: number }).id;
+
+      const otherUser = new User();
+      otherUser.name = 'Bob';
+      otherUser.employee_id = 'emp2';
+      const savedOther = await ds.manager.save(otherUser);
+
+      await ds.manager.update(Loan, loanId, { user_id: savedOther.id });
+
+      await request(app.getHttpServer())
+        .put(`/loans/${loanId}/return`)
+        .expect(StatusCodes.FORBIDDEN);
+    });
+  });
+
+  describe('GET /admin/loans', (): void => {
+    it('returns all loans without filter', async (): Promise<void> => {
+      await request(app.getHttpServer()).post('/loans').send({ copyId });
+
+      await request(app.getHttpServer())
+        .get('/admin/loans')
+        .expect(StatusCodes.OK)
+        .expect((res: Response) => {
+          expect(Array.isArray(res.body)).toBe(true);
+          expect((res.body as Loan[]).length).toBeGreaterThanOrEqual(1);
+        });
+    });
+
+    it('filters active loans', async (): Promise<void> => {
+      await request(app.getHttpServer()).post('/loans').send({ copyId });
+
+      await request(app.getHttpServer())
+        .get('/admin/loans?status=active')
+        .expect(StatusCodes.OK)
+        .expect((res: Response) => {
+          const body = res.body as Loan[];
+          expect(body.length).toBeGreaterThanOrEqual(1);
+          body.forEach(loan => expect(loan.returned_at).toBeNull());
+        });
+    });
+
+    it('filters returned loans', async (): Promise<void> => {
+      const createRes: Response = await request(app.getHttpServer())
+        .post('/loans')
+        .send({ copyId });
+      const loanId = (createRes.body as { id: number }).id;
+
+      await request(app.getHttpServer()).put(`/loans/${loanId}/return`);
+
+      await request(app.getHttpServer())
+        .get('/admin/loans?status=returned')
+        .expect(StatusCodes.OK)
+        .expect((res: Response) => {
+          const body = res.body as Loan[];
+          expect(body.length).toBeGreaterThanOrEqual(1);
+          body.forEach(loan => expectDateTimeString(loan.returned_at));
+        });
+    });
+
+    it('filters overdue loans', async (): Promise<void> => {
+      const createRes: Response = await request(app.getHttpServer())
+        .post('/loans')
+        .send({ copyId });
+      const created = createRes.body as Loan;
+      const yesterday = new Date();
+      yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+      const overdueDueDate = yesterday.toISOString().split('T')[0];
+      await ds.manager.update(Loan, created.id, { due_date: overdueDueDate });
+
+      await request(app.getHttpServer())
+        .get('/admin/loans?status=overdue')
+        .expect(StatusCodes.OK)
+        .expect((res: Response) => {
+          const body = res.body as Loan[];
+          expect(body.map(loan => loan.id)).toContain(created.id);
+          body.forEach(loan => {
+            expect(loan.returned_at).toBeNull();
+            expect(loan.due_date < new Date().toISOString().split('T')[0]).toBe(
+              true
+            );
+          });
+        });
+    });
+  });
+
+  describe('PUT /admin/loans/:id/return', (): void => {
+    it('returns loan on behalf of user', async (): Promise<void> => {
+      const createRes: Response = await request(app.getHttpServer())
+        .post('/loans')
+        .send({ copyId });
+      const loanId = (createRes.body as { id: number }).id;
+
+      const borrower = new User();
+      borrower.name = 'Borrower';
+      borrower.employee_id = 'emp-borrower';
+      const savedBorrower = await ds.manager.save(borrower);
+      await ds.manager.update(Loan, loanId, { user_id: savedBorrower.id });
+
+      await request(app.getHttpServer())
+        .put(`/admin/loans/${loanId}/return`)
+        .expect(StatusCodes.OK)
+        .expect((res: Response) => {
+          const body = res.body as Loan;
+          expect(body.user_id).toBe(savedBorrower.id);
+          expectDateTimeString(body.returned_at);
+          expect(body.returned_by_user_id).toBe(userId);
+        });
+    });
+
+    it('returns 404 when loan does not exist', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .put('/admin/loans/9999/return')
         .expect(StatusCodes.NOT_FOUND);
     });
   });
 
-  describe('/loans/:id (DELETE)', (): void => {
-    it('should delete a loan', async (): Promise<void> => {
-      const created: Response = await request(app.getHttpServer())
+  describe('PUT /admin/loans/:id/extend', (): void => {
+    it('extends due_date by given days', async (): Promise<void> => {
+      const createRes: Response = await request(app.getHttpServer())
         .post('/loans')
-        .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' });
-
-      const createdBody = created.body as Loan;
-
-      await request(app.getHttpServer())
-        .delete(`/loans/${createdBody.id}`)
-        .expect(StatusCodes.OK);
+        .send({ copyId });
+      const created = createRes.body as Loan;
 
       await request(app.getHttpServer())
-        .get(`/loans/${createdBody.id}`)
-        .expect(StatusCodes.NOT_FOUND);
+        .put(`/admin/loans/${created.id}/extend`)
+        .send({ dueDays: 7 })
+        .expect(StatusCodes.OK)
+        .expect((res: Response) => {
+          const body = res.body as Loan;
+          const originalDue = new Date(created.due_date + 'T00:00:00Z');
+          const extendedDue = new Date(body.due_date + 'T00:00:00Z');
+          const diffDays = Math.round(
+            (extendedDue.getTime() - originalDue.getTime()) / 86_400_000
+          );
+          expect(diffDays).toBe(7);
+        });
     });
 
-    it('should return 404 when loan does not exist', async (): Promise<void> => {
+    it('returns 404 when loan does not exist', async (): Promise<void> => {
       await request(app.getHttpServer())
-        .delete('/loans/9999')
+        .put('/admin/loans/9999/extend')
+        .send({ dueDays: 7 })
         .expect(StatusCodes.NOT_FOUND);
     });
   });
 });
 
+// ─── auth ─────────────────────────────────────────────────────────────────────
+
 describe('LoansModule auth (e2e)', (): void => {
   let app: INestApplication<App>;
   let authService: AuthService;
-  let validToken: string;
-  let invalidToken: string;
-  let dataSource: DataSource;
+  const validToken = 'valid-test-token';
+  let ds: DataSource;
   let copyId: number;
   let userId: number;
 
-  beforeAll(async (): Promise<void> => {
-    const authSetup = await setupAuth();
-    authService = authSetup.authService;
-    validToken = authSetup.validToken;
-    invalidToken = authSetup.invalidToken;
-  }, 30 * TimeDuration.Second);
+  beforeAll((): void => {
+    authService = {
+      verifyToken: jest.fn((idToken?: string) => {
+        if (idToken === validToken) {
+          return buildDecodedToken('emp1', 'test@profiq.com', 'firebase-user');
+        }
+        return { email: undefined };
+      }),
+    } as unknown as AuthService;
+  });
 
   beforeEach(async (): Promise<void> => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -240,171 +455,121 @@ describe('LoansModule auth (e2e)', (): void => {
         ItemsModule,
         LocationsModule,
         CitiesModule,
+        UserModule,
         TypeOrmModule.forRoot(dbConfig),
       ],
+      controllers: [LoansAdminController],
+      providers: [
+        { provide: AuthService, useValue: authService },
+        AuthGuard,
+        RolesGuard,
+      ],
     })
+      .overrideProvider(FirebaseService)
+      .useValue({})
       .overrideProvider(AuthService)
       .useValue(authService)
       .compile();
 
     app = moduleFixture.createNestApplication();
+    app.useGlobalPipes(new ValidationPipe({ transform: true }));
     await app.init();
-    dataSource = moduleFixture.get<DataSource>(getDataSourceToken());
+    ds = moduleFixture.get<DataSource>(getDataSourceToken());
 
     const user = new User();
-    user.name = 'John Doe';
+    user.name = 'Alice';
     user.employee_id = 'emp1';
-    const savedUser = await dataSource.manager.save(user);
+    const savedUser = await ds.manager.save(user);
     userId = savedUser.id;
 
     const item = new Item();
     item.name = 'Clean Code';
     item.default_loan_days = 14;
-    const savedItem = await dataSource.manager.save(item);
+    const savedItem = await ds.manager.save(item);
 
     const city = new City();
     city.name = 'Prague';
-    const savedCity = await dataSource.manager.save(city);
+    const savedCity = await ds.manager.save(city);
 
     const location = new Location();
     location.name = 'Central Library';
     location.city_id = savedCity.id;
-    const savedLocation = await dataSource.manager.save(location);
+    const savedLocation = await ds.manager.save(location);
 
     const copy = new ItemCopy();
     copy.item_id = savedItem.id;
     copy.location_id = savedLocation.id;
     copy.condition = ItemCondition.Good;
-    const savedCopy = await dataSource.manager.save(copy);
+    const savedCopy = await ds.manager.save(copy);
     copyId = savedCopy.id;
   });
 
   afterEach(async (): Promise<void> => {
     jest.restoreAllMocks();
-    await app.close();
+    if (app && typeof app.close === 'function') {
+      await app.close();
+    }
   });
 
   describe('unauthenticated access', (): void => {
-    it('GET /loans returns 403 without token', (): Promise<void> => {
-      return request(app.getHttpServer())
-        .get('/loans')
+    it('GET /loans/my returns 403 without token', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .get('/loans/my')
         .expect(StatusCodes.FORBIDDEN);
     });
 
-    it('GET /loans/:id returns 403 without token', (): Promise<void> => {
-      return request(app.getHttpServer())
-        .get('/loans/1')
-        .expect(StatusCodes.FORBIDDEN);
-    });
-
-    it('POST /loans returns 403 without token', (): Promise<void> => {
-      return request(app.getHttpServer())
+    it('POST /loans returns 403 without token', async (): Promise<void> => {
+      await request(app.getHttpServer())
         .post('/loans')
-        .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' })
+        .send({ copyId })
         .expect(StatusCodes.FORBIDDEN);
     });
 
-    it('PATCH /loans/:id returns 403 without token', (): Promise<void> => {
-      return request(app.getHttpServer())
-        .patch('/loans/1')
-        .send({ returned_at: new Date().toISOString() })
+    it('PUT /loans/:id/return returns 403 without token', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .put('/loans/1/return')
         .expect(StatusCodes.FORBIDDEN);
     });
 
-    it('DELETE /loans/:id returns 403 without token', (): Promise<void> => {
-      return request(app.getHttpServer())
-        .delete('/loans/1')
-        .expect(StatusCodes.FORBIDDEN);
-    });
-  });
-
-  describe('wrong domain token', (): void => {
-    it('GET /loans returns 403 for non-profiq.com token', (): Promise<void> => {
-      return request(app.getHttpServer())
-        .get('/loans')
-        .set('Authorization', `Bearer ${invalidToken}`)
+    it('GET /admin/loans returns 403 without token', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .get('/admin/loans')
         .expect(StatusCodes.FORBIDDEN);
     });
 
-    it('POST /loans returns 403 for non-profiq.com token', (): Promise<void> => {
-      return request(app.getHttpServer())
-        .post('/loans')
-        .set('Authorization', `Bearer ${invalidToken}`)
-        .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' })
+    it('PUT /admin/loans/:id/return returns 403 without token', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .put('/admin/loans/1/return')
         .expect(StatusCodes.FORBIDDEN);
     });
 
-    it('PATCH /loans/:id returns 403 for non-profiq.com token', async (): Promise<void> => {
-      const loan = new Loan();
-      loan.copy_id = copyId;
-      loan.user_id = userId;
-      loan.borrowed_at = new Date();
-      loan.due_date = '2026-05-01';
-      loan.returned_at = null;
-      loan.returned_by_user_id = null;
-      const created = await dataSource.manager.save(loan);
-
-      return request(app.getHttpServer())
-        .patch(`/loans/${created.id}`)
-        .set('Authorization', `Bearer ${invalidToken}`)
-        .send({
-          returned_at: new Date().toISOString(),
-          returned_by_user_id: userId,
-        })
-        .expect(StatusCodes.FORBIDDEN);
-    });
-
-    it('DELETE /loans/:id returns 403 for non-profiq.com token', async (): Promise<void> => {
-      const loan = new Loan();
-      loan.copy_id = copyId;
-      loan.user_id = userId;
-      loan.borrowed_at = new Date();
-      loan.due_date = '2026-05-01';
-      loan.returned_at = null;
-      loan.returned_by_user_id = null;
-      const created = await dataSource.manager.save(loan);
-
-      return request(app.getHttpServer())
-        .delete(`/loans/${created.id}`)
-        .set('Authorization', `Bearer ${invalidToken}`)
+    it('PUT /admin/loans/:id/extend returns 403 without token', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .put('/admin/loans/1/extend')
+        .send({ dueDays: 7 })
         .expect(StatusCodes.FORBIDDEN);
     });
   });
 
   describe('authenticated non-admin access', (): void => {
-    it('GET /loans returns 200 for authenticated non-admin', (): Promise<void> => {
-      return request(app.getHttpServer())
-        .get('/loans')
+    it('GET /loans/my returns 200', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .get('/loans/my')
         .set('Authorization', `Bearer ${validToken}`)
         .expect(StatusCodes.OK);
     });
 
-    it('GET /loans/:id returns 404 for authenticated non-admin (loan does not exist)', (): Promise<void> => {
-      return request(app.getHttpServer())
-        .get('/loans/9999')
-        .set('Authorization', `Bearer ${validToken}`)
-        .expect(StatusCodes.NOT_FOUND);
-    });
-
-    it('POST /loans returns 403 for authenticated non-admin', (): Promise<void> => {
-      return request(app.getHttpServer())
+    it('POST /loans returns 201 for authenticated non-admin', async (): Promise<void> => {
+      await request(app.getHttpServer())
         .post('/loans')
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' })
-        .expect(StatusCodes.FORBIDDEN);
+        .send({ copyId })
+        .expect(StatusCodes.CREATED);
     });
 
-    it('PATCH /loans/:id returns 403 for authenticated non-admin', (): Promise<void> => {
-      return request(app.getHttpServer())
-        .patch('/loans/1')
-        .set('Authorization', `Bearer ${validToken}`)
-        .send({ returned_at: new Date().toISOString() })
-        .expect(StatusCodes.FORBIDDEN);
-    });
-
-    it('DELETE /loans/:id returns 403 for authenticated non-admin', (): Promise<void> => {
-      return request(app.getHttpServer())
-        .delete('/loans/1')
+    it('GET /admin/loans returns 403 for non-admin', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .get('/admin/loans')
         .set('Authorization', `Bearer ${validToken}`)
         .expect(StatusCodes.FORBIDDEN);
     });
@@ -412,9 +577,7 @@ describe('LoansModule auth (e2e)', (): void => {
 
   describe('authenticated admin access', (): void => {
     beforeEach(async (): Promise<void> => {
-      await dataSource
-        .getRepository(User)
-        .update(userId, { role: UserRole.Admin });
+      await ds.getRepository(User).update(userId, { role: UserRole.Admin });
       jest
         .spyOn(authService, 'verifyToken')
         .mockResolvedValue(
@@ -422,42 +585,19 @@ describe('LoansModule auth (e2e)', (): void => {
         );
     });
 
-    it('POST /loans returns 201 for admin', (): Promise<void> => {
-      return request(app.getHttpServer())
+    it('GET /admin/loans returns 200 for admin', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .get('/admin/loans')
+        .set('Authorization', `Bearer ${validToken}`)
+        .expect(StatusCodes.OK);
+    });
+
+    it('POST /loans returns 201 for admin', async (): Promise<void> => {
+      await request(app.getHttpServer())
         .post('/loans')
         .set('Authorization', `Bearer ${validToken}`)
-        .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' })
+        .send({ copyId })
         .expect(StatusCodes.CREATED);
-    });
-
-    it('PATCH /loans/:id returns 200 for admin', async (): Promise<void> => {
-      const created: Response = await request(app.getHttpServer())
-        .post('/loans')
-        .set('Authorization', `Bearer ${validToken}`)
-        .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' });
-      const loanId = (created.body as { id: number }).id;
-
-      return request(app.getHttpServer())
-        .patch(`/loans/${loanId}`)
-        .set('Authorization', `Bearer ${validToken}`)
-        .send({
-          returned_at: new Date().toISOString(),
-          returned_by_user_id: userId,
-        })
-        .expect(StatusCodes.OK);
-    });
-
-    it('DELETE /loans/:id returns 200 for admin', async (): Promise<void> => {
-      const created: Response = await request(app.getHttpServer())
-        .post('/loans')
-        .set('Authorization', `Bearer ${validToken}`)
-        .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' });
-      const loanId = (created.body as { id: number }).id;
-
-      return request(app.getHttpServer())
-        .delete(`/loans/${loanId}`)
-        .set('Authorization', `Bearer ${validToken}`)
-        .expect(StatusCodes.OK);
     });
   });
 });

@@ -23,7 +23,9 @@ export class ItemCopiesService {
       id: createItemCopyDto.item_id,
     });
     if (!item) {
-      throw new NotFoundException(`Item #${createItemCopyDto.item_id} not found`);
+      throw new NotFoundException(
+        `Item #${createItemCopyDto.item_id} not found`
+      );
     }
 
     const location = await this.locationRepository.findOneBy({

@@ -14,10 +14,11 @@ import { LocationsAdminController } from '@/admin/locations.admin.controller';
 import { ItemCopiesAdminController } from '@/admin/item-copies.admin.controller';
 import { AuthGuard } from '@/auth/auth.guard';
 import { RolesGuard } from '@/auth/roles.guard';
+import { AuthService } from '@/auth/auth.service';
+import { FirebaseService } from '@/firebase/firebase.service';
 import { CategoriesModule } from '@/categories/categories.module';
 import { CitiesModule } from '@/cities/cities.module';
 import { ItemCopiesModule } from '@/item-copies/item-copies.module';
-import { LoansModule } from '@/loans/loans.module';
 import { LocationsModule } from '@/locations/locations.module';
 import { TagsModule } from '@/tags/tags.module';
 import { Item } from '@/items/entities/item.entity';
@@ -26,6 +27,10 @@ import { Tag } from '@/tags/entities/tag.entity';
 import { PaginatedItemsResponseDto } from '@/items/dto/paginated-items-response.dto';
 import { User, UserRole } from '@/user/user.entity';
 import { dbConfig } from './database';
+
+type IdResponseBody = { id: number };
+
+const responseId = (res: Response): number => (res.body as IdResponseBody).id;
 
 describe('ItemsModule (e2e)', (): void => {
   let app: INestApplication<App>;
@@ -38,7 +43,6 @@ describe('ItemsModule (e2e)', (): void => {
         CategoriesModule,
         CitiesModule,
         ItemCopiesModule,
-        LoansModule,
         LocationsModule,
         TagsModule,
         TypeOrmModule.forRoot(dbConfig),
@@ -52,6 +56,10 @@ describe('ItemsModule (e2e)', (): void => {
         TagsAdminController,
       ],
     })
+      .overrideProvider(FirebaseService)
+      .useValue({})
+      .overrideProvider(AuthService)
+      .useValue({ verifyToken: jest.fn() })
       .overrideGuard(AuthGuard)
       .useValue({ canActivate: () => true })
       .overrideGuard(RolesGuard)
@@ -65,7 +73,9 @@ describe('ItemsModule (e2e)', (): void => {
   });
 
   afterEach(async (): Promise<void> => {
-    await app.close();
+    if (app && typeof app.close === 'function') {
+      await app.close();
+    }
   });
 
   describe('/admin/items (POST)', (): void => {
@@ -142,6 +152,23 @@ describe('ItemsModule (e2e)', (): void => {
         role: UserRole.User,
       });
 
+    const createActiveLoan = async (
+      copyId: number,
+      userId: number
+    ): Promise<void> => {
+      await dataSource.query(
+        `INSERT INTO loan (
+          copy_id,
+          user_id,
+          borrowed_at,
+          due_date,
+          returned_at,
+          returned_by_user_id
+        ) VALUES (?, ?, ?, ?, NULL, NULL)`,
+        [copyId, userId, new Date().toISOString(), '2026-05-01']
+      );
+    };
+
     const createLocation = async (): Promise<number> => {
       const cityRes: Response = await request(app.getHttpServer())
         .post('/admin/cities')
@@ -151,10 +178,10 @@ describe('ItemsModule (e2e)', (): void => {
         .post('/admin/locations')
         .send({
           name: 'HQ Library',
-          city_id: cityRes.body.id,
+          city_id: responseId(cityRes),
         });
 
-      return locationRes.body.id as number;
+      return responseId(locationRes);
     };
 
     it('should return paginated items with categories and tags', async (): Promise<void> => {
@@ -244,25 +271,26 @@ describe('ItemsModule (e2e)', (): void => {
       const availableItemRes: Response = await request(app.getHttpServer())
         .post('/admin/items')
         .send({ name: 'Available Laptop', default_loan_days: 14 });
+      const availableItemId = responseId(availableItemRes);
       const unavailableItemRes: Response = await request(app.getHttpServer())
         .post('/admin/items')
         .send({ name: 'Unavailable Laptop', default_loan_days: 14 });
+      const unavailableItemId = responseId(unavailableItemRes);
       const noCopiesItemRes: Response = await request(app.getHttpServer())
         .post('/admin/items')
         .send({ name: 'No Copies Laptop', default_loan_days: 14 });
+      const noCopiesItemId = responseId(noCopiesItemRes);
 
       const availableCopyRes: Response = await request(app.getHttpServer())
-        .post(`/admin/items/${availableItemRes.body.id}/copies`)
+        .post(`/admin/items/${availableItemId}/copies`)
         .send({ location_id: locationId });
+      const availableCopyId = responseId(availableCopyRes);
       const unavailableCopyRes: Response = await request(app.getHttpServer())
-        .post(`/admin/items/${unavailableItemRes.body.id}/copies`)
+        .post(`/admin/items/${unavailableItemId}/copies`)
         .send({ location_id: locationId });
+      const unavailableCopyId = responseId(unavailableCopyRes);
 
-      await request(app.getHttpServer()).post('/loans').send({
-        copy_id: unavailableCopyRes.body.id,
-        user_id: borrower.id,
-        due_date: '2026-05-01',
-      });
+      await createActiveLoan(unavailableCopyId, borrower.id);
 
       await request(app.getHttpServer())
         .get('/items?available=true')
@@ -270,7 +298,7 @@ describe('ItemsModule (e2e)', (): void => {
         .expect((res: Response) => {
           const body = res.body as PaginatedItemsResponseDto;
           expect(body.data).toHaveLength(1);
-          expect(body.data[0].id).toBe(availableItemRes.body.id);
+          expect(body.data[0].id).toBe(availableItemId);
           expect(body.total).toBe(1);
         });
 
@@ -281,14 +309,12 @@ describe('ItemsModule (e2e)', (): void => {
           const body = res.body as PaginatedItemsResponseDto;
           expect(body.data).toHaveLength(2);
           expect(body.data.map(item => item.id).sort((a, b) => a - b)).toEqual(
-            [unavailableItemRes.body.id, noCopiesItemRes.body.id].sort(
-              (a, b) => a - b
-            )
+            [unavailableItemId, noCopiesItemId].sort((a, b) => a - b)
           );
           expect(body.total).toBe(2);
         });
 
-      expect(availableCopyRes.body.id).toBeDefined();
+      expect(availableCopyId).toBeDefined();
     });
 
     it('should combine search, category, and availability filters', async (): Promise<void> => {
@@ -308,6 +334,7 @@ describe('ItemsModule (e2e)', (): void => {
           default_loan_days: 14,
           categoryIds: [categoryId],
         });
+      const matchingItemId = responseId(matchingItemRes);
       const unavailableMatchRes: Response = await request(app.getHttpServer())
         .post('/admin/items')
         .send({
@@ -315,23 +342,22 @@ describe('ItemsModule (e2e)', (): void => {
           default_loan_days: 14,
           categoryIds: [categoryId],
         });
+      const unavailableMatchId = responseId(unavailableMatchRes);
       await request(app.getHttpServer()).post('/admin/items').send({
         name: 'Laptop Stickers',
         default_loan_days: 14,
       });
 
       const matchingCopyRes: Response = await request(app.getHttpServer())
-        .post(`/admin/items/${matchingItemRes.body.id}/copies`)
+        .post(`/admin/items/${matchingItemId}/copies`)
         .send({ location_id: locationId });
+      const matchingCopyId = responseId(matchingCopyRes);
       const unavailableCopyRes: Response = await request(app.getHttpServer())
-        .post(`/admin/items/${unavailableMatchRes.body.id}/copies`)
+        .post(`/admin/items/${unavailableMatchId}/copies`)
         .send({ location_id: locationId });
+      const unavailableCopyId = responseId(unavailableCopyRes);
 
-      await request(app.getHttpServer()).post('/loans').send({
-        copy_id: unavailableCopyRes.body.id,
-        user_id: borrower.id,
-        due_date: '2026-05-01',
-      });
+      await createActiveLoan(unavailableCopyId, borrower.id);
 
       await request(app.getHttpServer())
         .get(`/items?search=laptop&categoryId=${categoryId}&available=true`)
@@ -339,11 +365,11 @@ describe('ItemsModule (e2e)', (): void => {
         .expect((res: Response) => {
           const body = res.body as PaginatedItemsResponseDto;
           expect(body.data).toHaveLength(1);
-          expect(body.data[0].id).toBe(matchingItemRes.body.id);
+          expect(body.data[0].id).toBe(matchingItemId);
           expect(body.total).toBe(1);
         });
 
-      expect(matchingCopyRes.body.id).toBeDefined();
+      expect(matchingCopyId).toBeDefined();
     });
 
     it('should reject invalid available filter values', async (): Promise<void> => {
