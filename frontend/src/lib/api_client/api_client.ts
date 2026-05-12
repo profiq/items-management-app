@@ -55,7 +55,8 @@ export class APIClient {
       ...(data && { body: JSON.stringify(data) }),
     });
     const { status } = response;
-    const result = await response.json();
+    const responseText = await response.text();
+    const result = responseText ? JSON.parse(responseText) : undefined;
     if (status == StatusCodes.OK || status == StatusCodes.CREATED) {
       return { success: true, status_code: status, data: result };
     }

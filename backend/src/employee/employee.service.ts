@@ -84,15 +84,25 @@ export class EmployeeService {
     }
   }
 
-  async syncEmployeeNames(): Promise<void> {
-    const users = await this.userService.getUsers();
-    for (const user of users) {
-      const employee = await this.getEmployee(user.employee_id);
+  async syncEmployeeNames() {
+    const [users, employees] = await Promise.all([
+      this.userService.getUsers(),
+      this.getEmployees(),
+    ]);
+    const employeesById = new Map(
+      employees.map(employee => [employee.id, employee])
+    );
+    const usersToSave = users.filter(user => {
+      const employee = employeesById.get(user.employee_id);
       if (!employee) {
-        continue;
+        return false;
+      }
+      if (user.name === employee.name) {
+        return false;
       }
       user.name = employee.name;
-      await this.userService.saveUser(user);
-    }
+      return true;
+    });
+    await this.userService.saveUsers(usersToSave);
   }
 }

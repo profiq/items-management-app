@@ -13,7 +13,7 @@ import {
   type UserRole,
 } from '@/lib/contexts';
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { loginToBackend, getMe } from '@/services/auth/auth';
+import { loginToBackend, getMe, logoutFromBackend } from '@/services/auth/auth';
 import { ForbiddenError } from '@/lib/errors';
 import { checkDomain, DOMAIN } from './domain';
 
@@ -105,10 +105,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const logout = useCallback(async () => {
-    await auth.signOut();
-    setUser(null);
-    setRole(null);
-  }, []);
+    try {
+      if (user) {
+        await logoutFromBackend(user);
+      }
+    } finally {
+      await auth.signOut();
+      setUser(null);
+      setRole(null);
+    }
+  }, [user]);
 
   return (
     <AuthContext

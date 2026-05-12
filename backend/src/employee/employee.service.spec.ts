@@ -1,74 +1,81 @@
 import { ConfigService } from '@nestjs/config';
+import { User, UserRole } from '@/user/user.entity';
+import { UserService } from '@/user/user.service';
 import { EmployeeService } from './employee.service';
 import { IEmployee } from './interfaces/employee.interface';
-import { User } from '@/user/user.entity';
-import { UserService } from '@/user/user.service';
 
-describe('EmployeeService', () => {
-  describe('syncEmployeeNames', () => {
-    it('waits for user saves before resolving', async () => {
-      const user = new User();
-      user.id = 1;
-      user.employee_id = 'employee-1';
-      user.name = 'Old Name';
+const mockUsers: User[] = [
+  {
+    id: 1,
+    name: 'Old Name',
+    employee_id: 'employee-1',
+    role: UserRole.User,
+  },
+  {
+    id: 2,
+    name: 'Already Current',
+    employee_id: 'employee-2',
+    role: UserRole.User,
+  },
+];
 
-      let resolveSave: () => void;
-      const savePromise = new Promise<void>(resolve => {
-        resolveSave = resolve;
-      });
-      const saveUser = jest.fn().mockReturnValue(savePromise);
+const mockEmployees: IEmployee[] = [
+  {
+    id: 'employee-1',
+    email: 'employee-1@example.com',
+    name: 'New Name',
+    photoUrl: '',
+  },
+  {
+    id: 'employee-2',
+    email: 'employee-2@example.com',
+    name: 'Already Current',
+    photoUrl: '',
+  },
+];
 
-      const userService = {
-        getUsers: jest.fn().mockResolvedValue([user]),
-        saveUser,
-      } as unknown as UserService;
+describe('EmployeeService', (): void => {
+  let service: EmployeeService;
+  let mockUserService: jest.Mocked<Pick<UserService, 'getUsers' | 'saveUsers'>>;
 
-      const service = new EmployeeService({} as ConfigService, userService);
-      const employee: IEmployee = {
-        id: 'employee-1',
-        email: 'employee-1@example.com',
-        name: 'New Name',
-        photoUrl: 'https://example.com/photo.png',
-      };
-      jest.spyOn(service, 'getEmployee').mockResolvedValue(employee);
+  beforeEach((): void => {
+    mockUserService = {
+      getUsers: jest.fn(),
+      saveUsers: jest.fn(),
+    };
+    service = new EmployeeService(
+      {} as ConfigService,
+      mockUserService as unknown as UserService
+    );
+  });
 
-      let syncResolved = false;
-      const syncPromise = service.syncEmployeeNames().then(() => {
-        syncResolved = true;
-      });
-
-      await Promise.resolve();
-      await Promise.resolve();
-
-      expect(user.name).toBe('New Name');
-      expect(saveUser).toHaveBeenCalledWith(user);
-      expect(syncResolved).toBe(false);
-
-      resolveSave!();
-      await syncPromise;
-
-      expect(syncResolved).toBe(true);
-    });
-
-    it('does not save users without a matching employee', async () => {
-      const user = new User();
-      user.id = 1;
-      user.employee_id = 'missing-employee';
-      user.name = 'Existing Name';
-      const saveUser = jest.fn();
-
-      const userService = {
-        getUsers: jest.fn().mockResolvedValue([user]),
-        saveUser,
-      } as unknown as UserService;
-
-      const service = new EmployeeService({} as ConfigService, userService);
-      jest.spyOn(service, 'getEmployee').mockResolvedValue(null);
+  describe('syncEmployeeNames', (): void => {
+    it('should collect updates and save them once', async (): Promise<void> => {
+      mockUserService.getUsers.mockResolvedValue(
+        mockUsers.map(user => ({ ...user }))
+      );
+      jest.spyOn(service, 'getEmployees').mockResolvedValue(mockEmployees);
 
       await service.syncEmployeeNames();
 
-      expect(user.name).toBe('Existing Name');
-      expect(saveUser).not.toHaveBeenCalled();
+      expect(mockUserService.saveUsers).toHaveBeenCalledTimes(1);
+      expect(mockUserService.saveUsers).toHaveBeenCalledWith([
+        expect.objectContaining({ id: 1, name: 'New Name' }),
+      ]);
+    });
+
+    it('should not save anything when employee lookup fails', async (): Promise<void> => {
+      mockUserService.getUsers.mockResolvedValue(
+        mockUsers.map(user => ({ ...user }))
+      );
+      jest
+        .spyOn(service, 'getEmployees')
+        .mockRejectedValue(new Error('Google Directory unavailable'));
+
+      await expect(service.syncEmployeeNames()).rejects.toThrow(
+        'Google Directory unavailable'
+      );
+      expect(mockUserService.saveUsers).not.toHaveBeenCalled();
     });
   });
 });
