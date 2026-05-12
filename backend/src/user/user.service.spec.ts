@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { UserService } from './user.service';
 import { User, UserRole } from './user.entity';
 import { EmployeeService } from '@/employee/employee.service';
@@ -12,14 +12,29 @@ const mockUser: User = {
   role: UserRole.User,
 };
 
+const mockEntityManager: jest.Mocked<Pick<EntityManager, 'save'>> = {
+  save: jest.fn(),
+};
+
+const mockTransaction = jest.fn(
+  async (callback: (manager: EntityManager) => Promise<void>) =>
+    callback(mockEntityManager as unknown as EntityManager)
+);
+
 const mockRepository: jest.Mocked<
-  Pick<Repository<User>, 'find' | 'findOne' | 'findOneBy' | 'save' | 'delete'>
+  Pick<
+    Repository<User>,
+    'find' | 'findOne' | 'findOneBy' | 'save' | 'delete' | 'manager'
+  >
 > = {
   find: jest.fn(),
   findOne: jest.fn(),
   findOneBy: jest.fn(),
   save: jest.fn(),
   delete: jest.fn(),
+  manager: {
+    transaction: mockTransaction,
+  } as unknown as EntityManager,
 };
 
 const mockEmployeeService: jest.Mocked<Pick<EmployeeService, 'getEmployee'>> = {
@@ -40,6 +55,10 @@ describe('UserService', (): void => {
 
     service = module.get<UserService>(UserService);
     jest.clearAllMocks();
+    mockTransaction.mockImplementation(
+      async (callback: (manager: EntityManager) => Promise<void>) =>
+        callback(mockEntityManager as unknown as EntityManager)
+    );
   });
 
   it('should be defined', (): void => {
@@ -132,7 +151,7 @@ describe('UserService', (): void => {
       mockRepository.findOne.mockResolvedValue({ ...mockUser });
       mockRepository.save.mockResolvedValue(updated);
 
-      const result = await service.updateUserRole(1, UserRole.Admin, 999);
+      const result = await service.updateUserRole(1, UserRole.Admin, 2);
 
       expect(mockRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ role: UserRole.Admin })
@@ -143,10 +162,32 @@ describe('UserService', (): void => {
     it('should return null when user not found', async (): Promise<void> => {
       mockRepository.findOne.mockResolvedValue(null);
 
-      const result = await service.updateUserRole(99, UserRole.Admin, 1);
+      const result = await service.updateUserRole(99, UserRole.Admin, 2);
 
       expect(mockRepository.save).not.toHaveBeenCalled();
       expect(result).toBeNull();
+    });
+  });
+
+  describe('saveUsers', (): void => {
+    it('should save all users in a single transaction', async (): Promise<void> => {
+      const users: User[] = [
+        { ...mockUser, name: 'Updated User' },
+        { ...mockUser, id: 2, employee_id: 'another-google-workspace-uid' },
+      ];
+
+      await service.saveUsers(users);
+
+      expect(mockTransaction).toHaveBeenCalledTimes(1);
+      expect(mockEntityManager.save).toHaveBeenCalledWith(User, users);
+      expect(mockRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should not open a transaction when there are no users to save', async (): Promise<void> => {
+      await service.saveUsers([]);
+
+      expect(mockTransaction).not.toHaveBeenCalled();
+      expect(mockEntityManager.save).not.toHaveBeenCalled();
     });
   });
 });

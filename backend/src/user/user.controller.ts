@@ -36,6 +36,8 @@ export class UserController {
   constructor(private userService: UserService) {}
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.Admin)
   @Header('Cache-Control', 'max-age=10, private')
   @ApiOkResponse({
     type: [User],
@@ -45,6 +47,8 @@ export class UserController {
   }
 
   @Get(':id')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.Admin)
   @Header('Cache-Control', 'max-age=10, private')
   @ApiOkResponse({
     type: User,
