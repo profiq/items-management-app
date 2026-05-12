@@ -103,15 +103,13 @@ async function request<T>(
         forceRefresh: true,
         retriedAfterUnauthorized: true,
       });
-    } catch (error) {
+    } catch {
       try {
         await signOutAndRedirectToLogin();
       } catch {
         // swallow sign-out errors so unauthorizedResponse is always returned
       }
-      return unauthorizedResponse<T>(
-        error instanceof Error ? error.message : 'Failed to refresh token'
-      );
+      return unauthorizedResponse<T>();
     }
   }
 
@@ -119,8 +117,9 @@ async function request<T>(
     try {
       await signOutAndRedirectToLogin();
     } catch {
-      // swallow sign-out errors so the 401 response is still returned
+      // swallow sign-out errors so unauthorizedResponse is always returned
     }
+    return unauthorizedResponse<T>();
   }
 
   if (status == StatusCodes.OK || status == StatusCodes.CREATED) {
@@ -180,7 +179,7 @@ async function signOutAndRedirectToLogin(): Promise<void> {
   window.dispatchEvent(new Event('popstate'));
 }
 
-function unauthorizedResponse<T>(message: string): APIResponse<T> {
+function unauthorizedResponse<T>(message = 'Unauthorized'): APIResponse<T> {
   return {
     success: false,
     status_code: StatusCodes.UNAUTHORIZED,
