@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { Item } from './entities/item.entity';
 import { CreateItemDto } from './dto/create-item.dto';
 import { UpdateItemDto } from './dto/update-item.dto';
@@ -24,6 +24,7 @@ export class ItemsService {
     const uniqueIds = [...new Set(ids)];
     const categories = await this.categoryRepository.findBy({
       id: In(uniqueIds),
+      archived_at: IsNull(),
     });
     const foundIds = categories.map(c => c.id);
     const missingIds = uniqueIds.filter(id => !foundIds.includes(id));
@@ -81,7 +82,11 @@ export class ItemsService {
     const qb = this.itemRepository
       .createQueryBuilder('item')
       .distinct(true)
-      .leftJoinAndSelect('item.categories', 'category')
+      .leftJoinAndSelect(
+        'item.categories',
+        'category',
+        'category.archived_at IS NULL'
+      )
       .leftJoinAndSelect('item.tags', 'tag')
       .where('item.archived_at IS NULL');
 
@@ -95,7 +100,7 @@ export class ItemsService {
       qb.innerJoin(
         'item.categories',
         'filterCategory',
-        'filterCategory.id = :categoryId',
+        'filterCategory.id = :categoryId AND filterCategory.archived_at IS NULL',
         { categoryId }
       );
     }
@@ -120,7 +125,11 @@ export class ItemsService {
   async findOne(id: number): Promise<Item> {
     const item = await this.itemRepository
       .createQueryBuilder('item')
-      .leftJoinAndSelect('item.categories', 'category')
+      .leftJoinAndSelect(
+        'item.categories',
+        'category',
+        'category.archived_at IS NULL'
+      )
       .leftJoinAndSelect('item.tags', 'tag')
       .leftJoinAndSelect('item.copies', 'copy', 'copy.archived_at IS NULL')
       .leftJoinAndSelect('copy.location', 'location')
@@ -154,6 +163,7 @@ export class ItemsService {
 
   async remove(id: number): Promise<void> {
     const item = await this.findOne(id);
-    await this.itemRepository.remove(item);
+    item.archived_at = new Date();
+    await this.itemRepository.save(item);
   }
 }
