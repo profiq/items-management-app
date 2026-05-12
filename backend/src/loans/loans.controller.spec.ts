@@ -1,25 +1,38 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { NotFoundException } from '@nestjs/common';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 import { LoansController } from './loans.controller';
 import { LoansService } from './loans.service';
+import { UserService } from '@/user/user.service';
 import { AuthGuard } from '@/auth/auth.guard';
 import { RolesGuard } from '@/auth/roles.guard';
 import { Loan } from './entities/loan.entity';
+import { User, UserRole } from '@/user/user.entity';
 import { CreateLoanDto } from './dto/create-loan.dto';
 import { UpdateLoanDto } from './dto/update-loan.dto';
-import { UserRole } from '@/user/user.entity';
+
+type FirebaseRequest = { firebaseUser: DecodedIdToken };
+
+const mockAdminUser: User = {
+  id: 1,
+  name: 'Admin',
+  employee_id: 'emp1',
+  role: UserRole.Admin,
+};
+
+const mockRegularUser: User = {
+  id: 2,
+  name: 'John',
+  employee_id: 'emp2',
+  role: UserRole.User,
+};
 
 const mockLoan: Loan = {
   id: 1,
   copy: { id: 1 } as Loan['copy'],
   copy_id: 1,
-  user: {
-    id: 1,
-    name: 'John',
-    employee_id: 'emp1',
-    role: UserRole.User,
-  },
-  user_id: 1,
+  user: mockRegularUser,
+  user_id: 2,
   borrowed_at: new Date('2026-04-01T10:00:00Z'),
   due_date: '2026-04-15',
   returned_at: null,
@@ -27,14 +40,35 @@ const mockLoan: Loan = {
   returned_by_user_id: null,
 };
 
+const mockFirebaseReq = (): FirebaseRequest => ({
+  firebaseUser: { uid: 'firebase-uid' } as DecodedIdToken,
+});
+
 const mockService: jest.Mocked<
-  Pick<LoansService, 'create' | 'findAll' | 'findOne' | 'update' | 'remove'>
+  Pick<
+    LoansService,
+    | 'create'
+    | 'findAll'
+    | 'findAllForUser'
+    | 'findOne'
+    | 'findOneForUser'
+    | 'update'
+    | 'remove'
+  >
 > = {
   create: jest.fn(),
   findAll: jest.fn(),
+  findAllForUser: jest.fn(),
   findOne: jest.fn(),
+  findOneForUser: jest.fn(),
   update: jest.fn(),
   remove: jest.fn(),
+};
+
+const mockUserService: jest.Mocked<
+  Pick<UserService, 'getUserByGoogleWorkspaceUid'>
+> = {
+  getUserByGoogleWorkspaceUid: jest.fn(),
 };
 
 describe('LoansController', (): void => {
@@ -44,10 +78,8 @@ describe('LoansController', (): void => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [LoansController],
       providers: [
-        {
-          provide: LoansService,
-          useValue: mockService,
-        },
+        { provide: LoansService, useValue: mockService },
+        { provide: UserService, useValue: mockUserService },
       ],
     })
       .overrideGuard(AuthGuard)
@@ -77,33 +109,78 @@ describe('LoansController', (): void => {
   });
 
   describe('findAll', (): void => {
-    it('should return all loans', async (): Promise<void> => {
+    it('admin gets all loans', async (): Promise<void> => {
       const loans: Loan[] = [mockLoan];
+      mockUserService.getUserByGoogleWorkspaceUid.mockResolvedValue(
+        mockAdminUser
+      );
       mockService.findAll.mockResolvedValue(loans);
 
-      const result: Loan[] = await controller.findAll();
+      const result = await controller.findAll(mockFirebaseReq());
 
       expect(mockService.findAll).toHaveBeenCalled();
+      expect(mockService.findAllForUser).not.toHaveBeenCalled();
+      expect(result).toBe(loans);
+    });
+
+    it('regular user gets only their own loans', async (): Promise<void> => {
+      const loans: Loan[] = [mockLoan];
+      mockUserService.getUserByGoogleWorkspaceUid.mockResolvedValue(
+        mockRegularUser
+      );
+      mockService.findAllForUser.mockResolvedValue(loans);
+
+      const result = await controller.findAll(mockFirebaseReq());
+
+      expect(mockService.findAllForUser).toHaveBeenCalledWith(
+        mockRegularUser.id
+      );
+      expect(mockService.findAll).not.toHaveBeenCalled();
       expect(result).toBe(loans);
     });
   });
 
   describe('findOne', (): void => {
-    it('should return a loan by id', async (): Promise<void> => {
+    it('admin gets any loan by id', async (): Promise<void> => {
+      mockUserService.getUserByGoogleWorkspaceUid.mockResolvedValue(
+        mockAdminUser
+      );
       mockService.findOne.mockResolvedValue(mockLoan);
 
-      const result: Loan = await controller.findOne('1');
+      const result = await controller.findOne(mockFirebaseReq(), '1');
 
       expect(mockService.findOne).toHaveBeenCalledWith(1);
+      expect(mockService.findOneForUser).not.toHaveBeenCalled();
       expect(result).toBe(mockLoan);
     });
 
-    it('should propagate NotFoundException when loan does not exist', async (): Promise<void> => {
-      mockService.findOne.mockRejectedValue(
+    it('regular user gets their own loan by id', async (): Promise<void> => {
+      mockUserService.getUserByGoogleWorkspaceUid.mockResolvedValue(
+        mockRegularUser
+      );
+      mockService.findOneForUser.mockResolvedValue(mockLoan);
+
+      const result = await controller.findOne(mockFirebaseReq(), '1');
+
+      expect(mockService.findOneForUser).toHaveBeenCalledWith(
+        1,
+        mockRegularUser.id
+      );
+      expect(mockService.findOne).not.toHaveBeenCalled();
+      expect(result).toBe(mockLoan);
+    });
+
+    it('regular user gets NotFoundException for another user loan', async (): Promise<void> => {
+      mockUserService.getUserByGoogleWorkspaceUid.mockResolvedValue(
+        mockRegularUser
+      );
+      mockService.findOneForUser.mockRejectedValue(
         new NotFoundException('Loan #99 not found')
       );
 
-      await expect(controller.findOne('99')).rejects.toThrow(NotFoundException);
+      await expect(controller.findOne(mockFirebaseReq(), '99')).rejects.toThrow(
+        NotFoundException
+      );
     });
   });
 
