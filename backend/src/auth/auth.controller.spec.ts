@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthGuard } from './auth.guard';
+import { AuthService } from './auth.service';
 import { UserService, UpsertResult } from '@/user/user.service';
 import { User, UserRole } from '@/user/user.entity';
 import type { DecodedIdToken } from 'firebase-admin/auth';
@@ -26,13 +27,20 @@ const mockUserService: jest.Mocked<
   upsertByGoogleWorkspaceToken: jest.fn(),
 };
 
+const mockAuthService: jest.Mocked<Pick<AuthService, 'revokeRefreshTokens'>> = {
+  revokeRefreshTokens: jest.fn(),
+};
+
 describe('AuthController', (): void => {
   let controller: AuthController;
 
   beforeEach(async (): Promise<void> => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: UserService, useValue: mockUserService }],
+      providers: [
+        { provide: UserService, useValue: mockUserService },
+        { provide: AuthService, useValue: mockAuthService },
+      ],
     })
       .overrideGuard(AuthGuard)
       .useValue({ canActivate: () => true })
@@ -85,8 +93,14 @@ describe('AuthController', (): void => {
   });
 
   describe('logout', (): void => {
-    it('should not throw', (): void => {
-      expect(() => controller.logout()).not.toThrow();
+    it('should revoke the current user refresh tokens', async (): Promise<void> => {
+      mockAuthService.revokeRefreshTokens.mockResolvedValue();
+
+      await controller.logout({ firebaseUser: mockFirebaseToken });
+
+      expect(mockAuthService.revokeRefreshTokens).toHaveBeenCalledWith(
+        mockFirebaseToken.uid
+      );
     });
   });
 
