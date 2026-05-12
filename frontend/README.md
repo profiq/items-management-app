@@ -2,6 +2,39 @@
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
+## profiq-ui
+
+The frontend uses the internal `@profiq/ui` package for user-facing auth and admin UI components.
+
+Install/update the package from the repository root so the workspace lockfile stays in sync:
+
+```bash
+npm install @profiq/ui@1.0.0 -w frontend
+```
+
+The package is loaded in `src/main.tsx`:
+
+```ts
+import '@profiq/ui/index.css';
+```
+
+Tailwind scans the package classes through `src/index.css`:
+
+```css
+@source "../node_modules/@profiq/ui/dist";
+```
+
+Use grouped imports from the package domains, for example:
+
+```ts
+import { Button, Input, Label } from '@profiq/ui/components/ui/form';
+import { Alert, Badge, Skeleton } from '@profiq/ui/components/ui/feedback';
+import { Table, TableBody, TableCell } from '@profiq/ui/components/ui/layout';
+import { NavigationMenu } from '@profiq/ui/components/ui/navigation';
+```
+
+See `../docs/profiq-ui-component-mapping.md` for the current shadcn-to-profiq-ui mapping and migration gaps.
+
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh

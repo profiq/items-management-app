@@ -3,6 +3,8 @@ import { useAuth } from '@/lib/providers/auth/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StatusSpinning } from '@/components/status/status-spinning';
 import { toast } from 'sonner';
+import { Button } from '@profiq/ui/components/ui/form';
+import { Alert, AlertDescription } from '@profiq/ui/components/ui/feedback';
 import {
   Table,
   TableBody,
@@ -10,8 +12,7 @@ import {
   TableHeader,
   TableRow,
   TableCell,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+} from '@profiq/ui/components/ui/layout';
 import {
   getTables,
   getTableData,
@@ -60,12 +61,14 @@ export default function Admin() {
         <h2 className='text-xl font-semibold mb-3'>Vyberte tabulku:</h2>
         {tablesQuery.isLoading && <StatusSpinning />}
         {tablesQuery.isError && (
-          <p className='text-red-600'>
-            Chyba při načítání tabulek:{' '}
-            {tablesQuery.error instanceof Error
-              ? tablesQuery.error.message
-              : 'Neznámá chyba'}
-          </p>
+          <Alert variant='destructive'>
+            <AlertDescription>
+              Chyba při načítání tabulek:{' '}
+              {tablesQuery.error instanceof Error
+                ? tablesQuery.error.message
+                : 'Neznámá chyba'}
+            </AlertDescription>
+          </Alert>
         )}
         {tablesQuery.data && (
           <div className='grid grid-cols-2 gap-2'>
@@ -92,12 +95,14 @@ export default function Admin() {
           {dataQuery.isLoading && <StatusSpinning />}
 
           {dataQuery.isError && (
-            <p className='text-red-600'>
-              Chyba při načítání dat:{' '}
-              {dataQuery.error instanceof Error
-                ? dataQuery.error.message
-                : 'Neznámá chyba'}
-            </p>
+            <Alert variant='destructive'>
+              <AlertDescription>
+                Chyba při načítání dat:{' '}
+                {dataQuery.error instanceof Error
+                  ? dataQuery.error.message
+                  : 'Neznámá chyba'}
+              </AlertDescription>
+            </Alert>
           )}
 
           {dataQuery.data && dataQuery.data.length > 0 && (

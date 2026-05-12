@@ -3,7 +3,7 @@ import {
   NavigationMenuItem,
   NavigationMenuLink,
   NavigationMenuList,
-} from '@/components/ui/navigation-menu';
+} from '@profiq/ui/components/ui/navigation';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import { Link } from 'react-router';
 import { HoverProtected } from './hover-protected';
