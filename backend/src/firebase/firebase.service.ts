@@ -1,4 +1,4 @@
-import { UploadException } from '@/lib/errors';
+import { DeleteException, UploadException } from '@/lib/errors';
 import { Bucket, SaveData } from '@google-cloud/storage';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -45,8 +45,12 @@ export class FirebaseService {
     }
   }
 
-  async delete(name: string) {
+  async delete(name: string): Promise<void> {
     const fileRef = this.getBucket().file(name);
-    fileRef.delete();
+    try {
+      await fileRef.delete();
+    } catch {
+      throw new DeleteException();
+    }
   }
 }
