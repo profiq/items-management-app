@@ -78,6 +78,8 @@ describe('UserService', (): void => {
       expect(mockRepository.findOne).toHaveBeenCalledWith({
         where: { employee_id: 'google-workspace-uid' },
       });
+      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(mockEmployeeService.getEmployee).not.toHaveBeenCalled();
       expect(result).toBe(mockUser);
     });
 
@@ -96,6 +98,50 @@ describe('UserService', (): void => {
       const result = await service.getUserByGoogleWorkspaceUid(token);
 
       expect(result).toBeNull();
+    });
+  });
+
+  describe('findByGoogleWorkspaceToken', (): void => {
+    it('should return user without writing when google.com identity exists', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue(mockUser);
+      const token = {
+        uid: 'firebase-uid',
+        firebase: { identities: { 'google.com': ['google-workspace-uid'] } },
+      };
+
+      const result = await service.findByGoogleWorkspaceToken(token);
+
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
+        where: { employee_id: 'google-workspace-uid' },
+      });
+      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(mockEmployeeService.getEmployee).not.toHaveBeenCalled();
+      expect(result).toEqual({ user: mockUser });
+    });
+
+    it('should return not-in-directory when no local user exists', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue(null);
+      const token = {
+        uid: 'firebase-uid',
+        firebase: { identities: { 'google.com': ['google-workspace-uid'] } },
+      };
+
+      const result = await service.findByGoogleWorkspaceToken(token);
+
+      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(mockEmployeeService.getEmployee).not.toHaveBeenCalled();
+      expect(result).toEqual({ error: 'not-in-directory' });
+    });
+
+    it('should return no-google-identity when token has no google identity', async (): Promise<void> => {
+      const token = { uid: 'firebase-uid', firebase: { identities: {} } };
+
+      const result = await service.findByGoogleWorkspaceToken(token);
+
+      expect(mockRepository.findOne).not.toHaveBeenCalled();
+      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(mockEmployeeService.getEmployee).not.toHaveBeenCalled();
+      expect(result).toEqual({ error: 'no-google-identity' });
     });
   });
 

@@ -22,9 +22,13 @@ const mockFirebaseToken = {
 } as unknown as DecodedIdToken;
 
 const mockUserService: jest.Mocked<
-  Pick<UserService, 'upsertByGoogleWorkspaceToken'>
+  Pick<
+    UserService,
+    'upsertByGoogleWorkspaceToken' | 'findByGoogleWorkspaceToken'
+  >
 > = {
   upsertByGoogleWorkspaceToken: jest.fn(),
+  findByGoogleWorkspaceToken: jest.fn(),
 };
 
 const mockAuthService: jest.Mocked<Pick<AuthService, 'revokeRefreshTokens'>> = {
@@ -107,15 +111,18 @@ describe('AuthController', (): void => {
   describe('getMe', (): void => {
     it('should return user response dto when found', async (): Promise<void> => {
       const result: UpsertResult = { user: mockUser };
-      mockUserService.upsertByGoogleWorkspaceToken.mockResolvedValue(result);
+      mockUserService.findByGoogleWorkspaceToken.mockResolvedValue(result);
 
       const response = await controller.getMe({
         firebaseUser: mockFirebaseToken,
       });
 
-      expect(mockUserService.upsertByGoogleWorkspaceToken).toHaveBeenCalledWith(
+      expect(mockUserService.findByGoogleWorkspaceToken).toHaveBeenCalledWith(
         mockFirebaseToken
       );
+      expect(
+        mockUserService.upsertByGoogleWorkspaceToken
+      ).not.toHaveBeenCalled();
       expect(response).toEqual({
         id: 1,
         name: 'Test User',
@@ -125,7 +132,7 @@ describe('AuthController', (): void => {
 
     it('should throw NotFoundException when user not in directory', async (): Promise<void> => {
       const result: UpsertResult = { error: 'not-in-directory' };
-      mockUserService.upsertByGoogleWorkspaceToken.mockResolvedValue(result);
+      mockUserService.findByGoogleWorkspaceToken.mockResolvedValue(result);
 
       await expect(
         controller.getMe({ firebaseUser: mockFirebaseToken })
@@ -134,7 +141,7 @@ describe('AuthController', (): void => {
 
     it('should throw BadRequestException when token has no Google identity', async (): Promise<void> => {
       const result: UpsertResult = { error: 'no-google-identity' };
-      mockUserService.upsertByGoogleWorkspaceToken.mockResolvedValue(result);
+      mockUserService.findByGoogleWorkspaceToken.mockResolvedValue(result);
 
       await expect(
         controller.getMe({ firebaseUser: mockFirebaseToken })
