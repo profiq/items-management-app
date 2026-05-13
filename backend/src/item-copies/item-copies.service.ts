@@ -21,6 +21,7 @@ export class ItemCopiesService {
   async create(createItemCopyDto: CreateItemCopyDto): Promise<ItemCopy> {
     const item = await this.itemRepository.findOneBy({
       id: createItemCopyDto.item_id,
+      archived_at: IsNull(),
     });
     if (!item) {
       throw new NotFoundException(
@@ -30,6 +31,7 @@ export class ItemCopiesService {
 
     const location = await this.locationRepository.findOneBy({
       id: createItemCopyDto.location_id,
+      archived_at: IsNull(),
     });
     if (!location) {
       throw new NotFoundException(
@@ -46,7 +48,7 @@ export class ItemCopiesService {
   }
 
   findAll(): Promise<ItemCopy[]> {
-    return this.itemCopyRepository.find();
+    return this.itemCopyRepository.find({ where: { archived_at: IsNull() } });
   }
 
   findByItemId(itemId: number): Promise<ItemCopy[]> {
@@ -59,6 +61,7 @@ export class ItemCopiesService {
   async findOne(id: number): Promise<ItemCopy> {
     const itemCopy: ItemCopy | null = await this.itemCopyRepository.findOneBy({
       id,
+      archived_at: IsNull(),
     });
     if (!itemCopy) {
       throw new NotFoundException(`ItemCopy #${id} not found`);
@@ -71,6 +74,28 @@ export class ItemCopiesService {
     updateItemCopyDto: UpdateItemCopyDto
   ): Promise<ItemCopy> {
     const itemCopy: ItemCopy = await this.findOne(id);
+    if (updateItemCopyDto.item_id !== undefined) {
+      const item = await this.itemRepository.findOneBy({
+        id: updateItemCopyDto.item_id,
+        archived_at: IsNull(),
+      });
+      if (!item) {
+        throw new NotFoundException(
+          `Item #${updateItemCopyDto.item_id} not found`
+        );
+      }
+    }
+    if (updateItemCopyDto.location_id !== undefined) {
+      const location = await this.locationRepository.findOneBy({
+        id: updateItemCopyDto.location_id,
+        archived_at: IsNull(),
+      });
+      if (!location) {
+        throw new NotFoundException(
+          `Location #${updateItemCopyDto.location_id} not found`
+        );
+      }
+    }
     Object.assign(itemCopy, updateItemCopyDto);
     return this.itemCopyRepository.save(itemCopy);
   }

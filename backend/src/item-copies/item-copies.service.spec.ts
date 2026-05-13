@@ -91,8 +91,14 @@ describe('ItemCopiesService', (): void => {
 
       const result: ItemCopy = await service.create(dto);
 
-      expect(mockItemRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
-      expect(mockLocationRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(mockItemRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        archived_at: IsNull(),
+      });
+      expect(mockLocationRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        archived_at: IsNull(),
+      });
       expect(mockRepository.create).toHaveBeenCalledWith({
         item_id: 1,
         location_id: 1,
@@ -116,16 +122,26 @@ describe('ItemCopiesService', (): void => {
         expect.objectContaining({ condition: null })
       );
     });
+
+    it('should reject archived or missing locations', async (): Promise<void> => {
+      const dto: CreateItemCopyDto = { item_id: 1, location_id: 99 };
+      mockItemRepository.findOneBy.mockResolvedValue(mockItem);
+      mockLocationRepository.findOneBy.mockResolvedValue(null);
+
+      await expect(service.create(dto)).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('findAll', (): void => {
-    it('should return all item copies', async (): Promise<void> => {
+    it('should return active item copies', async (): Promise<void> => {
       const copies: ItemCopy[] = [mockItemCopy];
       mockRepository.find.mockResolvedValue(copies);
 
       const result: ItemCopy[] = await service.findAll();
 
-      expect(mockRepository.find).toHaveBeenCalled();
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: { archived_at: IsNull() },
+      });
       expect(result).toEqual(copies);
     });
   });
@@ -159,7 +175,10 @@ describe('ItemCopiesService', (): void => {
 
       const result: ItemCopy = await service.findOne(1);
 
-      expect(mockRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(mockRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        archived_at: IsNull(),
+      });
       expect(result).toEqual(mockItemCopy);
     });
 
@@ -190,6 +209,15 @@ describe('ItemCopiesService', (): void => {
         condition: ItemCondition.Damaged,
       });
       expect(result).toEqual(updated);
+    });
+
+    it('should reject archived or missing location reassignment', async (): Promise<void> => {
+      mockRepository.findOneBy.mockResolvedValue(mockItemCopy);
+      mockLocationRepository.findOneBy.mockResolvedValue(null);
+
+      await expect(service.update(1, { location_id: 99 })).rejects.toThrow(
+        NotFoundException
+      );
     });
 
     it('should throw NotFoundException when item copy does not exist', async (): Promise<void> => {

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
-import { In, Repository, SelectQueryBuilder } from 'typeorm';
+import { In, IsNull, Repository, SelectQueryBuilder } from 'typeorm';
 import { ItemsService } from './items.service';
 import { Item } from './entities/item.entity';
 import { Category } from '@/categories/entities/category.entity';
@@ -143,6 +143,7 @@ describe('ItemsService', (): void => {
 
       expect(mockCategoryRepository.findBy).toHaveBeenCalledWith({
         id: In([1]),
+        archived_at: IsNull(),
       });
       expect(mockTagRepository.findBy).toHaveBeenCalledWith({ id: In([1]) });
       expect(result.categories).toEqual([mockCategory]);
@@ -190,6 +191,11 @@ describe('ItemsService', (): void => {
         'item'
       );
       expect(mockQb.distinct).toHaveBeenCalledWith(true);
+      expect(mockQb.leftJoinAndSelect).toHaveBeenCalledWith(
+        'item.categories',
+        'category',
+        'category.archived_at IS NULL'
+      );
       expect(mockQb.where).toHaveBeenCalledWith('item.archived_at IS NULL');
       expect(mockQb.skip).toHaveBeenCalledWith(0);
       expect(mockQb.take).toHaveBeenCalledWith(20);
@@ -223,7 +229,7 @@ describe('ItemsService', (): void => {
       expect(mockQb.innerJoin).toHaveBeenCalledWith(
         'item.categories',
         'filterCategory',
-        'filterCategory.id = :categoryId',
+        'filterCategory.id = :categoryId AND filterCategory.archived_at IS NULL',
         { categoryId: 1 }
       );
     });
@@ -273,6 +279,11 @@ describe('ItemsService', (): void => {
         'item'
       );
       expect(qb.leftJoinAndSelect).toHaveBeenCalledWith(
+        'item.categories',
+        'category',
+        'category.archived_at IS NULL'
+      );
+      expect(qb.leftJoinAndSelect).toHaveBeenCalledWith(
         'item.copies',
         'copy',
         'copy.archived_at IS NULL'
@@ -319,8 +330,18 @@ describe('ItemsService', (): void => {
 
       expect(mockCategoryRepository.findBy).toHaveBeenCalledWith({
         id: In([1]),
+        archived_at: IsNull(),
       });
       expect(result.categories).toEqual([mockCategory]);
+    });
+
+    it('should reject archived or missing categories', async (): Promise<void> => {
+      setupFindOneQb({ ...mockItem });
+      mockCategoryRepository.findBy.mockResolvedValue([]);
+
+      await expect(service.update(1, { categoryIds: [1] })).rejects.toThrow(
+        NotFoundException
+      );
     });
 
     it('should clear categories when categoryIds is empty array', async (): Promise<void> => {
@@ -347,13 +368,19 @@ describe('ItemsService', (): void => {
   });
 
   describe('remove', (): void => {
-    it('should remove the item', async (): Promise<void> => {
+    it('should archive the item', async (): Promise<void> => {
       setupFindOneQb(mockItem);
-      mockItemRepository.remove.mockResolvedValue(mockItem);
+      mockItemRepository.save.mockResolvedValue({
+        ...mockItem,
+        archived_at: new Date(),
+      });
 
       await service.remove(1);
 
-      expect(mockItemRepository.remove).toHaveBeenCalledWith(mockItem);
+      expect(mockItemRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ archived_at: expect.any(Date) as Date })
+      );
+      expect(mockItemRepository.remove).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when item does not exist', async (): Promise<void> => {

@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { CitiesService } from './cities.service';
 import { City } from './entities/city.entity';
 import { CreateCityDto } from './dto/create-city.dto';
@@ -59,7 +59,7 @@ describe('CitiesService', (): void => {
   });
 
   describe('findAll', (): void => {
-    it('should return all cities', async (): Promise<void> => {
+    it('should return active cities', async (): Promise<void> => {
       const cities: City[] = [
         mockCity,
         { id: 2, name: 'Brno', archived_at: null },
@@ -68,7 +68,9 @@ describe('CitiesService', (): void => {
 
       const result: City[] = await service.findAll();
 
-      expect(mockRepository.find).toHaveBeenCalled();
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: { archived_at: IsNull() },
+      });
       expect(result).toEqual(cities);
     });
 
@@ -87,7 +89,10 @@ describe('CitiesService', (): void => {
 
       const result: City = await service.findOne(1);
 
-      expect(mockRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(mockRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        archived_at: IsNull(),
+      });
       expect(result).toEqual(mockCity);
     });
 
@@ -125,13 +130,19 @@ describe('CitiesService', (): void => {
   });
 
   describe('remove', (): void => {
-    it('should remove the city', async (): Promise<void> => {
+    it('should archive the city', async (): Promise<void> => {
       mockRepository.findOneBy.mockResolvedValue(mockCity);
-      mockRepository.remove.mockResolvedValue(mockCity);
+      mockRepository.save.mockResolvedValue({
+        ...mockCity,
+        archived_at: new Date(),
+      });
 
       await service.remove(1);
 
-      expect(mockRepository.remove).toHaveBeenCalledWith(mockCity);
+      expect(mockRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ archived_at: expect.any(Date) as Date })
+      );
+      expect(mockRepository.remove).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when city does not exist', async (): Promise<void> => {
