@@ -39,9 +39,15 @@ describe('AuthModule', () => {
     authServiceOverride: Pick<AuthService, 'verifyToken'> = authService
   ) => {
     const mockUserService: jest.Mocked<
-      Pick<UserService, 'upsertByGoogleWorkspaceToken'>
+      Pick<
+        UserService,
+        'upsertByGoogleWorkspaceToken' | 'findByGoogleWorkspaceToken'
+      >
     > = {
       upsertByGoogleWorkspaceToken: jest
+        .fn()
+        .mockResolvedValue(user ? { user } : { error: 'not-in-directory' }),
+      findByGoogleWorkspaceToken: jest
         .fn()
         .mockResolvedValue(user ? { user } : { error: 'not-in-directory' }),
     };
@@ -59,7 +65,7 @@ describe('AuthModule', () => {
     const httpAdapterHost = app.get(HttpAdapterHost);
     app.useGlobalFilters(new CustomExceptionsFilter(httpAdapterHost));
     await app.init();
-    return app;
+    return { app, mockUserService };
   };
 
   afterEach(async () => {
@@ -70,7 +76,7 @@ describe('AuthModule', () => {
 
   describe('POST /auth/login', () => {
     it('returns user profile with role', async () => {
-      app = await buildApp(mockUser);
+      app = (await buildApp(mockUser)).app;
       return request(app.getHttpServer())
         .post('/auth/login')
         .set('Authorization', `Bearer ${validToken}`)
@@ -83,7 +89,7 @@ describe('AuthModule', () => {
     });
 
     it('returns 404 when user not in DB', async () => {
-      app = await buildApp(null);
+      app = (await buildApp(null)).app;
       return request(app.getHttpServer())
         .post('/auth/login')
         .set('Authorization', `Bearer ${validToken}`)
@@ -91,7 +97,7 @@ describe('AuthModule', () => {
     });
 
     it('returns 403 for wrong domain token', async () => {
-      app = await buildApp(mockUser);
+      app = (await buildApp(mockUser)).app;
       return request(app.getHttpServer())
         .post('/auth/login')
         .set('Authorization', `Bearer ${invalidToken}`)
@@ -99,7 +105,7 @@ describe('AuthModule', () => {
     });
 
     it('returns 403 without token', async () => {
-      app = await buildApp(mockUser);
+      app = (await buildApp(mockUser)).app;
       return request(app.getHttpServer())
         .post('/auth/login')
         .expect(StatusCodes.FORBIDDEN);
@@ -108,8 +114,9 @@ describe('AuthModule', () => {
 
   describe('GET /auth/me', () => {
     it('returns current user profile with role', async () => {
-      app = await buildApp(mockUser);
-      return request(app.getHttpServer())
+      const builtApp = await buildApp(mockUser);
+      app = builtApp.app;
+      await request(app.getHttpServer())
         .get('/auth/me')
         .set('Authorization', `Bearer ${validToken}`)
         .expect(StatusCodes.OK)
@@ -118,10 +125,17 @@ describe('AuthModule', () => {
           name: 'Test User',
           role: UserRole.User,
         });
+
+      expect(
+        builtApp.mockUserService.findByGoogleWorkspaceToken
+      ).toHaveBeenCalledTimes(1);
+      expect(
+        builtApp.mockUserService.upsertByGoogleWorkspaceToken
+      ).not.toHaveBeenCalled();
     });
 
     it('returns 404 when user not in DB', async () => {
-      app = await buildApp(null);
+      app = (await buildApp(null)).app;
       return request(app.getHttpServer())
         .get('/auth/me')
         .set('Authorization', `Bearer ${validToken}`)
@@ -129,7 +143,7 @@ describe('AuthModule', () => {
     });
 
     it('returns 403 for wrong domain token', async () => {
-      app = await buildApp(mockUser);
+      app = (await buildApp(mockUser)).app;
       return request(app.getHttpServer())
         .get('/auth/me')
         .set('Authorization', `Bearer ${invalidToken}`)
@@ -137,7 +151,7 @@ describe('AuthModule', () => {
     });
 
     it('returns 403 without token', async () => {
-      app = await buildApp(mockUser);
+      app = (await buildApp(mockUser)).app;
       return request(app.getHttpServer())
         .get('/auth/me')
         .expect(StatusCodes.FORBIDDEN);
@@ -163,7 +177,7 @@ describe('AuthModule', () => {
 
   describe('POST /auth/logout', () => {
     it('returns 200', async () => {
-      app = await buildApp(mockUser);
+      app = (await buildApp(mockUser)).app;
       return request(app.getHttpServer())
         .post('/auth/logout')
         .set('Authorization', `Bearer ${validToken}`)
@@ -171,7 +185,7 @@ describe('AuthModule', () => {
     });
 
     it('returns 403 without token', async () => {
-      app = await buildApp(mockUser);
+      app = (await buildApp(mockUser)).app;
       return request(app.getHttpServer())
         .post('/auth/logout')
         .expect(StatusCodes.FORBIDDEN);

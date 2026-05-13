@@ -23,13 +23,17 @@ export class AuthService {
       return { email: undefined };
     }
     try {
-      return await this.getAuthApp().verifyIdToken(idToken);
+      return await this.getAuthApp().verifyIdToken(idToken, true);
     } catch (error) {
       if (isUnauthorizedFirebaseTokenError(error)) {
         throw new UnauthorizedException('Expired or revoked Firebase ID token');
       }
       return { email: undefined };
     }
+  }
+
+  async revokeRefreshTokens(uid: string): Promise<void> {
+    await this.getAuthApp().revokeRefreshTokens(uid);
   }
 }
 

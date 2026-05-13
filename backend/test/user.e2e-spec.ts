@@ -21,6 +21,16 @@ describe('UserModule', () => {
   let validToken: string;
   let invalidToken: string;
 
+  function mockCurrentUser(
+    googleWorkspaceUid: string,
+    email: string,
+    uid: string
+  ) {
+    jest
+      .spyOn(authService, 'verifyToken')
+      .mockResolvedValue(buildDecodedToken(googleWorkspaceUid, email, uid));
+  }
+
   // Auth emulator is lazy loaded and not particularly fast at that,
   // so load AuthModule only once per test suite
   beforeAll(async () => {
@@ -57,7 +67,10 @@ describe('UserModule', () => {
     jest.restoreAllMocks();
   });
 
-  it('/users (GET)', async () => {
+  it('/users (GET) (Admin)', async () => {
+    await dataSource.getRepository(User).update(1, { role: UserRole.Admin });
+    mockCurrentUser('1', 'admin@profiq.com', 'firebase-admin');
+
     return request(app.getHttpServer())
       .get('/users')
       .set('Authorization', `Bearer ${validToken}`)
@@ -67,7 +80,7 @@ describe('UserModule', () => {
           id: 1,
           name: 'abcd abcd',
           employee_id: '1',
-          role: UserRole.User,
+          role: UserRole.Admin,
         },
         {
           id: 2,
@@ -76,6 +89,15 @@ describe('UserModule', () => {
           role: UserRole.User,
         },
       ]);
+  });
+
+  it('/users (GET) (Non-admin)', async () => {
+    mockCurrentUser('1', 'user@profiq.com', 'firebase-user');
+
+    await request(app.getHttpServer())
+      .get('/users')
+      .set('Authorization', `Bearer ${validToken}`)
+      .expect(StatusCodes.FORBIDDEN);
   });
 
   it('/users (GET) (Wrong domain)', async () => {
@@ -95,7 +117,10 @@ describe('UserModule', () => {
       .get('/users')
       .expect(StatusCodes.FORBIDDEN);
   });
-  it('/users/:id (GET)', async () => {
+  it('/users/:id (GET) (Admin)', async () => {
+    await dataSource.getRepository(User).update(1, { role: UserRole.Admin });
+    mockCurrentUser('1', 'admin@profiq.com', 'firebase-admin');
+
     return request(app.getHttpServer())
       .get('/users/1')
       .set('Authorization', `Bearer ${validToken}`)
@@ -104,11 +129,29 @@ describe('UserModule', () => {
         id: 1,
         name: 'abcd abcd',
         employee_id: '1',
-        role: UserRole.User,
+        role: UserRole.Admin,
       });
   });
 
-  it('/users/:id (GET) (Non-existant)', async () => {
+  it('/users/:id (GET) (Unauthenticated)', () => {
+    return request(app.getHttpServer())
+      .get('/users/1')
+      .expect(StatusCodes.FORBIDDEN);
+  });
+
+  it('/users/:id (GET) (Non-admin)', async () => {
+    mockCurrentUser('1', 'user@profiq.com', 'firebase-user');
+
+    await request(app.getHttpServer())
+      .get('/users/1')
+      .set('Authorization', `Bearer ${validToken}`)
+      .expect(StatusCodes.FORBIDDEN);
+  });
+
+  it('/users/:id (GET) (Non-existant) (Admin)', async () => {
+    await dataSource.getRepository(User).update(1, { role: UserRole.Admin });
+    mockCurrentUser('1', 'admin@profiq.com', 'firebase-admin');
+
     return request(app.getHttpServer())
       .get('/users/3')
       .set('Authorization', `Bearer ${validToken}`)
@@ -116,44 +159,26 @@ describe('UserModule', () => {
   });
 
   it('/users/:id (DELETE) (Non-admin)', async () => {
-    jest
-      .spyOn(authService, 'verifyToken')
-      .mockResolvedValue(
-        buildDecodedToken('1', 'user@profiq.com', 'firebase-user')
-      );
+    mockCurrentUser('1', 'user@profiq.com', 'firebase-user');
 
     await request(app.getHttpServer())
       .delete('/users/2')
       .set('Authorization', `Bearer ${validToken}`)
       .expect(StatusCodes.FORBIDDEN);
 
-    await request(app.getHttpServer())
-      .get('/users')
-      .set('Authorization', `Bearer ${validToken}`)
-      .expect(StatusCodes.OK)
-      .expect([
-        {
-          id: 1,
-          name: 'abcd abcd',
-          employee_id: '1',
-          role: UserRole.User,
-        },
-        {
-          id: 2,
-          name: 'Eve',
-          employee_id: '2',
-          role: UserRole.User,
-        },
-      ]);
+    await expect(
+      dataSource.getRepository(User).findOneBy({ id: 2 })
+    ).resolves.toMatchObject({
+      id: 2,
+      name: 'Eve',
+      employee_id: '2',
+      role: UserRole.User,
+    });
   });
 
   it('/users/:id (DELETE) (Admin)', async () => {
     await dataSource.getRepository(User).update(1, { role: UserRole.Admin });
-    jest
-      .spyOn(authService, 'verifyToken')
-      .mockResolvedValue(
-        buildDecodedToken('1', 'admin@profiq.com', 'firebase-admin')
-      );
+    mockCurrentUser('1', 'admin@profiq.com', 'firebase-admin');
 
     await request(app.getHttpServer())
       .delete('/users/2')
