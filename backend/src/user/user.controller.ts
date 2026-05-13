@@ -62,6 +62,8 @@ export class UserController {
   }
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.Admin)
   @ApiCreatedResponse({
     type: User,
   })
