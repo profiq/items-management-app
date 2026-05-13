@@ -1,11 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsDateString, IsInt, IsOptional, Min } from 'class-validator';
 
-export class UpdateLoanDto {
+export class ReturnLoanDto {
   @ApiPropertyOptional({ type: String, format: 'date-time', nullable: true })
   @IsOptional()
   @IsDateString()
-  returned_at?: Date | string | null;
+  returned_at?: string | null;
 
   @ApiPropertyOptional({ nullable: true })
   @IsOptional()

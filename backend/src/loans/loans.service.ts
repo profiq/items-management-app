@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Loan } from './entities/loan.entity';
 import { CreateLoanDto } from './dto/create-loan.dto';
-import { UpdateLoanDto } from './dto/update-loan.dto';
+import { ReturnLoanDto } from './dto/return-loan.dto';
 
 @Injectable()
 export class LoansService {
@@ -49,9 +49,15 @@ export class LoansService {
     return loan;
   }
 
-  async update(id: number, updateLoanDto: UpdateLoanDto): Promise<Loan> {
+  async update(id: number, returnLoanDto: ReturnLoanDto): Promise<Loan> {
     const loan: Loan = await this.findOne(id);
-    Object.assign(loan, updateLoanDto);
+    const { returned_at, ...loanData } = returnLoanDto;
+
+    Object.assign(loan, loanData);
+    if (returned_at !== undefined) {
+      loan.returned_at = returned_at === null ? null : new Date(returned_at);
+    }
+
     return this.loanRepository.save(loan);
   }
 

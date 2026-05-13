@@ -9,7 +9,7 @@ import { RolesGuard } from '@/auth/roles.guard';
 import { Loan } from './entities/loan.entity';
 import { User, UserRole } from '@/user/user.entity';
 import { CreateLoanDto } from './dto/create-loan.dto';
-import { UpdateLoanDto } from './dto/update-loan.dto';
+import { ReturnLoanDto } from './dto/return-loan.dto';
 
 type FirebaseRequest = { firebaseUser: DecodedIdToken };
 
@@ -186,14 +186,14 @@ describe('LoansController', (): void => {
 
   describe('update', (): void => {
     it('should update and return the loan', async (): Promise<void> => {
-      const returnedAt = new Date('2026-04-10T12:00:00Z');
-      const dto: UpdateLoanDto = {
+      const returnedAt = '2026-04-10T12:00:00.000Z';
+      const dto: ReturnLoanDto = {
         returned_at: returnedAt,
         returned_by_user_id: 2,
       };
       const updated: Loan = {
         ...mockLoan,
-        returned_at: returnedAt,
+        returned_at: new Date(returnedAt),
         returned_by_user_id: 2,
       };
       mockService.update.mockResolvedValue(updated);

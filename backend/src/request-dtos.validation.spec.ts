@@ -5,7 +5,7 @@ import { CreateCategoryDto } from './categories/dto/create-category.dto';
 import { CreateCityDto } from './cities/dto/create-city.dto';
 import { CreateEmailNotificationDto } from './email-notifications/dto/create-email-notification.dto';
 import { CreateLoanDto } from './loans/dto/create-loan.dto';
-import { UpdateLoanDto } from './loans/dto/update-loan.dto';
+import { ReturnLoanDto } from './loans/dto/return-loan.dto';
 import { CreateLocationDto } from './locations/dto/create-location.dto';
 import { CreateTagDto } from './tags/dto/create-tag.dto';
 import { CreateUserRequest } from './user/dto/create_user';
@@ -42,7 +42,7 @@ describe('request DTO validation', (): void => {
   });
 
   it('rejects invalid loan update payloads', (): void => {
-    const errors = validateDto(UpdateLoanDto, {
+    const errors = validateDto(ReturnLoanDto, {
       returned_at: 'not-a-date',
       returned_by_user_id: 0,
     });
@@ -51,7 +51,7 @@ describe('request DTO validation', (): void => {
   });
 
   it('allows null loan return fields for clearing return state', (): void => {
-    const errors = validateDto(UpdateLoanDto, {
+    const errors = validateDto(ReturnLoanDto, {
       returned_at: null,
       returned_by_user_id: null,
     });

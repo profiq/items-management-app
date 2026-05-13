@@ -19,7 +19,7 @@ import { UserService } from '@/user/user.service';
 import { UnknownUserException } from '@/lib/errors';
 import { LoansService } from './loans.service';
 import { CreateLoanDto } from './dto/create-loan.dto';
-import { UpdateLoanDto } from './dto/update-loan.dto';
+import { ReturnLoanDto } from './dto/return-loan.dto';
 import { Loan } from './entities/loan.entity';
 
 type FirebaseRequest = {
@@ -79,9 +79,9 @@ export class LoansController {
   @Roles(UserRole.Admin)
   update(
     @Param('id') id: string,
-    @Body() updateLoanDto: UpdateLoanDto
+    @Body() returnLoanDto: ReturnLoanDto
   ): Promise<Loan> {
-    return this.loansService.update(+id, updateLoanDto);
+    return this.loansService.update(+id, returnLoanDto);
   }
 
   @Delete(':id')
