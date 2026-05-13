@@ -4,11 +4,24 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, Repository } from 'typeorm';
+import { IsNull, QueryFailedError, Repository } from 'typeorm';
 import { Loan } from './entities/loan.entity';
 import { ItemCopy } from '@/item-copies/entities/item-copy.entity';
 import { CreateLoanDto } from './dto/create-loan.dto';
 import { UpdateLoanDto } from './dto/update-loan.dto';
+
+const UNIQUE_VIOLATION_CODES = new Set([
+  'SQLITE_CONSTRAINT',
+  'SQLITE_CONSTRAINT_UNIQUE',
+  'ER_DUP_ENTRY',
+  '23505',
+]);
+
+function isUniqueViolation(err: unknown): boolean {
+  if (!(err instanceof QueryFailedError)) return false;
+  const driver = err.driverError as { code?: string } | undefined;
+  return !!driver?.code && UNIQUE_VIOLATION_CODES.has(driver.code);
+}
 
 @Injectable()
 export class LoansService {
@@ -46,7 +59,16 @@ export class LoansService {
       returned_at: null,
       returned_by_user_id: null,
     });
-    return this.loanRepository.save(loan);
+    try {
+      return await this.loanRepository.save(loan);
+    } catch (err) {
+      if (isUniqueViolation(err)) {
+        throw new ConflictException(
+          `ItemCopy #${createLoanDto.copy_id} is already on loan`
+        );
+      }
+      throw err;
+    }
   }
 
   findAll(): Promise<Loan[]> {

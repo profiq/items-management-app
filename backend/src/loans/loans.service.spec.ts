@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ConflictException, NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { LoansService } from './loans.service';
 import { Loan } from './entities/loan.entity';
 import { ItemCopy } from '@/item-copies/entities/item-copy.entity';
@@ -95,7 +95,7 @@ describe('LoansService', (): void => {
         })
       );
       expect(mockLoanRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({ borrowed_at: expect.any(Date) })
+        expect.objectContaining({ borrowed_at: expect.any(Date) as Date })
       );
       expect(mockLoanRepository.save).toHaveBeenCalledWith(mockLoan);
       expect(result).toEqual(mockLoan);
@@ -116,6 +116,39 @@ describe('LoansService', (): void => {
       await expect(
         service.create({ copy_id: 1, user_id: 1, due_date: '2026-04-15' })
       ).rejects.toThrow(ConflictException);
+    });
+
+    it('should convert unique-violation from save into ConflictException', async (): Promise<void> => {
+      mockItemCopyRepository.findOneBy.mockResolvedValue(mockItemCopy);
+      mockLoanRepository.findOneBy.mockResolvedValue(null);
+      mockLoanRepository.create.mockReturnValue(mockLoan);
+
+      const driverError = Object.assign(new Error('UNIQUE constraint failed'), {
+        code: 'SQLITE_CONSTRAINT',
+      });
+      const queryError = new QueryFailedError(
+        'INSERT INTO loan',
+        [],
+        driverError
+      );
+      mockLoanRepository.save.mockRejectedValue(queryError);
+
+      await expect(
+        service.create({ copy_id: 1, user_id: 1, due_date: '2026-04-15' })
+      ).rejects.toThrow(ConflictException);
+    });
+
+    it('should rethrow non-unique-violation errors from save unchanged', async (): Promise<void> => {
+      mockItemCopyRepository.findOneBy.mockResolvedValue(mockItemCopy);
+      mockLoanRepository.findOneBy.mockResolvedValue(null);
+      mockLoanRepository.create.mockReturnValue(mockLoan);
+
+      const unexpected = new Error('boom');
+      mockLoanRepository.save.mockRejectedValue(unexpected);
+
+      await expect(
+        service.create({ copy_id: 1, user_id: 1, due_date: '2026-04-15' })
+      ).rejects.toBe(unexpected);
     });
   });
 
