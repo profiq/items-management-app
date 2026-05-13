@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import request, { Response } from 'supertest';
-import { INestApplication } from '@nestjs/common';
+import { ExecutionContext, INestApplication } from '@nestjs/common';
 import { App } from 'supertest/types';
 import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
@@ -30,6 +30,12 @@ import { TimeDuration } from '@/lib/time';
 import { buildDecodedToken, setupAuth } from './auth';
 import { dbConfig } from './database';
 
+const mockFirebaseUser = buildDecodedToken(
+  'emp1',
+  'user@profiq.com',
+  'firebase-user'
+);
+
 describe('LoansModule (e2e)', (): void => {
   let app: INestApplication<App>;
   let copyId: number;
@@ -53,7 +59,15 @@ describe('LoansModule (e2e)', (): void => {
       ],
     })
       .overrideGuard(AuthGuard)
-      .useValue({ canActivate: () => true })
+      .useValue({
+        canActivate: (context: ExecutionContext) => {
+          const req = context
+            .switchToHttp()
+            .getRequest<Record<string, unknown>>();
+          req['firebaseUser'] = mockFirebaseUser;
+          return true;
+        },
+      })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
       .compile();
@@ -285,49 +299,49 @@ describe('LoansModule auth (e2e)', (): void => {
   });
 
   describe('unauthenticated access', (): void => {
-    it('GET /loans returns 403 without token', (): Promise<void> => {
-      return request(app.getHttpServer())
+    it('GET /loans returns 403 without token', async (): Promise<void> => {
+      await request(app.getHttpServer())
         .get('/loans')
         .expect(StatusCodes.FORBIDDEN);
     });
 
-    it('GET /loans/:id returns 403 without token', (): Promise<void> => {
-      return request(app.getHttpServer())
+    it('GET /loans/:id returns 403 without token', async (): Promise<void> => {
+      await request(app.getHttpServer())
         .get('/loans/1')
         .expect(StatusCodes.FORBIDDEN);
     });
 
-    it('POST /loans returns 403 without token', (): Promise<void> => {
-      return request(app.getHttpServer())
+    it('POST /loans returns 403 without token', async (): Promise<void> => {
+      await request(app.getHttpServer())
         .post('/loans')
         .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' })
         .expect(StatusCodes.FORBIDDEN);
     });
 
-    it('PATCH /loans/:id returns 403 without token', (): Promise<void> => {
-      return request(app.getHttpServer())
+    it('PATCH /loans/:id returns 403 without token', async (): Promise<void> => {
+      await request(app.getHttpServer())
         .patch('/loans/1')
         .send({ returned_at: new Date().toISOString() })
         .expect(StatusCodes.FORBIDDEN);
     });
 
-    it('DELETE /loans/:id returns 403 without token', (): Promise<void> => {
-      return request(app.getHttpServer())
+    it('DELETE /loans/:id returns 403 without token', async (): Promise<void> => {
+      await request(app.getHttpServer())
         .delete('/loans/1')
         .expect(StatusCodes.FORBIDDEN);
     });
   });
 
   describe('wrong domain token', (): void => {
-    it('GET /loans returns 403 for non-profiq.com token', (): Promise<void> => {
-      return request(app.getHttpServer())
+    it('GET /loans returns 403 for non-profiq.com token', async (): Promise<void> => {
+      await request(app.getHttpServer())
         .get('/loans')
         .set('Authorization', `Bearer ${invalidToken}`)
         .expect(StatusCodes.FORBIDDEN);
     });
 
-    it('POST /loans returns 403 for non-profiq.com token', (): Promise<void> => {
-      return request(app.getHttpServer())
+    it('POST /loans returns 403 for non-profiq.com token', async (): Promise<void> => {
+      await request(app.getHttpServer())
         .post('/loans')
         .set('Authorization', `Bearer ${invalidToken}`)
         .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' })
@@ -344,7 +358,7 @@ describe('LoansModule auth (e2e)', (): void => {
       loan.returned_by_user_id = null;
       const created = await dataSource.manager.save(loan);
 
-      return request(app.getHttpServer())
+      await request(app.getHttpServer())
         .patch(`/loans/${created.id}`)
         .set('Authorization', `Bearer ${invalidToken}`)
         .send({
@@ -364,7 +378,7 @@ describe('LoansModule auth (e2e)', (): void => {
       loan.returned_by_user_id = null;
       const created = await dataSource.manager.save(loan);
 
-      return request(app.getHttpServer())
+      await request(app.getHttpServer())
         .delete(`/loans/${created.id}`)
         .set('Authorization', `Bearer ${invalidToken}`)
         .expect(StatusCodes.FORBIDDEN);
@@ -372,38 +386,44 @@ describe('LoansModule auth (e2e)', (): void => {
   });
 
   describe('authenticated non-admin access', (): void => {
-    it('GET /loans returns 200 for authenticated non-admin', (): Promise<void> => {
-      return request(app.getHttpServer())
+    beforeEach((): void => {
+      jest
+        .spyOn(authService, 'verifyToken')
+        .mockResolvedValue(mockFirebaseUser);
+    });
+
+    it('GET /loans returns 200 for authenticated non-admin', async (): Promise<void> => {
+      await request(app.getHttpServer())
         .get('/loans')
         .set('Authorization', `Bearer ${validToken}`)
         .expect(StatusCodes.OK);
     });
 
-    it('GET /loans/:id returns 404 for authenticated non-admin (loan does not exist)', (): Promise<void> => {
-      return request(app.getHttpServer())
+    it('GET /loans/:id returns 404 for authenticated non-admin (loan does not exist)', async (): Promise<void> => {
+      await request(app.getHttpServer())
         .get('/loans/9999')
         .set('Authorization', `Bearer ${validToken}`)
         .expect(StatusCodes.NOT_FOUND);
     });
 
-    it('POST /loans returns 403 for authenticated non-admin', (): Promise<void> => {
-      return request(app.getHttpServer())
+    it('POST /loans returns 403 for authenticated non-admin', async (): Promise<void> => {
+      await request(app.getHttpServer())
         .post('/loans')
         .set('Authorization', `Bearer ${validToken}`)
         .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' })
         .expect(StatusCodes.FORBIDDEN);
     });
 
-    it('PATCH /loans/:id returns 403 for authenticated non-admin', (): Promise<void> => {
-      return request(app.getHttpServer())
+    it('PATCH /loans/:id returns 403 for authenticated non-admin', async (): Promise<void> => {
+      await request(app.getHttpServer())
         .patch('/loans/1')
         .set('Authorization', `Bearer ${validToken}`)
         .send({ returned_at: new Date().toISOString() })
         .expect(StatusCodes.FORBIDDEN);
     });
 
-    it('DELETE /loans/:id returns 403 for authenticated non-admin', (): Promise<void> => {
-      return request(app.getHttpServer())
+    it('DELETE /loans/:id returns 403 for authenticated non-admin', async (): Promise<void> => {
+      await request(app.getHttpServer())
         .delete('/loans/1')
         .set('Authorization', `Bearer ${validToken}`)
         .expect(StatusCodes.FORBIDDEN);
@@ -422,8 +442,8 @@ describe('LoansModule auth (e2e)', (): void => {
         );
     });
 
-    it('POST /loans returns 201 for admin', (): Promise<void> => {
-      return request(app.getHttpServer())
+    it('POST /loans returns 201 for admin', async (): Promise<void> => {
+      await request(app.getHttpServer())
         .post('/loans')
         .set('Authorization', `Bearer ${validToken}`)
         .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' })
@@ -437,7 +457,7 @@ describe('LoansModule auth (e2e)', (): void => {
         .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' });
       const loanId = (created.body as { id: number }).id;
 
-      return request(app.getHttpServer())
+      await request(app.getHttpServer())
         .patch(`/loans/${loanId}`)
         .set('Authorization', `Bearer ${validToken}`)
         .send({
@@ -454,7 +474,7 @@ describe('LoansModule auth (e2e)', (): void => {
         .send({ copy_id: copyId, user_id: userId, due_date: '2026-05-01' });
       const loanId = (created.body as { id: number }).id;
 
-      return request(app.getHttpServer())
+      await request(app.getHttpServer())
         .delete(`/loans/${loanId}`)
         .set('Authorization', `Bearer ${validToken}`)
         .expect(StatusCodes.OK);

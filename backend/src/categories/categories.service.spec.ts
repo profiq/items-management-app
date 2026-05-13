@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { CategoriesService } from './categories.service';
 import { Category } from './entities/category.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
@@ -66,12 +66,14 @@ describe('CategoriesService', (): void => {
   });
 
   describe('findAll', (): void => {
-    it('should return all categories', async (): Promise<void> => {
+    it('should return active categories', async (): Promise<void> => {
       mockRepository.find.mockResolvedValue([mockCategory]);
 
       const result: Category[] = await service.findAll();
 
-      expect(mockRepository.find).toHaveBeenCalled();
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: { archived_at: IsNull() },
+      });
       expect(result).toEqual([mockCategory]);
     });
 
@@ -90,7 +92,10 @@ describe('CategoriesService', (): void => {
 
       const result: Category = await service.findOne(1);
 
-      expect(mockRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(mockRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        archived_at: IsNull(),
+      });
       expect(result).toEqual(mockCategory);
     });
 
@@ -124,13 +129,19 @@ describe('CategoriesService', (): void => {
   });
 
   describe('remove', (): void => {
-    it('should remove the category', async (): Promise<void> => {
+    it('should archive the category', async (): Promise<void> => {
       mockRepository.findOneBy.mockResolvedValue(mockCategory);
-      mockRepository.remove.mockResolvedValue(mockCategory);
+      mockRepository.save.mockResolvedValue({
+        ...mockCategory,
+        archived_at: new Date(),
+      });
 
       await service.remove(1);
 
-      expect(mockRepository.remove).toHaveBeenCalledWith(mockCategory);
+      expect(mockRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ archived_at: expect.any(Date) as Date })
+      );
+      expect(mockRepository.remove).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when category does not exist', async (): Promise<void> => {

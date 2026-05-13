@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { Category } from './entities/category.entity';
 import { CreateCategoryDto } from './dto/create-category.dto';
 import { UpdateCategoryDto } from './dto/update-category.dto';
@@ -21,12 +21,13 @@ export class CategoriesService {
   }
 
   findAll(): Promise<Category[]> {
-    return this.categoryRepository.find();
+    return this.categoryRepository.find({ where: { archived_at: IsNull() } });
   }
 
   async findOne(id: number): Promise<Category> {
     const category: Category | null = await this.categoryRepository.findOneBy({
       id,
+      archived_at: IsNull(),
     });
     if (!category) {
       throw new NotFoundException(`Category #${id} not found`);
@@ -45,6 +46,7 @@ export class CategoriesService {
 
   async remove(id: number): Promise<void> {
     const category: Category = await this.findOne(id);
-    await this.categoryRepository.remove(category);
+    category.archived_at = new Date();
+    await this.categoryRepository.save(category);
   }
 }

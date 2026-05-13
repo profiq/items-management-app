@@ -1,7 +1,7 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { ForbiddenException } from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 import { UserService } from './user.service';
 import { User, UserRole } from './user.entity';
 import { EmployeeService } from '@/employee/employee.service';
@@ -11,39 +11,6 @@ const mockUser: User = {
   name: 'Test User',
   employee_id: 'google-workspace-uid',
   role: UserRole.User,
-};
-
-type UserTransactionManager = {
-  connection: {
-    driver: {
-      escape: (value: string) => string;
-    };
-  };
-  getRepository: (target: typeof User) => Repository<User>;
-};
-type UserTransaction = <T>(
-  callback: (manager: UserTransactionManager) => Promise<T>
-) => Promise<T>;
-
-const mockRepository: jest.Mocked<
-  Pick<
-    Repository<User>,
-    'count' | 'find' | 'findOne' | 'findOneBy' | 'save' | 'delete'
-  >
-> & {
-  manager: {
-    transaction: jest.MockedFunction<UserTransaction>;
-  };
-} = {
-  count: jest.fn(),
-  find: jest.fn(),
-  findOne: jest.fn(),
-  findOneBy: jest.fn(),
-  save: jest.fn(),
-  delete: jest.fn(),
-  manager: {
-    transaction: jest.fn() as jest.MockedFunction<UserTransaction>,
-  },
 };
 
 const mockAdminDeleteQueryBuilder = {
@@ -56,22 +23,41 @@ const mockAdminDeleteQueryBuilder = {
 };
 
 const mockTransactionalRepository = {
-  metadata: {
-    tableName: 'user',
-  },
+  metadata: { tableName: 'user' },
   findOne: jest.fn(),
   delete: jest.fn(),
   createQueryBuilder: jest.fn(),
 };
 
-const mockTransactionManager: UserTransactionManager = {
+const mockEntityManager = {
+  save: jest.fn(),
   connection: {
     driver: {
       escape: (value: string) => `"${value}"`,
     },
   },
-  getRepository: () =>
-    mockTransactionalRepository as unknown as Repository<User>,
+  getRepository: () => mockTransactionalRepository as unknown as Repository<User>,
+};
+
+const mockTransaction = jest.fn(
+  async (callback: (manager: typeof mockEntityManager) => Promise<unknown>) =>
+    callback(mockEntityManager)
+);
+
+const mockRepository: jest.Mocked<
+  Pick<
+    Repository<User>,
+    'find' | 'findOne' | 'findOneBy' | 'save' | 'delete' | 'manager'
+  >
+> = {
+  find: jest.fn(),
+  findOne: jest.fn(),
+  findOneBy: jest.fn(),
+  save: jest.fn(),
+  delete: jest.fn(),
+  manager: {
+    transaction: mockTransaction,
+  } as unknown as EntityManager,
 };
 
 const mockEmployeeService: jest.Mocked<Pick<EmployeeService, 'getEmployee'>> = {
@@ -92,26 +78,15 @@ describe('UserService', (): void => {
 
     service = module.get<UserService>(UserService);
     jest.clearAllMocks();
-    mockAdminDeleteQueryBuilder.delete.mockReturnValue(
-      mockAdminDeleteQueryBuilder
-    );
-    mockAdminDeleteQueryBuilder.from.mockReturnValue(
-      mockAdminDeleteQueryBuilder
-    );
-    mockAdminDeleteQueryBuilder.where.mockReturnValue(
-      mockAdminDeleteQueryBuilder
-    );
-    mockAdminDeleteQueryBuilder.andWhere.mockReturnValue(
-      mockAdminDeleteQueryBuilder
-    );
-    mockAdminDeleteQueryBuilder.setParameter.mockReturnValue(
-      mockAdminDeleteQueryBuilder
-    );
-    mockTransactionalRepository.createQueryBuilder.mockReturnValue(
-      mockAdminDeleteQueryBuilder
-    );
-    mockRepository.manager.transaction.mockImplementation(async callback =>
-      callback(mockTransactionManager)
+    mockAdminDeleteQueryBuilder.delete.mockReturnValue(mockAdminDeleteQueryBuilder);
+    mockAdminDeleteQueryBuilder.from.mockReturnValue(mockAdminDeleteQueryBuilder);
+    mockAdminDeleteQueryBuilder.where.mockReturnValue(mockAdminDeleteQueryBuilder);
+    mockAdminDeleteQueryBuilder.andWhere.mockReturnValue(mockAdminDeleteQueryBuilder);
+    mockAdminDeleteQueryBuilder.setParameter.mockReturnValue(mockAdminDeleteQueryBuilder);
+    mockTransactionalRepository.createQueryBuilder.mockReturnValue(mockAdminDeleteQueryBuilder);
+    mockTransaction.mockImplementation(
+      async (callback: (manager: typeof mockEntityManager) => Promise<unknown>) =>
+        callback(mockEntityManager)
     );
   });
 
@@ -132,6 +107,8 @@ describe('UserService', (): void => {
       expect(mockRepository.findOne).toHaveBeenCalledWith({
         where: { employee_id: 'google-workspace-uid' },
       });
+      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(mockEmployeeService.getEmployee).not.toHaveBeenCalled();
       expect(result).toBe(mockUser);
     });
 
@@ -153,13 +130,57 @@ describe('UserService', (): void => {
     });
   });
 
+  describe('findByGoogleWorkspaceToken', (): void => {
+    it('should return user without writing when google.com identity exists', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue(mockUser);
+      const token = {
+        uid: 'firebase-uid',
+        firebase: { identities: { 'google.com': ['google-workspace-uid'] } },
+      };
+
+      const result = await service.findByGoogleWorkspaceToken(token);
+
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
+        where: { employee_id: 'google-workspace-uid' },
+      });
+      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(mockEmployeeService.getEmployee).not.toHaveBeenCalled();
+      expect(result).toEqual({ user: mockUser });
+    });
+
+    it('should return not-in-directory when no local user exists', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue(null);
+      const token = {
+        uid: 'firebase-uid',
+        firebase: { identities: { 'google.com': ['google-workspace-uid'] } },
+      };
+
+      const result = await service.findByGoogleWorkspaceToken(token);
+
+      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(mockEmployeeService.getEmployee).not.toHaveBeenCalled();
+      expect(result).toEqual({ error: 'not-in-directory' });
+    });
+
+    it('should return no-google-identity when token has no google identity', async (): Promise<void> => {
+      const token = { uid: 'firebase-uid', firebase: { identities: {} } };
+
+      const result = await service.findByGoogleWorkspaceToken(token);
+
+      expect(mockRepository.findOne).not.toHaveBeenCalled();
+      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(mockEmployeeService.getEmployee).not.toHaveBeenCalled();
+      expect(result).toEqual({ error: 'no-google-identity' });
+    });
+  });
+
   describe('updateUserRole', (): void => {
     it('should update and return user with new role', async (): Promise<void> => {
       const updated: User = { ...mockUser, role: UserRole.Admin };
       mockRepository.findOne.mockResolvedValue({ ...mockUser });
       mockRepository.save.mockResolvedValue(updated);
 
-      const result = await service.updateUserRole(1, UserRole.Admin);
+      const result = await service.updateUserRole(1, UserRole.Admin, 2);
 
       expect(mockRepository.save).toHaveBeenCalledWith(
         expect.objectContaining({ role: UserRole.Admin })
@@ -170,15 +191,37 @@ describe('UserService', (): void => {
     it('should return null when user not found', async (): Promise<void> => {
       mockRepository.findOne.mockResolvedValue(null);
 
-      const result = await service.updateUserRole(99, UserRole.Admin);
+      const result = await service.updateUserRole(99, UserRole.Admin, 2);
 
       expect(mockRepository.save).not.toHaveBeenCalled();
       expect(result).toBeNull();
     });
   });
 
+  describe('saveUsers', (): void => {
+    it('should save all users in a single transaction', async (): Promise<void> => {
+      const users: User[] = [
+        { ...mockUser, name: 'Updated User' },
+        { ...mockUser, id: 2, employee_id: 'another-google-workspace-uid' },
+      ];
+
+      await service.saveUsers(users);
+
+      expect(mockTransaction).toHaveBeenCalledTimes(1);
+      expect(mockEntityManager.save).toHaveBeenCalledWith(User, users);
+      expect(mockRepository.save).not.toHaveBeenCalled();
+    });
+
+    it('should not open a transaction when there are no users to save', async (): Promise<void> => {
+      await service.saveUsers([]);
+
+      expect(mockTransaction).not.toHaveBeenCalled();
+      expect(mockEntityManager.save).not.toHaveBeenCalled();
+    });
+  });
+
   describe('deleteUser', (): void => {
-    it('should delete a non-current user', async (): Promise<void> => {
+    it('should delete a non-admin user', async (): Promise<void> => {
       mockTransactionalRepository.findOne.mockResolvedValue({
         ...mockUser,
         id: 2,
@@ -190,19 +233,15 @@ describe('UserService', (): void => {
 
       const result = await service.deleteUser(2, 1);
 
-      expect(mockRepository.manager.transaction).toHaveBeenCalledTimes(1);
-      expect(mockTransactionalRepository.delete).toHaveBeenCalledWith({
-        id: 2,
-      });
+      expect(mockTransaction).toHaveBeenCalledTimes(1);
+      expect(mockTransactionalRepository.delete).toHaveBeenCalledWith({ id: 2 });
       expect(result).toBe(true);
     });
 
     it('should throw ForbiddenException when deleting yourself', async (): Promise<void> => {
-      await expect(service.deleteUser(1, 1)).rejects.toThrow(
-        ForbiddenException
-      );
+      await expect(service.deleteUser(1, 1)).rejects.toThrow(ForbiddenException);
 
-      expect(mockRepository.manager.transaction).not.toHaveBeenCalled();
+      expect(mockTransaction).not.toHaveBeenCalled();
       expect(mockTransactionalRepository.delete).not.toHaveBeenCalled();
     });
 
@@ -217,9 +256,7 @@ describe('UserService', (): void => {
         raw: {},
       });
 
-      await expect(service.deleteUser(1, 2)).rejects.toThrow(
-        ForbiddenException
-      );
+      await expect(service.deleteUser(1, 2)).rejects.toThrow(ForbiddenException);
 
       expect(mockTransactionalRepository.delete).not.toHaveBeenCalled();
       expect(mockAdminDeleteQueryBuilder.execute).toHaveBeenCalledTimes(1);

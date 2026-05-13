@@ -4,6 +4,9 @@ import { IEmployee } from './interfaces/employee.interface';
 import { ApiBearerAuth, ApiOkResponse } from '@nestjs/swagger';
 import { EmployeeResponse } from './dto/employee.dto';
 import { AuthGuard } from '@/auth/auth.guard';
+import { RolesGuard } from '@/auth/roles.guard';
+import { Roles } from '@/auth/roles.decorator';
+import { UserRole } from '@/user/user.entity';
 
 @Controller('employees')
 @ApiBearerAuth()
@@ -29,6 +32,8 @@ export class EmployeeController {
   }
 
   @Post('sync')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.Admin)
   syncEmployees() {
     return this.employeeService.syncEmployeeNames();
   }
