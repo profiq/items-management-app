@@ -214,7 +214,7 @@ describe('UserModule', () => {
       .set('Authorization', `Bearer ${validToken}`)
       .send({ name: 'Mallory', workspace_id: '99' });
 
-    expect(res.status).not.toBe(StatusCodes.FORBIDDEN);
+    expect(res.status).toBe(StatusCodes.BAD_REQUEST);
   });
 
   it('/users/:id (DELETE) (Admin)', async () => {
