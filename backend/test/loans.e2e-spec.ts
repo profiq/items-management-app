@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import request, { Response } from 'supertest';
-import { INestApplication } from '@nestjs/common';
+import { ExecutionContext, INestApplication } from '@nestjs/common';
 import { App } from 'supertest/types';
 import { getDataSourceToken, TypeOrmModule } from '@nestjs/typeorm';
 import { DataSource } from 'typeorm';
@@ -30,6 +30,12 @@ import { TimeDuration } from '@/lib/time';
 import { buildDecodedToken, setupAuth } from './auth';
 import { dbConfig } from './database';
 
+const mockFirebaseUser = buildDecodedToken(
+  'emp1',
+  'user@profiq.com',
+  'firebase-user'
+);
+
 describe('LoansModule (e2e)', (): void => {
   let app: INestApplication<App>;
   let copyId: number;
@@ -53,7 +59,15 @@ describe('LoansModule (e2e)', (): void => {
       ],
     })
       .overrideGuard(AuthGuard)
-      .useValue({ canActivate: () => true })
+      .useValue({
+        canActivate: (context: ExecutionContext) => {
+          const req = context
+            .switchToHttp()
+            .getRequest<Record<string, unknown>>();
+          req['firebaseUser'] = mockFirebaseUser;
+          return true;
+        },
+      })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
       .compile();
@@ -388,6 +402,12 @@ describe('LoansModule auth (e2e)', (): void => {
   });
 
   describe('authenticated non-admin access', (): void => {
+    beforeEach((): void => {
+      jest
+        .spyOn(authService, 'verifyToken')
+        .mockResolvedValue(mockFirebaseUser);
+    });
+
     it('GET /loans returns 200 for authenticated non-admin', async (): Promise<void> => {
       await request(app.getHttpServer())
         .get('/loans')

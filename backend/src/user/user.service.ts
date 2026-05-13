@@ -77,6 +77,21 @@ export class UserService {
     return this.getUserByEmployeeId(googleUid);
   }
 
+  async findByGoogleWorkspaceToken(token: {
+    uid: string;
+    firebase?: { identities?: Record<string, unknown> };
+  }): Promise<UpsertResult> {
+    const googleUid = this.extractGoogleUid(token);
+    if (!googleUid) {
+      return { error: 'no-google-identity' };
+    }
+    const user = await this.getUserByEmployeeId(googleUid);
+    if (!user) {
+      return { error: 'not-in-directory' };
+    }
+    return { user };
+  }
+
   async upsertByGoogleWorkspaceToken(token: {
     uid: string;
     firebase?: { identities?: Record<string, unknown> };
@@ -143,6 +158,15 @@ export class UserService {
 
   async saveUser(user: User) {
     await this.userRepository.save(user);
+  }
+
+  async saveUsers(users: User[]): Promise<void> {
+    if (users.length === 0) {
+      return;
+    }
+    await this.userRepository.manager.transaction(async manager => {
+      await manager.save(User, users);
+    });
   }
 
   async deleteUser(id: number): Promise<boolean> {

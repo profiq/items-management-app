@@ -11,6 +11,7 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard } from './auth.guard';
+import { AuthService } from './auth.service';
 import { UserService } from '@/user/user.service';
 import { UserResponseDto } from '@/user/dto/user_response.dto';
 import type { DecodedIdToken } from 'firebase-admin/auth';
@@ -36,7 +37,10 @@ function toUserResponseDto(user: {
 @ApiBearerAuth()
 @UseGuards(AuthGuard)
 export class AuthController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly authService: AuthService
+  ) {}
 
   @Post('login')
   @HttpCode(HttpStatus.OK)
@@ -59,14 +63,14 @@ export class AuthController {
   @Post('logout')
   @HttpCode(HttpStatus.OK)
   @ApiOkResponse()
-  logout(): void {
-    // Firebase tokens are stateless - invalidation happens on the client
+  async logout(@Req() req: FirebaseRequest): Promise<void> {
+    await this.authService.revokeRefreshTokens(req.firebaseUser.uid);
   }
 
   @Get('me')
   @ApiOkResponse({ type: UserResponseDto })
   async getMe(@Req() req: FirebaseRequest): Promise<UserResponseDto> {
-    const result = await this.userService.upsertByGoogleWorkspaceToken(
+    const result = await this.userService.findByGoogleWorkspaceToken(
       req.firebaseUser
     );
     if ('error' in result) {

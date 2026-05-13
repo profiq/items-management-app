@@ -1,11 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { LocationsService } from './locations.service';
 import { Location } from './entities/location.entity';
 import { CreateLocationDto } from './dto/create-location.dto';
 import { UpdateLocationDto } from './dto/update-location.dto';
+import { City } from '@/cities/entities/city.entity';
 
 const mockCity = { id: 1, name: 'Prague', archived_at: null };
 
@@ -30,6 +31,10 @@ const mockRepository: jest.Mocked<
   remove: jest.fn(),
 };
 
+const mockCityRepository: jest.Mocked<Pick<Repository<City>, 'findOneBy'>> = {
+  findOneBy: jest.fn(),
+};
+
 describe('LocationsService', (): void => {
   let service: LocationsService;
 
@@ -41,6 +46,10 @@ describe('LocationsService', (): void => {
           provide: getRepositoryToken(Location),
           useValue: mockRepository,
         },
+        {
+          provide: getRepositoryToken(City),
+          useValue: mockCityRepository,
+        },
       ],
     }).compile();
 
@@ -51,11 +60,16 @@ describe('LocationsService', (): void => {
   describe('create', (): void => {
     it('should create and return a location', async (): Promise<void> => {
       const dto: CreateLocationDto = { name: 'Central Library', city_id: 1 };
+      mockCityRepository.findOneBy.mockResolvedValue(mockCity);
       mockRepository.create.mockReturnValue(mockLocation);
       mockRepository.save.mockResolvedValue(mockLocation);
 
       const result: Location = await service.create(dto);
 
+      expect(mockCityRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        archived_at: IsNull(),
+      });
       expect(mockRepository.create).toHaveBeenCalledWith({
         name: 'Central Library',
         city_id: 1,
@@ -64,16 +78,26 @@ describe('LocationsService', (): void => {
       expect(mockRepository.save).toHaveBeenCalledWith(mockLocation);
       expect(result).toEqual(mockLocation);
     });
+
+    it('should reject archived or missing city', async (): Promise<void> => {
+      mockCityRepository.findOneBy.mockResolvedValue(null);
+
+      await expect(
+        service.create({ name: 'Central Library', city_id: 99 })
+      ).rejects.toThrow(NotFoundException);
+    });
   });
 
   describe('findAll', (): void => {
-    it('should return all locations', async (): Promise<void> => {
+    it('should return active locations', async (): Promise<void> => {
       const locations: Location[] = [mockLocation];
       mockRepository.find.mockResolvedValue(locations);
 
       const result: Location[] = await service.findAll();
 
-      expect(mockRepository.find).toHaveBeenCalled();
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: { archived_at: IsNull() },
+      });
       expect(result).toEqual(locations);
     });
 
@@ -92,7 +116,10 @@ describe('LocationsService', (): void => {
 
       const result: Location = await service.findOne(1);
 
-      expect(mockRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(mockRepository.findOneBy).toHaveBeenCalledWith({
+        id: 1,
+        archived_at: IsNull(),
+      });
       expect(result).toEqual(mockLocation);
     });
 
@@ -122,6 +149,15 @@ describe('LocationsService', (): void => {
       expect(result).toEqual(updated);
     });
 
+    it('should reject archived or missing city on city reassignment', async (): Promise<void> => {
+      mockRepository.findOneBy.mockResolvedValue(mockLocation);
+      mockCityRepository.findOneBy.mockResolvedValue(null);
+
+      await expect(service.update(1, { city_id: 99 })).rejects.toThrow(
+        NotFoundException
+      );
+    });
+
     it('should throw NotFoundException when location does not exist', async (): Promise<void> => {
       mockRepository.findOneBy.mockResolvedValue(null);
 
@@ -132,13 +168,19 @@ describe('LocationsService', (): void => {
   });
 
   describe('remove', (): void => {
-    it('should remove the location', async (): Promise<void> => {
+    it('should archive the location', async (): Promise<void> => {
       mockRepository.findOneBy.mockResolvedValue(mockLocation);
-      mockRepository.remove.mockResolvedValue(mockLocation);
+      mockRepository.save.mockResolvedValue({
+        ...mockLocation,
+        archived_at: new Date(),
+      });
 
       await service.remove(1);
 
-      expect(mockRepository.remove).toHaveBeenCalledWith(mockLocation);
+      expect(mockRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ archived_at: expect.any(Date) as Date })
+      );
+      expect(mockRepository.remove).not.toHaveBeenCalled();
     });
 
     it('should throw NotFoundException when location does not exist', async (): Promise<void> => {
