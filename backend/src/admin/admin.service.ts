@@ -13,12 +13,6 @@ export class AdminService {
       { name: 'tags', label: 'Tagy', endpoint: '/admin/tags' },
       { name: 'locations', label: 'Lokace', endpoint: '/admin/locations' },
       { name: 'items', label: 'Položky', endpoint: '/admin/items' },
-      { name: 'loans', label: 'Půjčky', endpoint: '/loans' },
-      {
-        name: 'email-notifications',
-        label: 'Email notifikace',
-        endpoint: '/email-notifications',
-      },
     ];
   }
 }

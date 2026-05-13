@@ -12,19 +12,19 @@ export class EmployeeService {
     private userService: UserService
   ) {}
 
-  private async getAdmin(): Promise<admin_directory_v1.Admin> {
+  private getAdmin(): admin_directory_v1.Admin {
     const jwtAuth = new google.auth.JWT({
       scopes: ['https://www.googleapis.com/auth/admin.directory.user.readonly'],
       email: this.configService.get<string>('google.client_email'),
       key: this.configService.get<string>('google.private_key'),
       subject: 'admin@profiq.com',
     });
-    const admin = google.admin({ version: 'directory_v1', auth: jwtAuth });
-    return admin;
+
+    return google.admin({ version: 'directory_v1', auth: jwtAuth });
   }
 
   async getEmployees(): Promise<IEmployee[]> {
-    const admin = await this.getAdmin();
+    const admin = this.getAdmin();
     let pageToken: string | undefined;
 
     const employees: IEmployee[] = [];
@@ -56,7 +56,7 @@ export class EmployeeService {
   }
 
   async getEmployee(id: string): Promise<IEmployee | null> {
-    const admin = await this.getAdmin();
+    const admin = this.getAdmin();
 
     // viewType domain_public provides the public information,
     // for more Administrative info, set this to 'admin_view'
@@ -72,27 +72,37 @@ export class EmployeeService {
       if (!res.data.primaryEmail?.endsWith('@profiq.com')) {
         return null;
       }
-      const employee: IEmployee = {
+
+      return {
         id: res.data.id,
         email: res.data.primaryEmail || '',
         name: res.data.name?.fullName || '',
         photoUrl: res.data.thumbnailPhotoUrl || '',
       };
-      return employee;
     } catch {
       return null;
     }
   }
 
   async syncEmployeeNames() {
-    const users = await this.userService.getUsers();
-    for (const user of users) {
-      const employee = await this.getEmployee(user.employee_id);
+    const [users, employees] = await Promise.all([
+      this.userService.getUsers(),
+      this.getEmployees(),
+    ]);
+    const employeesById = new Map(
+      employees.map(employee => [employee.id, employee])
+    );
+    const usersToSave = users.filter(user => {
+      const employee = employeesById.get(user.employee_id);
       if (!employee) {
-        continue;
+        return false;
+      }
+      if (user.name === employee.name) {
+        return false;
       }
       user.name = employee.name;
-      this.userService.saveUser(user);
-    }
+      return true;
+    });
+    await this.userService.saveUsers(usersToSave);
   }
 }

@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { City } from './entities/city.entity';
 import { CreateCityDto } from './dto/create-city.dto';
 import { UpdateCityDto } from './dto/update-city.dto';
@@ -21,11 +21,14 @@ export class CitiesService {
   }
 
   findAll(): Promise<City[]> {
-    return this.cityRepository.find();
+    return this.cityRepository.find({ where: { archived_at: IsNull() } });
   }
 
   async findOne(id: number): Promise<City> {
-    const city: City | null = await this.cityRepository.findOneBy({ id });
+    const city: City | null = await this.cityRepository.findOneBy({
+      id,
+      archived_at: IsNull(),
+    });
     if (!city) {
       throw new NotFoundException(`City #${id} not found`);
     }
@@ -40,6 +43,7 @@ export class CitiesService {
 
   async remove(id: number): Promise<void> {
     const city: City = await this.findOne(id);
-    await this.cityRepository.remove(city);
+    city.archived_at = new Date();
+    await this.cityRepository.save(city);
   }
 }

@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { AuthController } from './auth.controller';
 import { AuthGuard } from './auth.guard';
+import { AuthService } from './auth.service';
 import { UserService, UpsertResult } from '@/user/user.service';
 import { User, UserRole } from '@/user/user.entity';
 import type { DecodedIdToken } from 'firebase-admin/auth';
@@ -21,9 +22,17 @@ const mockFirebaseToken = {
 } as unknown as DecodedIdToken;
 
 const mockUserService: jest.Mocked<
-  Pick<UserService, 'upsertByGoogleWorkspaceToken'>
+  Pick<
+    UserService,
+    'upsertByGoogleWorkspaceToken' | 'findByGoogleWorkspaceToken'
+  >
 > = {
   upsertByGoogleWorkspaceToken: jest.fn(),
+  findByGoogleWorkspaceToken: jest.fn(),
+};
+
+const mockAuthService: jest.Mocked<Pick<AuthService, 'revokeRefreshTokens'>> = {
+  revokeRefreshTokens: jest.fn(),
 };
 
 describe('AuthController', (): void => {
@@ -32,7 +41,10 @@ describe('AuthController', (): void => {
   beforeEach(async (): Promise<void> => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AuthController],
-      providers: [{ provide: UserService, useValue: mockUserService }],
+      providers: [
+        { provide: UserService, useValue: mockUserService },
+        { provide: AuthService, useValue: mockAuthService },
+      ],
     })
       .overrideGuard(AuthGuard)
       .useValue({ canActivate: () => true })
@@ -85,23 +97,32 @@ describe('AuthController', (): void => {
   });
 
   describe('logout', (): void => {
-    it('should not throw', (): void => {
-      expect(() => controller.logout()).not.toThrow();
+    it('should revoke the current user refresh tokens', async (): Promise<void> => {
+      mockAuthService.revokeRefreshTokens.mockResolvedValue();
+
+      await controller.logout({ firebaseUser: mockFirebaseToken });
+
+      expect(mockAuthService.revokeRefreshTokens).toHaveBeenCalledWith(
+        mockFirebaseToken.uid
+      );
     });
   });
 
   describe('getMe', (): void => {
     it('should return user response dto when found', async (): Promise<void> => {
       const result: UpsertResult = { user: mockUser };
-      mockUserService.upsertByGoogleWorkspaceToken.mockResolvedValue(result);
+      mockUserService.findByGoogleWorkspaceToken.mockResolvedValue(result);
 
       const response = await controller.getMe({
         firebaseUser: mockFirebaseToken,
       });
 
-      expect(mockUserService.upsertByGoogleWorkspaceToken).toHaveBeenCalledWith(
+      expect(mockUserService.findByGoogleWorkspaceToken).toHaveBeenCalledWith(
         mockFirebaseToken
       );
+      expect(
+        mockUserService.upsertByGoogleWorkspaceToken
+      ).not.toHaveBeenCalled();
       expect(response).toEqual({
         id: 1,
         name: 'Test User',
@@ -111,7 +132,7 @@ describe('AuthController', (): void => {
 
     it('should throw NotFoundException when user not in directory', async (): Promise<void> => {
       const result: UpsertResult = { error: 'not-in-directory' };
-      mockUserService.upsertByGoogleWorkspaceToken.mockResolvedValue(result);
+      mockUserService.findByGoogleWorkspaceToken.mockResolvedValue(result);
 
       await expect(
         controller.getMe({ firebaseUser: mockFirebaseToken })
@@ -120,7 +141,7 @@ describe('AuthController', (): void => {
 
     it('should throw BadRequestException when token has no Google identity', async (): Promise<void> => {
       const result: UpsertResult = { error: 'no-google-identity' };
-      mockUserService.upsertByGoogleWorkspaceToken.mockResolvedValue(result);
+      mockUserService.findByGoogleWorkspaceToken.mockResolvedValue(result);
 
       await expect(
         controller.getMe({ firebaseUser: mockFirebaseToken })

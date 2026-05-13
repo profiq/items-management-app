@@ -36,3 +36,14 @@ export async function getMe(user: User): Promise<DbUser> {
   }
   return result.data;
 }
+
+export async function logoutFromBackend(user: User): Promise<void> {
+  const client = new APIClient(user);
+  const result: APIResponse<void> = await client.fetch(
+    HttpMethod.Post,
+    '/auth/logout'
+  );
+  if (!result.success) {
+    throw createError(result.status_code, result.error.message);
+  }
+}
