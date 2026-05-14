@@ -1,6 +1,11 @@
 import { FirebaseService } from '@/firebase/firebase.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { Auth } from 'firebase-admin/auth';
+
+const unauthorizedFirebaseTokenErrorCodes = new Set([
+  'auth/id-token-expired',
+  'auth/id-token-revoked',
+]);
 
 @Injectable()
 export class AuthService {
@@ -19,7 +24,10 @@ export class AuthService {
     }
     try {
       return await this.getAuthApp().verifyIdToken(idToken, true);
-    } catch {
+    } catch (error) {
+      if (isUnauthorizedFirebaseTokenError(error)) {
+        throw new UnauthorizedException('Expired or revoked Firebase ID token');
+      }
       return { email: undefined };
     }
   }
@@ -27,4 +35,14 @@ export class AuthService {
   async revokeRefreshTokens(uid: string): Promise<void> {
     await this.getAuthApp().revokeRefreshTokens(uid);
   }
+}
+
+function isUnauthorizedFirebaseTokenError(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    typeof error.code === 'string' &&
+    unauthorizedFirebaseTokenErrorCodes.has(error.code)
+  );
 }
