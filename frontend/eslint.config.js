@@ -35,7 +35,11 @@ export default defineConfig([
         {
           patterns: [
             {
-              group: ['@/components/ui/*', '../components/ui/*'],
+              group: [
+                '@/components/ui/*',
+                '../components/ui/*',
+                '@profiq/ui/components/*',
+              ],
               message:
                 'Auth and admin UI must import Profiq UI components from @profiq/ui.',
             },
