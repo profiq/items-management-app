@@ -1,11 +1,5 @@
 import { HoverInfo } from '@/components/hover-info';
-import { Button } from '@profiq/ui/components/ui/form';
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-  Skeleton,
-} from '@profiq/ui/components/ui/feedback';
+import { Alert, Button, Text } from '@profiq/ui';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router';
@@ -43,7 +37,7 @@ function Login() {
         className='flex justify-center p-8'
         aria-busy='true'
       >
-        <Skeleton className='h-9 w-40 rounded-md' />
+        <div className='h-9 w-40 animate-pulse rounded-md bg-muted' />
         <span className='sr-only'>Loading</span>
       </div>
     );
@@ -63,7 +57,9 @@ function Login() {
               readmeSection={{ label: 'Auth', id: 'auth' }}
             />
           </div>
-          <h1 className='text-2xl font-semibold tracking-tight'>Login</h1>
+          <Text as='h1' size='2xl' weight='semibold'>
+            Login
+          </Text>
         </div>
         <Button
           className='w-full cursor-pointer'
@@ -75,14 +71,14 @@ function Login() {
           {signingIn ? 'Signing in...' : 'Login with Google'}
         </Button>
         {error && (
-          <Alert
-            variant='destructive'
-            className='mt-4'
-            data-testid='login-error'
-          >
-            <AlertTitle>Login failed</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
+          <div data-testid='login-error'>
+            <Alert
+              variant='destructive'
+              className='mt-4'
+              title='Login failed'
+              description={error}
+            />
+          </div>
         )}
       </section>
     );
@@ -101,11 +97,18 @@ function Login() {
             readmeSection={{ label: 'Auth', id: 'auth' }}
           />
         </div>
-        <h1 className='text-2xl font-semibold tracking-tight'>Logout</h1>
+        <Text as='h1' size='2xl' weight='semibold'>
+          Logout
+        </Text>
       </div>
-      <p className='text-sm text-muted-foreground' data-testid='logged-in-user'>
+      <Text
+        as='p'
+        size='sm'
+        className='text-muted-foreground'
+        dataTestId='logged-in-user'
+      >
         Logged in as {user.email}, {user.displayName}
-      </p>
+      </Text>
       <Button
         className='mt-3 w-full cursor-pointer'
         variant='outline'

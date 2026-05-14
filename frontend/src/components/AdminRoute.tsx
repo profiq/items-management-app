@@ -1,9 +1,5 @@
 import { useAuth } from '@/lib/providers/auth/useAuth';
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from '@profiq/ui/components/ui/feedback';
+import { Alert } from '@profiq/ui';
 import type { ReactNode } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router';
 
@@ -24,12 +20,11 @@ function AdminRoute({ children }: AdminRouteProps) {
   if (role !== 'admin') {
     return (
       <div className='mx-auto max-w-md p-8'>
-        <Alert variant='destructive'>
-          <AlertTitle>Access Denied</AlertTitle>
-          <AlertDescription>
-            You do not have permission to view this page.
-          </AlertDescription>
-        </Alert>
+        <Alert
+          variant='destructive'
+          title='Access Denied'
+          description='You do not have permission to view this page.'
+        />
       </div>
     );
   }

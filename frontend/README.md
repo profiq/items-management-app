@@ -24,13 +24,10 @@ Tailwind scans the package classes through `src/index.css`:
 @source "../node_modules/@profiq/ui/dist";
 ```
 
-Use grouped imports from the package domains, for example:
+Use component imports from the package entry point:
 
 ```ts
-import { Button, Input, Label } from '@profiq/ui/components/ui/form';
-import { Alert, Badge, Skeleton } from '@profiq/ui/components/ui/feedback';
-import { Table, TableBody, TableCell } from '@profiq/ui/components/ui/layout';
-import { NavigationMenu } from '@profiq/ui/components/ui/navigation';
+import { Alert, Button, NavigationMenu, Table, Text } from '@profiq/ui';
 ```
 
 See `../docs/profiq-ui-component-mapping.md` for the current shadcn-to-profiq-ui mapping and migration gaps.

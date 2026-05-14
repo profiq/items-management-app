@@ -1,8 +1,4 @@
-import {
-  HoverCard,
-  HoverCardContent,
-  HoverCardTrigger,
-} from '@profiq/ui/components/ui/display';
+import { HoverCard, Text } from '@profiq/ui';
 import { Info, type LucideProps } from 'lucide-react';
 import type { ForwardRefExoticComponent, RefAttributes } from 'react';
 import { Link } from 'react-router';
@@ -38,17 +34,21 @@ export function HoverInfo({
   testId = 'hover-info',
 }: HoverInfoProps) {
   return (
-    <HoverCard openDelay={10} closeDelay={50}>
-      <HoverCardTrigger asChild>
+    <HoverCard
+      openDelay={10}
+      closeDelay={50}
+      trigger={
         <Icon
           className={`${inline ? 'inline' : ''} size-${iconSize}`}
           data-testid={`${testId}-trigger`}
         />
-      </HoverCardTrigger>
-      <HoverCardContent data-testid={`${testId}-content`}>
-        <span data-testid={`${testId}-text`}>{text}</span>
-        {readmeSection && (
-          <>
+      }
+      content={
+        <div data-testid={`${testId}-content`}>
+          <Text as='span' dataTestId={`${testId}-text`}>
+            {text}
+          </Text>
+          {readmeSection && (
             <div>
               For more information visit{' '}
               <Link
@@ -63,9 +63,9 @@ export function HoverInfo({
                 README.md {readmeSection.label} section
               </Link>
             </div>
-          </>
-        )}
-      </HoverCardContent>
-    </HoverCard>
+          )}
+        </div>
+      }
+    />
   );
 }
