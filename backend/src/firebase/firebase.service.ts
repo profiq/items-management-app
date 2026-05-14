@@ -1,4 +1,4 @@
-import { UploadException } from '@/lib/errors';
+import { DeleteException, UploadException } from '@/lib/errors';
 import { Bucket, SaveData } from '@google-cloud/storage';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
@@ -32,7 +32,7 @@ export class FirebaseService {
   }
 
   getBucket(): Bucket {
-    return getStorage().bucket();
+    return getStorage(this.firebaseApp).bucket();
   }
 
   async upload(name: string, contents: SaveData): Promise<string> {
@@ -40,13 +40,25 @@ export class FirebaseService {
     try {
       await fileRef.save(contents);
       return await getDownloadURL(fileRef);
-    } catch {
-      throw new UploadException();
+    } catch (err: unknown) {
+      throw new UploadException({ cause: err });
     }
   }
 
-  async delete(name: string) {
+  async delete(name: string): Promise<void> {
     const fileRef = this.getBucket().file(name);
-    fileRef.delete();
+    try {
+      await fileRef.delete();
+    } catch (err: unknown) {
+      if (this.isStorageNotFoundError(err)) {
+        return;
+      }
+      throw new DeleteException({ cause: err });
+    }
+  }
+
+  private isStorageNotFoundError(err: unknown): boolean {
+    const { code } = err as { code?: unknown };
+    return code === 404 || code === '404';
   }
 }

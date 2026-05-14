@@ -6,10 +6,30 @@ import {
   UnprocessableEntityException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { IsNull, LessThan, MoreThanOrEqual, Not, Repository } from 'typeorm';
-import { Loan } from './entities/loan.entity';
+import {
+  IsNull,
+  LessThan,
+  MoreThanOrEqual,
+  Not,
+  QueryFailedError,
+  Repository,
+} from 'typeorm';
 import { ItemCopy } from '@/item-copies/entities/item-copy.entity';
 import { FindLoansQueryDto, LoanStatus } from './dto/find-loans-query.dto';
+import { Loan } from './entities/loan.entity';
+
+const UNIQUE_VIOLATION_CODES = new Set([
+  'SQLITE_CONSTRAINT',
+  'SQLITE_CONSTRAINT_UNIQUE',
+  'ER_DUP_ENTRY',
+  '23505',
+]);
+
+function isUniqueViolation(error: unknown): boolean {
+  if (!(error instanceof QueryFailedError)) return false;
+  const driver = error.driverError as { code?: string } | undefined;
+  return !!driver?.code && UNIQUE_VIOLATION_CODES.has(driver.code);
+}
 
 @Injectable()
 export class LoansService {
@@ -35,6 +55,7 @@ export class LoansService {
     if (copy.archived_at !== null) {
       throw new UnprocessableEntityException('Copy is archived');
     }
+
     const activeLoan = await this.loanRepository.findOne({
       where: { copy_id: copyId, returned_at: IsNull() },
     });
@@ -49,10 +70,14 @@ export class LoansService {
       returned_at: null,
       returned_by_user_id: null,
     });
+
     try {
       return await this.loanRepository.save(loan);
     } catch (error) {
-      if (this.isActiveLoanConstraintViolation(error)) {
+      if (
+        isUniqueViolation(error) ||
+        this.isActiveLoanConstraintViolation(error)
+      ) {
         throw new ConflictException('Copy is already on loan');
       }
       throw error;

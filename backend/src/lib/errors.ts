@@ -8,37 +8,29 @@ export class BaseUnknownException extends BaseCustomException {
   }
 }
 
-export class UnknownPetException extends BaseUnknownException {
-  constructor() {
-    super('pet');
-  }
-}
-
 export class UnknownUserException extends BaseUnknownException {
   constructor() {
     super('user');
   }
 }
 
-export class UnknownEmployeeException extends BaseUnknownException {
-  constructor() {
-    super('employee');
-  }
-}
-
-export class UnknownOwnerException extends BaseUnknownException {
-  constructor() {
-    super('owner');
-  }
-}
-
 export class BaseFirebaseException extends BaseCustomException {}
 
 export class UploadException extends BaseFirebaseException {
-  constructor() {
-    super();
-    this.message =
-      'Could not upload file to the bucket, please retry again later';
+  constructor(options?: ErrorOptions) {
+    super(
+      'Could not upload file to the bucket, please retry again later',
+      options
+    );
+  }
+}
+
+export class DeleteException extends BaseFirebaseException {
+  constructor(options?: ErrorOptions) {
+    super(
+      'Could not delete file from the bucket, please retry again later',
+      options
+    );
   }
 }
 
@@ -46,17 +38,5 @@ export class BaseUnknownRelatedException extends BaseCustomException {
   constructor(kind: string) {
     super();
     this.message = `The related ${kind} could not be found`;
-  }
-}
-
-export class RelatedOwnerException extends BaseUnknownRelatedException {
-  constructor() {
-    super('owner');
-  }
-}
-
-export class RelatedPetException extends BaseUnknownRelatedException {
-  constructor() {
-    super('pet');
   }
 }

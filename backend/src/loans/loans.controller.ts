@@ -10,14 +10,14 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import type { DecodedIdToken } from 'firebase-admin/auth';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import type { DecodedIdToken } from 'firebase-admin/auth';
 import { AuthGuard } from '@/auth/auth.guard';
-import { UserService } from '@/user/user.service';
 import { UnknownUserException } from '@/lib/errors';
-import { LoansService } from './loans.service';
+import { UserService } from '@/user/user.service';
 import { BorrowLoanDto } from './dto/borrow-loan.dto';
 import { Loan } from './entities/loan.entity';
+import { LoansService } from './loans.service';
 
 type FirebaseRequest = { firebaseUser: DecodedIdToken };
 
