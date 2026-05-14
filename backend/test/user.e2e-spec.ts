@@ -199,6 +199,31 @@ describe('UserModule', () => {
       ]);
   });
 
+  it('/users/:id (DELETE) (Admin self-delete)', async () => {
+    await dataSource.getRepository(User).update(1, { role: UserRole.Admin });
+    jest
+      .spyOn(authService, 'verifyToken')
+      .mockResolvedValue(
+        buildDecodedToken('1', 'admin@profiq.com', 'firebase-admin')
+      );
+
+    await request(app.getHttpServer())
+      .delete('/users/1')
+      .set('Authorization', `Bearer ${validToken}`)
+      .expect(StatusCodes.FORBIDDEN);
+
+    await request(app.getHttpServer())
+      .get('/users/1')
+      .set('Authorization', `Bearer ${validToken}`)
+      .expect(StatusCodes.OK)
+      .expect({
+        id: 1,
+        name: 'abcd abcd',
+        employee_id: '1',
+        role: UserRole.Admin,
+      });
+  });
+
   afterAll(async () => {
     if (app) {
       await app.close();

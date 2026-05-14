@@ -160,6 +160,43 @@ export class UserService {
     await this.userRepository.save(user);
   }
 
+  async deleteUser(id: number, currentUserId: number): Promise<boolean> {
+    if (id === currentUserId) {
+      throw new ForbiddenException('Cannot delete yourself');
+    }
+
+    return this.userRepository.manager.transaction(async manager => {
+      const userRepository = manager.getRepository(User);
+      const user = await userRepository.findOne({ where: { id } });
+      if (!user) {
+        return false;
+      }
+
+      if (user.role !== UserRole.Admin) {
+        const deleted = await userRepository.delete({ id });
+        return (deleted.affected ?? 0) > 0;
+      }
+
+      const userTable = manager.connection.driver.escape(
+        userRepository.metadata.tableName
+      );
+      const roleColumn = manager.connection.driver.escape('role');
+      const deleted = await userRepository
+        .createQueryBuilder()
+        .delete()
+        .from(User)
+        .where('id = :id', { id })
+        .andWhere(
+          `(SELECT COUNT(*) FROM ${userTable} WHERE ${roleColumn} = :adminRole) > 1`
+        )
+        .setParameter('adminRole', UserRole.Admin)
+        .execute();
+
+      if ((deleted.affected ?? 0) === 0) {
+        throw new ForbiddenException('Cannot delete the last admin');
+      }
+      return true;
+    });
   async saveUsers(users: User[]): Promise<void> {
     if (users.length === 0) {
       return;
