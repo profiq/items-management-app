@@ -107,7 +107,8 @@ function Login() {
         className='text-muted-foreground'
         dataTestId='logged-in-user'
       >
-        Logged in as {user.email}, {user.displayName}
+        Logged in as {user.email ?? 'unknown'},{' '}
+        {user.displayName ?? user.email ?? 'User'}
       </Text>
       <Button
         className='mt-3 w-full cursor-pointer'

@@ -86,11 +86,17 @@ export default function Admin() {
     dataQuery.data && dataQuery.data.length > 0
       ? createColumns(
           dataQuery.data[0],
-          item =>
-            deleteMutation.mutate({
-              endpoint: selectedTable!.endpoint,
-              id: item.id as number,
-            }),
+          item => {
+            const id =
+              typeof item.id === 'number' && Number.isFinite(item.id)
+                ? item.id
+                : Number(item.id);
+            if (!Number.isFinite(id)) {
+              toast.error('Nelze smazat: položka nemá platné ID');
+              return;
+            }
+            deleteMutation.mutate({ endpoint: selectedTable!.endpoint, id });
+          },
           deleteMutation.isPending
         )
       : [];
