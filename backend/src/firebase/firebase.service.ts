@@ -40,8 +40,8 @@ export class FirebaseService {
     try {
       await fileRef.save(contents);
       return await getDownloadURL(fileRef);
-    } catch {
-      throw new UploadException();
+    } catch (err: unknown) {
+      throw new UploadException({ cause: err });
     }
   }
 
@@ -49,8 +49,16 @@ export class FirebaseService {
     const fileRef = this.getBucket().file(name);
     try {
       await fileRef.delete();
-    } catch {
-      throw new DeleteException();
+    } catch (err: unknown) {
+      if (this.isStorageNotFoundError(err)) {
+        return;
+      }
+      throw new DeleteException({ cause: err });
     }
+  }
+
+  private isStorageNotFoundError(err: unknown): boolean {
+    const { code } = err as { code?: unknown };
+    return code === 404 || code === '404';
   }
 }

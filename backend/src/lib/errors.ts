@@ -17,18 +17,20 @@ export class UnknownUserException extends BaseUnknownException {
 export class BaseFirebaseException extends BaseCustomException {}
 
 export class UploadException extends BaseFirebaseException {
-  constructor() {
-    super();
-    this.message =
-      'Could not upload file to the bucket, please retry again later';
+  constructor(options?: ErrorOptions) {
+    super(
+      'Could not upload file to the bucket, please retry again later',
+      options
+    );
   }
 }
 
 export class DeleteException extends BaseFirebaseException {
-  constructor() {
-    super();
-    this.message =
-      'Could not delete file from the bucket, please retry again later';
+  constructor(options?: ErrorOptions) {
+    super(
+      'Could not delete file from the bucket, please retry again later',
+      options
+    );
   }
 }
 
