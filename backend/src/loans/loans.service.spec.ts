@@ -6,7 +6,7 @@ import { LoansService } from './loans.service';
 import { Loan } from './entities/loan.entity';
 import { ItemCopy } from '@/item-copies/entities/item-copy.entity';
 import { CreateLoanDto } from './dto/create-loan.dto';
-import { UpdateLoanDto } from './dto/update-loan.dto';
+import { ReturnLoanDto } from './dto/return-loan.dto';
 import { UserRole } from '@/user/user.entity';
 
 const mockLoan: Loan = {
@@ -192,14 +192,15 @@ describe('LoansService', (): void => {
 
   describe('update', (): void => {
     it('should mark loan as returned', async (): Promise<void> => {
-      const returnedAt = new Date('2026-04-10T12:00:00Z');
-      const dto: UpdateLoanDto = {
+      const returnedAt = '2026-04-10T12:00:00.000Z';
+      const returnedAtDate = new Date(returnedAt);
+      const dto: ReturnLoanDto = {
         returned_at: returnedAt,
         returned_by_user_id: 2,
       };
       const updated: Loan = {
         ...mockLoan,
-        returned_at: returnedAt,
+        returned_at: returnedAtDate,
         returned_by_user_id: 2,
       };
       mockLoanRepository.findOneBy.mockResolvedValue(mockLoan);
@@ -209,7 +210,7 @@ describe('LoansService', (): void => {
 
       expect(mockLoanRepository.save).toHaveBeenCalledWith({
         ...mockLoan,
-        returned_at: returnedAt,
+        returned_at: returnedAtDate,
         returned_by_user_id: 2,
       });
       expect(result).toEqual(updated);
@@ -219,7 +220,7 @@ describe('LoansService', (): void => {
       mockLoanRepository.findOneBy.mockResolvedValue(null);
 
       await expect(
-        service.update(99, { returned_at: new Date() })
+        service.update(99, { returned_at: '2026-04-10T12:00:00.000Z' })
       ).rejects.toThrow(NotFoundException);
     });
   });

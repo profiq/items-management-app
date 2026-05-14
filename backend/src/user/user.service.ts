@@ -197,6 +197,8 @@ export class UserService {
       }
       return true;
     });
+  }
+
   async saveUsers(users: User[]): Promise<void> {
     if (users.length === 0) {
       return;
@@ -204,10 +206,5 @@ export class UserService {
     await this.userRepository.manager.transaction(async manager => {
       await manager.save(User, users);
     });
-  }
-
-  async deleteUser(id: number): Promise<boolean> {
-    const deleted = await this.userRepository.delete({ id });
-    return (deleted.affected ?? 0) > 0;
   }
 }
