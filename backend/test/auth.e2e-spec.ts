@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
-import { INestApplication } from '@nestjs/common';
+import { INestApplication, UnauthorizedException } from '@nestjs/common';
 import { App } from 'supertest/types';
 import { AuthModule } from '@/auth/auth.module';
 import { AuthService } from '@/auth/auth.service';
@@ -34,7 +34,10 @@ describe('AuthModule', () => {
     invalidToken = authSetup.invalidToken;
   }, 30 * TimeDuration.Second);
 
-  const buildApp = async (user: User | null) => {
+  const buildApp = async (
+    user: User | null,
+    authServiceOverride: Pick<AuthService, 'verifyToken'> = authService
+  ) => {
     const mockUserService: jest.Mocked<
       Pick<
         UserService,
@@ -53,7 +56,7 @@ describe('AuthModule', () => {
       imports: [AuthModule, TypeOrmModule.forRoot(dbConfig)],
     })
       .overrideProvider(AuthService)
-      .useValue(authService)
+      .useValue(authServiceOverride)
       .overrideProvider(UserService)
       .useValue(mockUserService)
       .compile();
@@ -152,6 +155,23 @@ describe('AuthModule', () => {
       return request(app.getHttpServer())
         .get('/auth/me')
         .expect(StatusCodes.FORBIDDEN);
+    });
+
+    it('returns 401 for an expired token', async () => {
+      const expiredAuthService: jest.Mocked<Pick<AuthService, 'verifyToken'>> =
+        {
+          verifyToken: jest
+            .fn()
+            .mockRejectedValue(
+              new UnauthorizedException('Invalid or expired Firebase ID token')
+            ),
+        };
+      app = await buildApp(mockUser, expiredAuthService);
+
+      return request(app.getHttpServer())
+        .get('/auth/me')
+        .set('Authorization', 'Bearer expired-token')
+        .expect(StatusCodes.UNAUTHORIZED);
     });
   });
 

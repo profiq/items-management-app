@@ -2,14 +2,19 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   Column,
   Entity,
+  Index,
   JoinColumn,
   ManyToOne,
   PrimaryGeneratedColumn,
 } from 'typeorm';
-import { ItemCopy } from '../../item-copies/entities/item-copy.entity';
-import { User } from '../../user/user.entity';
+import { ItemCopy } from '@/item-copies/entities/item-copy.entity';
+import { User } from '@/user/user.entity';
 
 @Entity()
+@Index('IDX_loan_active_copy_unique', ['copy_id'], {
+  unique: true,
+  where: '"returned_at" IS NULL',
+})
 export class Loan {
   @PrimaryGeneratedColumn()
   @ApiProperty()

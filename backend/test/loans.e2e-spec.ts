@@ -124,6 +124,22 @@ describe('LoansModule (e2e)', (): void => {
           expect(body.returned_by_user_id).toBeNull();
         });
     });
+
+    it('should resolve concurrent creates for the same copy as one 201 and one 409', async (): Promise<void> => {
+      const body = {
+        copy_id: copyId,
+        user_id: userId,
+        due_date: '2026-05-01',
+      };
+      const responses: Response[] = await Promise.all([
+        request(app.getHttpServer()).post('/loans').send(body),
+        request(app.getHttpServer()).post('/loans').send(body),
+      ]);
+      const codes = responses
+        .map((r: Response): number => r.status)
+        .sort((a: number, b: number): number => a - b);
+      expect(codes).toEqual([StatusCodes.CREATED, StatusCodes.CONFLICT]);
+    });
   });
 
   describe('/loans (GET)', (): void => {

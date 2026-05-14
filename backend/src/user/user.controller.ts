@@ -62,6 +62,8 @@ export class UserController {
   }
 
   @Post()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.Admin)
   @ApiCreatedResponse({
     type: User,
   })
@@ -103,8 +105,17 @@ export class UserController {
   @UseGuards(RolesGuard)
   @Roles(UserRole.Admin)
   @ApiOkResponse()
-  async deleteUser(@Param('id', ParseIntPipe) id: number) {
-    const deleted = await this.userService.deleteUser(id);
+  async deleteUser(
+    @Req() req: FirebaseRequest,
+    @Param('id', ParseIntPipe) id: number
+  ) {
+    const currentUser = await this.userService.getUserByGoogleWorkspaceUid(
+      req.firebaseUser
+    );
+    if (!currentUser) {
+      throw new UnknownUserException();
+    }
+    const deleted = await this.userService.deleteUser(id, currentUser.id);
     if (!deleted) {
       throw new UnknownUserException();
     }

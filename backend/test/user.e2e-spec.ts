@@ -176,6 +176,47 @@ describe('UserModule', () => {
     });
   });
 
+  it('/users (POST) (Unauthenticated)', () => {
+    return request(app.getHttpServer())
+      .post('/users')
+      .send({ name: 'Mallory', workspace_id: '99' })
+      .expect(StatusCodes.FORBIDDEN);
+  });
+
+  it('/users (POST) (Wrong domain)', () => {
+    return request(app.getHttpServer())
+      .post('/users')
+      .set('Authorization', `Bearer ${invalidToken}`)
+      .send({ name: 'Mallory', workspace_id: '99' })
+      .expect(StatusCodes.FORBIDDEN);
+  });
+
+  it('/users (POST) (Non-admin)', async () => {
+    mockCurrentUser('1', 'user@profiq.com', 'firebase-user');
+
+    await request(app.getHttpServer())
+      .post('/users')
+      .set('Authorization', `Bearer ${validToken}`)
+      .send({ name: 'Mallory', workspace_id: '99' })
+      .expect(StatusCodes.FORBIDDEN);
+
+    await expect(
+      dataSource.getRepository(User).findOneBy({ employee_id: '99' })
+    ).resolves.toBeNull();
+  });
+
+  it('/users (POST) (Admin) passes role guard', async () => {
+    await dataSource.getRepository(User).update(1, { role: UserRole.Admin });
+    mockCurrentUser('1', 'admin@profiq.com', 'firebase-admin');
+
+    const res = await request(app.getHttpServer())
+      .post('/users')
+      .set('Authorization', `Bearer ${validToken}`)
+      .send({ name: 'Mallory', workspace_id: '99' });
+
+    expect(res.status).toBe(StatusCodes.BAD_REQUEST);
+  });
+
   it('/users/:id (DELETE) (Admin)', async () => {
     await dataSource.getRepository(User).update(1, { role: UserRole.Admin });
     mockCurrentUser('1', 'admin@profiq.com', 'firebase-admin');
@@ -197,6 +238,31 @@ describe('UserModule', () => {
           role: UserRole.Admin,
         },
       ]);
+  });
+
+  it('/users/:id (DELETE) (Admin self-delete)', async () => {
+    await dataSource.getRepository(User).update(1, { role: UserRole.Admin });
+    jest
+      .spyOn(authService, 'verifyToken')
+      .mockResolvedValue(
+        buildDecodedToken('1', 'admin@profiq.com', 'firebase-admin')
+      );
+
+    await request(app.getHttpServer())
+      .delete('/users/1')
+      .set('Authorization', `Bearer ${validToken}`)
+      .expect(StatusCodes.FORBIDDEN);
+
+    await request(app.getHttpServer())
+      .get('/users/1')
+      .set('Authorization', `Bearer ${validToken}`)
+      .expect(StatusCodes.OK)
+      .expect({
+        id: 1,
+        name: 'abcd abcd',
+        employee_id: '1',
+        role: UserRole.Admin,
+      });
   });
 
   afterAll(async () => {
