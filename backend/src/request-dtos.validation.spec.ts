@@ -4,8 +4,6 @@ import { ValidationPipe } from '@nestjs/common';
 import { CreateCategoryDto } from './categories/dto/create-category.dto';
 import { CreateCityDto } from './cities/dto/create-city.dto';
 import { CreateEmailNotificationDto } from './email-notifications/dto/create-email-notification.dto';
-import { CreateLoanDto } from './loans/dto/create-loan.dto';
-import { ReturnLoanDto } from './loans/dto/return-loan.dto';
 import { CreateLocationDto } from './locations/dto/create-location.dto';
 import { CreateTagDto } from './tags/dto/create-tag.dto';
 import { CreateUserRequest } from './user/dto/create_user';
@@ -29,34 +27,6 @@ describe('request DTO validation', (): void => {
     });
 
     expect(errors).not.toHaveLength(0);
-  });
-
-  it('rejects invalid loan payloads', (): void => {
-    const errors = validateDto(CreateLoanDto, {
-      copy_id: 0,
-      user_id: 'not-a-number',
-      due_date: 'not-a-date',
-    });
-
-    expect(errors).not.toHaveLength(0);
-  });
-
-  it('rejects invalid loan update payloads', (): void => {
-    const errors = validateDto(ReturnLoanDto, {
-      returned_at: 'not-a-date',
-      returned_by_user_id: 0,
-    });
-
-    expect(errors).not.toHaveLength(0);
-  });
-
-  it('allows null loan return fields for clearing return state', (): void => {
-    const errors = validateDto(ReturnLoanDto, {
-      returned_at: null,
-      returned_by_user_id: null,
-    });
-
-    expect(errors).toHaveLength(0);
   });
 
   it('rejects invalid email notification payloads', (): void => {

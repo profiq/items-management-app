@@ -1,30 +1,25 @@
 import {
-  Controller,
-  Get,
-  Post,
   Body,
-  Patch,
+  Controller,
+  ForbiddenException,
+  Get,
   Param,
-  Delete,
-  UseGuards,
+  ParseIntPipe,
+  Post,
+  Put,
   Req,
+  UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import { AuthGuard } from '@/auth/auth.guard';
-import { RolesGuard } from '@/auth/roles.guard';
-import { Roles } from '@/auth/roles.decorator';
-import { User, UserRole } from '@/user/user.entity';
-import { UserService } from '@/user/user.service';
 import { UnknownUserException } from '@/lib/errors';
-import { LoansService } from './loans.service';
-import { CreateLoanDto } from './dto/create-loan.dto';
-import { ReturnLoanDto } from './dto/return-loan.dto';
+import { UserService } from '@/user/user.service';
+import { BorrowLoanDto } from './dto/borrow-loan.dto';
 import { Loan } from './entities/loan.entity';
+import { LoansService } from './loans.service';
 
-type FirebaseRequest = {
-  firebaseUser: DecodedIdToken;
-};
+type FirebaseRequest = { firebaseUser: DecodedIdToken };
 
 @ApiTags('loans')
 @Controller('loans')
@@ -36,58 +31,40 @@ export class LoansController {
     private readonly userService: UserService
   ) {}
 
-  @Post()
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.Admin)
-  create(@Body() createLoanDto: CreateLoanDto): Promise<Loan> {
-    return this.loansService.create(createLoanDto);
-  }
-
-  @Get()
-  async findAll(@Req() req: FirebaseRequest): Promise<Loan[]> {
-    const currentUser = await this.getCurrentUserOrThrow(req);
-    if (currentUser.role === UserRole.Admin) {
-      return this.loansService.findAll();
-    }
-    return this.loansService.findAllForUser(currentUser.id);
-  }
-
-  @Get(':id')
-  async findOne(
-    @Req() req: FirebaseRequest,
-    @Param('id') id: string
-  ): Promise<Loan> {
-    const currentUser = await this.getCurrentUserOrThrow(req);
-    if (currentUser.role === UserRole.Admin) {
-      return this.loansService.findOne(+id);
-    }
-    return this.loansService.findOneForUser(+id, currentUser.id);
-  }
-
-  private async getCurrentUserOrThrow(req: FirebaseRequest): Promise<User> {
-    const currentUser = await this.userService.getUserByGoogleWorkspaceUid(
+  @Get('my')
+  async getMyLoans(@Req() req: FirebaseRequest): Promise<Loan[]> {
+    const user = await this.userService.getUserByGoogleWorkspaceUid(
       req.firebaseUser
     );
-    if (!currentUser) {
-      throw new UnknownUserException();
-    }
-    return currentUser;
+    if (!user) throw new UnknownUserException();
+    return this.loansService.getMyLoans(user.id);
   }
 
-  @Patch(':id')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.Admin)
-  update(
-    @Param('id') id: string,
-    @Body() returnLoanDto: ReturnLoanDto
+  @Post()
+  async borrow(
+    @Req() req: FirebaseRequest,
+    @Body() body: BorrowLoanDto
   ): Promise<Loan> {
-    return this.loansService.update(+id, returnLoanDto);
+    const user = await this.userService.getUserByGoogleWorkspaceUid(
+      req.firebaseUser
+    );
+    if (!user) throw new UnknownUserException();
+    return this.loansService.borrow(body.copyId, user.id);
   }
 
-  @Delete(':id')
-  @UseGuards(RolesGuard)
-  @Roles(UserRole.Admin)
-  remove(@Param('id') id: string): Promise<void> {
-    return this.loansService.remove(+id);
+  @Put(':id/return')
+  async returnLoan(
+    @Req() req: FirebaseRequest,
+    @Param('id', ParseIntPipe) id: number
+  ): Promise<Loan> {
+    const user = await this.userService.getUserByGoogleWorkspaceUid(
+      req.firebaseUser
+    );
+    if (!user) throw new UnknownUserException();
+    const loan = await this.loansService.findOne(id);
+    if (loan.user_id !== user.id) {
+      throw new ForbiddenException('Only the borrower can return this loan');
+    }
+    return this.loansService.returnLoan(id, user.id);
   }
 }
