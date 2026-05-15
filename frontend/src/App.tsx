@@ -10,7 +10,7 @@ import ProtectedRoute from './components/ProtectedRoute.tsx';
 import AdminRoute from './components/AdminRoute.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Employees from './routes/Employees.tsx';
-import { Toaster } from 'sonner';
+import { Toaster } from '@profiq/ui/components/ui/feedback';
 import Profile from './routes/Profile.tsx';
 import VersionInfo from './components/version-info.tsx';
 import Admin from './routes/admin/Admin.tsx';
