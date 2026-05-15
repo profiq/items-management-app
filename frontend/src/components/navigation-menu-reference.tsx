@@ -16,7 +16,7 @@ export function NavigationMenuReference() {
         <NavigationMenuList>
           <NavigationMenuItem>
             <NavigationMenuLink asChild>
-              <Link to='/'>Main page</Link>
+              <Link to='/'>Home</Link>
             </NavigationMenuLink>
           </NavigationMenuItem>
           <NavigationMenuItem>
