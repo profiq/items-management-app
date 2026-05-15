@@ -4,15 +4,13 @@ import {
   createTestUserData,
   signInWithGoogleEmulatorPopup,
 } from '../helpers';
-import { LoginPage, ProfilePage, EmployeesPage } from '../pages';
+import { LoginPage } from '../pages';
 
 type AuthFixtures = {
   testUser: TestUser;
   authenticatedPage: Page;
   login: (page: Page, testUser?: TestUser) => Promise<void>;
   loginPage: LoginPage;
-  profilePage: ProfilePage;
-  employeesPage: EmployeesPage;
 };
 
 /**
@@ -22,15 +20,17 @@ export const test = base.extend<AuthFixtures>({
   /**
    * Provides test user data that can be used for authentication tests
    */
-  testUser: async ({ page: _page }, use) => {
+  testUser: async (fixtures, provide) => {
+    void fixtures;
     const testUser = createTestUserData();
-    await use(testUser);
+    await provide(testUser);
   },
 
   /**
    * Provides a login function that handles the Firebase Auth emulator popup
    */
-  login: async ({ page: _page }, use) => {
+  login: async (fixtures, provide) => {
+    void fixtures;
     const loginFn = async (page: Page, testUser?: TestUser) => {
       const user = testUser ?? createTestUserData();
 
@@ -39,13 +39,13 @@ export const test = base.extend<AuthFixtures>({
       });
     };
 
-    await use(loginFn);
+    await provide(loginFn);
   },
 
   /**
    * Provides a page that is pre-authenticated with a Google OAuth test user
    */
-  authenticatedPage: async ({ page, testUser, login }, use) => {
+  authenticatedPage: async ({ page, testUser, login }, provide) => {
     // Navigate to login page
     await page.goto('/login');
 
@@ -55,34 +55,16 @@ export const test = base.extend<AuthFixtures>({
     // Wait for authentication to complete (logout button should be visible)
     await page.waitForSelector('[data-testid="logout-page"]');
 
-    await use(page);
+    await provide(page);
   },
 
   /**
    * Provides a LoginPage instance that navigates to the login page
    */
-  loginPage: async ({ page }, use) => {
+  loginPage: async ({ page }, provide) => {
     const loginPage = new LoginPage(page);
     await loginPage.navigate();
-    await use(loginPage);
-  },
-
-  /**
-   * Provides a ProfilePage instance that navigates to the profile page (requires authentication)
-   */
-  profilePage: async ({ authenticatedPage }, use) => {
-    const profilePage = new ProfilePage(authenticatedPage);
-    await profilePage.navigate();
-    await use(profilePage);
-  },
-
-  /**
-   * Provides an EmployeesPage instance that navigates to the employees page (requires authentication)
-   */
-  employeesPage: async ({ authenticatedPage }, use) => {
-    const employeesPage = new EmployeesPage(authenticatedPage);
-    await employeesPage.navigate();
-    await use(employeesPage);
+    await provide(loginPage);
   },
 });
 
