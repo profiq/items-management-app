@@ -11,7 +11,7 @@ test.describe('Login Page', () => {
     test('should display the login button with correct text', async ({
       loginPage,
     }) => {
-      await expect(loginPage.loginButton).toHaveText('Login With Google');
+      await expect(loginPage.loginButton).toHaveText('Login with Google');
     });
   });
 
@@ -40,7 +40,7 @@ test.describe('Login Page', () => {
       await loginPage.clickLogout();
 
       await expect(loginPage.loginButton).toBeVisible();
-      await expect(loginPage.loginButton).toHaveText('Login With Google');
+      await expect(loginPage.loginButton).toHaveText('Login with Google');
     });
   });
 });
