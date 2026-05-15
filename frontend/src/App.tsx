@@ -9,7 +9,6 @@ import Login from './routes/Login.tsx';
 import AdminRoute from './components/AdminRoute.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from '@profiq/ui/components/ui/feedback';
-import VersionInfo from './components/version-info.tsx';
 import Admin from './routes/admin/Admin.tsx';
 
 const queryClient = new QueryClient();
@@ -20,19 +19,20 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <BrowserRouter>
-            <NavigationMenuReference></NavigationMenuReference>
-            <div id='content'>
-              <Routes>
-                <Route path='/' element={<Home />} />
-                <Route path='/login' element={<Login />} />
-                <Route element={<AdminRoute />}>
-                  <Route path='/admin' element={<Admin />} />
-                </Route>
-                <Route path='*' element={<Navigate to='/login' replace />} />
-              </Routes>
+            <div className='profiq'>
+              <NavigationMenuReference></NavigationMenuReference>
+              <div id='content'>
+                <Routes>
+                  <Route path='/' element={<Home />} />
+                  <Route path='/login' element={<Login />} />
+                  <Route element={<AdminRoute />}>
+                    <Route path='/admin' element={<Admin />} />
+                  </Route>
+                  <Route path='*' element={<Navigate to='/login' replace />} />
+                </Routes>
+              </div>
+              <Toaster />
             </div>
-            <VersionInfo />
-            <Toaster />
           </BrowserRouter>
         </AuthProvider>
       </QueryClientProvider>

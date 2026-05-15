@@ -166,7 +166,7 @@ describe('AuthModule', () => {
               new UnauthorizedException('Invalid or expired Firebase ID token')
             ),
         };
-      app = await buildApp(mockUser, expiredAuthService);
+      app = (await buildApp(mockUser, expiredAuthService)).app;
 
       return request(app.getHttpServer())
         .get('/auth/me')
