@@ -1,5 +1,4 @@
-import { Spinner } from '@/components/ui/spinner';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Dialog } from '@profiq/ui';
 import type { HTMLAttributes } from 'react';
 
 type StatusSpinningProps = HTMLAttributes<HTMLDivElement>;
@@ -7,13 +6,20 @@ type StatusSpinningProps = HTMLAttributes<HTMLDivElement>;
 export function StatusSpinning(props: StatusSpinningProps) {
   return (
     <div {...props}>
-      <Dialog defaultOpen={true} open={true}>
-        {/* This is so that javascript does not error in console due to screen reader compatibility*/}
-        <DialogTitle className='sr-only'>Loading</DialogTitle>
-
-        <DialogContent className='[&>button:first-of-type]:hidden justify-center'>
-          <Spinner className='size-32' />
-        </DialogContent>
+      <Dialog
+        open={true}
+        title={<span className='sr-only'>Loading</span>}
+        className='[&>button:first-of-type]:hidden justify-center'
+      >
+        <div
+          className='h-2 w-64 overflow-hidden rounded-full bg-muted'
+          role='progressbar'
+          aria-label='Loading'
+          aria-busy='true'
+          aria-valuetext='Loading'
+        >
+          <div className='h-full w-[65%] animate-pulse rounded-full bg-primary' />
+        </div>
       </Dialog>
     </div>
   );

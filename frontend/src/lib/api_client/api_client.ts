@@ -103,13 +103,13 @@ async function request<T>(
         forceRefresh: true,
         retriedAfterUnauthorized: true,
       });
-    } catch {
+    } catch (error) {
       try {
         await signOutAndRedirectToLogin();
       } catch {
         // swallow sign-out errors so unauthorizedResponse is always returned
       }
-      return unauthorizedResponse<T>();
+      return unauthorizedResponse<T>(getErrorMessage(error));
     }
   }
 
@@ -189,4 +189,8 @@ function unauthorizedResponse<T>(message = 'Unauthorized'): APIResponse<T> {
       error: 'Unauthorized',
     },
   };
+}
+
+function getErrorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : 'Unauthorized';
 }

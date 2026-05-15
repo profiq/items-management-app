@@ -3,15 +3,7 @@ import { useAuth } from '@/lib/providers/auth/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { StatusSpinning } from '@/components/status/status-spinning';
 import { toast } from 'sonner';
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-  TableCell,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
+import { Alert, Button, Table, Text, type TableProps } from '@profiq/ui';
 import {
   getTables,
   getTableData,
@@ -19,6 +11,48 @@ import {
   type TableInfo,
 } from '@/services/admin/admin';
 import type { User } from '@/lib/contexts.tsx';
+
+type AdminTableRow = Record<string, unknown>;
+type AdminTableColumns = TableProps<AdminTableRow, unknown>['columns'];
+type AdminTableColumn = AdminTableColumns[number];
+
+const formatCellValue = (value: unknown): string => {
+  if (value === null || value === undefined) {
+    return '';
+  }
+  if (typeof value === 'string' || typeof value === 'number') {
+    return String(value);
+  }
+  return JSON.stringify(value) ?? '';
+};
+
+const createColumns = (
+  row: AdminTableRow,
+  onDelete: (item: AdminTableRow) => void,
+  isDeleting: boolean
+): AdminTableColumns => [
+  ...Object.keys(row).map(
+    (key): AdminTableColumn => ({
+      accessorKey: key,
+      header: key,
+      cell: ({ getValue }) => formatCellValue(getValue()),
+    })
+  ),
+  {
+    id: 'actions',
+    header: 'Akce',
+    cell: ({ row: tableRow }) => (
+      <Button
+        variant='destructive'
+        size='sm'
+        onClick={() => onDelete(tableRow.original)}
+        disabled={isDeleting}
+      >
+        Smazat
+      </Button>
+    ),
+  },
+];
 
 export default function Admin() {
   const { user } = useAuth();
@@ -52,20 +86,48 @@ export default function Admin() {
     },
   });
 
+  const tableColumns =
+    dataQuery.data && dataQuery.data.length > 0
+      ? createColumns(
+          dataQuery.data[0],
+          item => {
+            const id =
+              typeof item.id === 'number' && Number.isFinite(item.id)
+                ? item.id
+                : Number(item.id);
+            if (!Number.isFinite(id)) {
+              toast.error('Nelze smazat: položka nemá platné ID');
+              return;
+            }
+            deleteMutation.mutate({ endpoint: selectedTable!.endpoint, id });
+          },
+          deleteMutation.isPending
+        )
+      : [];
+
   return (
     <div className='p-4'>
-      <h1 className='text-3xl font-bold mb-6'>Admin Panel</h1>
+      <Text as='h1' size='2xl' weight='bold' className='mb-6'>
+        Admin Panel
+      </Text>
 
       <div className='mb-6'>
-        <h2 className='text-xl font-semibold mb-3'>Vyberte tabulku:</h2>
+        <Text as='h2' size='xl' weight='semibold' className='mb-3'>
+          Vyberte tabulku:
+        </Text>
         {tablesQuery.isLoading && <StatusSpinning />}
         {tablesQuery.isError && (
-          <p className='text-red-600'>
-            Chyba při načítání tabulek:{' '}
-            {tablesQuery.error instanceof Error
-              ? tablesQuery.error.message
-              : 'Neznámá chyba'}
-          </p>
+          <Alert
+            variant='destructive'
+            description={
+              <>
+                Chyba při načítání tabulek:{' '}
+                {tablesQuery.error instanceof Error
+                  ? tablesQuery.error.message
+                  : 'Neznámá chyba'}
+              </>
+            }
+          />
         )}
         {tablesQuery.data && (
           <div className='grid grid-cols-2 gap-2'>
@@ -87,65 +149,36 @@ export default function Admin() {
 
       {selectedTable && (
         <div>
-          <h2 className='text-xl font-semibold mb-3'>{selectedTable.label}</h2>
+          <Text as='h2' size='xl' weight='semibold' className='mb-3'>
+            {selectedTable.label}
+          </Text>
 
           {dataQuery.isLoading && <StatusSpinning />}
 
           {dataQuery.isError && (
-            <p className='text-red-600'>
-              Chyba při načítání dat:{' '}
-              {dataQuery.error instanceof Error
-                ? dataQuery.error.message
-                : 'Neznámá chyba'}
-            </p>
+            <Alert
+              variant='destructive'
+              description={
+                <>
+                  Chyba při načítání dat:{' '}
+                  {dataQuery.error instanceof Error
+                    ? dataQuery.error.message
+                    : 'Neznámá chyba'}
+                </>
+              }
+            />
           )}
 
           {dataQuery.data && dataQuery.data.length > 0 && (
             <div className='overflow-x-auto border rounded-lg'>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    {Object.keys(dataQuery.data[0]).map(key => (
-                      <TableHead key={key}>{key}</TableHead>
-                    ))}
-                    <TableHead>Akce</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {dataQuery.data.map((item, idx) => (
-                    <TableRow key={idx}>
-                      {Object.values(item).map((value, vidx) => (
-                        <TableCell key={vidx}>
-                          {typeof value === 'string' ||
-                          typeof value === 'number'
-                            ? String(value)
-                            : JSON.stringify(value)}
-                        </TableCell>
-                      ))}
-                      <TableCell>
-                        <Button
-                          variant='destructive'
-                          size='sm'
-                          onClick={() =>
-                            deleteMutation.mutate({
-                              endpoint: selectedTable.endpoint,
-                              id: item.id as number,
-                            })
-                          }
-                          disabled={deleteMutation.isPending}
-                        >
-                          Smazat
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+              <Table columns={tableColumns} data={dataQuery.data} />
             </div>
           )}
 
           {dataQuery.data && dataQuery.data.length === 0 && (
-            <p className='text-gray-500'>Žádná data</p>
+            <Text as='p' size='sm' className='text-gray-500'>
+              Žádná data
+            </Text>
           )}
         </div>
       )}

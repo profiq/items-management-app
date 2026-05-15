@@ -20,4 +20,28 @@ export default defineConfig([
       globals: globals.browser,
     },
   },
+  {
+    files: [
+      'src/routes/Login.tsx',
+      'src/routes/admin/**/*.tsx',
+      'src/components/AdminRoute.tsx',
+      'src/components/navigation-menu-reference.tsx',
+      'src/components/hover-info.tsx',
+      'src/components/status/status-spinning.tsx',
+    ],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@/components/ui/*', '../components/ui/*'],
+              message:
+                'Auth and admin UI must import Profiq UI components from @profiq/ui.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 ]);
