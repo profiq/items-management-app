@@ -56,4 +56,10 @@ export class Item {
   @OneToMany(() => ItemCopy, copy => copy.item, { eager: false })
   @ApiPropertyOptional({ type: () => ItemCopy, isArray: true })
   copies?: ItemCopy[];
+
+  @ApiPropertyOptional()
+  copies_count?: number;
+
+  @ApiPropertyOptional()
+  available_copies_count?: number;
 }

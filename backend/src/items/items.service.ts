@@ -9,6 +9,11 @@ import { PaginatedItemsResponseDto } from './dto/paginated-items-response.dto';
 import { Category } from '@/categories/entities/category.entity';
 import { Tag } from '@/tags/entities/tag.entity';
 
+type FindAllItemsOptions = {
+  includeArchived?: boolean;
+  includeAvailabilityCounts?: boolean;
+};
+
 @Injectable()
 export class ItemsService {
   constructor(
@@ -66,8 +71,13 @@ export class ItemsService {
     return this.itemRepository.save(item);
   }
 
-  async findAll(query: FindItemsQueryDto): Promise<PaginatedItemsResponseDto> {
+  async findAll(
+    query: FindItemsQueryDto,
+    options: FindAllItemsOptions = {}
+  ): Promise<PaginatedItemsResponseDto> {
     const { search, categoryId, available, page = 1, limit = 20 } = query;
+    const { includeArchived = false, includeAvailabilityCounts = false } =
+      options;
     const availableCopyExistsClause = `EXISTS (
       SELECT 1 FROM item_copy copy
       WHERE copy.item_id = item.id
@@ -85,10 +95,36 @@ export class ItemsService {
       .leftJoinAndSelect(
         'item.categories',
         'category',
-        'category.archived_at IS NULL'
+        includeArchived ? undefined : 'category.archived_at IS NULL'
       )
-      .leftJoinAndSelect('item.tags', 'tag')
-      .where('item.archived_at IS NULL');
+      .leftJoinAndSelect('item.tags', 'tag');
+
+    if (includeAvailabilityCounts) {
+      qb.loadRelationCountAndMap(
+        'item.copies_count',
+        'item.copies',
+        'copy',
+        queryBuilder => queryBuilder.where('copy.archived_at IS NULL')
+      ).loadRelationCountAndMap(
+        'item.available_copies_count',
+        'item.copies',
+        'copy',
+        queryBuilder =>
+          queryBuilder.where('copy.archived_at IS NULL').andWhere(
+            `NOT EXISTS (
+                SELECT 1 FROM loan
+                WHERE loan.copy_id = copy.id
+                  AND loan.returned_at IS NULL
+              )`
+          )
+      );
+    }
+
+    if (includeArchived) {
+      qb.where('1 = 1');
+    } else {
+      qb.where('item.archived_at IS NULL');
+    }
 
     if (search) {
       qb.andWhere('(item.name LIKE :search OR item.description LIKE :search)', {
@@ -97,10 +133,16 @@ export class ItemsService {
     }
 
     if (categoryId) {
+      const filterCategoryConditions = ['filterCategory.id = :categoryId'];
+
+      if (!includeArchived) {
+        filterCategoryConditions.push('filterCategory.archived_at IS NULL');
+      }
+
       qb.innerJoin(
         'item.categories',
         'filterCategory',
-        'filterCategory.id = :categoryId AND filterCategory.archived_at IS NULL',
+        filterCategoryConditions.join(' AND '),
         { categoryId }
       );
     }
@@ -122,29 +164,41 @@ export class ItemsService {
     return { data, total, page, limit };
   }
 
-  async findOne(id: number): Promise<Item> {
-    const item = await this.itemRepository
+  async findOne(
+    id: number,
+    options: Pick<FindAllItemsOptions, 'includeArchived'> = {}
+  ): Promise<Item> {
+    const { includeArchived = false } = options;
+    const item = this.itemRepository
       .createQueryBuilder('item')
       .leftJoinAndSelect(
         'item.categories',
         'category',
-        'category.archived_at IS NULL'
+        includeArchived ? undefined : 'category.archived_at IS NULL'
       )
       .leftJoinAndSelect('item.tags', 'tag')
       .leftJoinAndSelect('item.copies', 'copy', 'copy.archived_at IS NULL')
       .leftJoinAndSelect('copy.location', 'location')
-      .where('item.id = :id', { id })
-      .andWhere('item.archived_at IS NULL')
-      .getOne();
-    if (!item) {
+      .where('item.id = :id', { id });
+
+    if (!includeArchived) {
+      item.andWhere('item.archived_at IS NULL');
+    }
+
+    const result = await item.getOne();
+    if (!result) {
       throw new NotFoundException(`Item #${id} not found`);
     }
-    return item;
+    return result;
   }
 
-  async update(id: number, updateItemDto: UpdateItemDto): Promise<Item> {
+  async update(
+    id: number,
+    updateItemDto: UpdateItemDto,
+    options: Pick<FindAllItemsOptions, 'includeArchived'> = {}
+  ): Promise<Item> {
     const { categoryIds, tagIds, ...itemData } = updateItemDto;
-    const item = await this.findOne(id);
+    const item = await this.findOne(id, options);
 
     Object.assign(item, itemData);
 
@@ -161,8 +215,11 @@ export class ItemsService {
     return this.itemRepository.save(item);
   }
 
-  async remove(id: number): Promise<void> {
-    const item = await this.findOne(id);
+  async remove(
+    id: number,
+    options: Pick<FindAllItemsOptions, 'includeArchived'> = {}
+  ): Promise<void> {
+    const item = await this.findOne(id, options);
     item.archived_at = new Date();
     await this.itemRepository.save(item);
   }

@@ -12,8 +12,11 @@ export function NavigationMenuReference() {
           { id: 'employees', label: 'List of Employees', href: '/employees' },
         ]
       : []),
-    ...(role === 'admin'
-      ? [{ id: 'admin', label: 'Admin', href: '/admin' }]
+    ...(user && role === 'admin'
+      ? [
+          { id: 'admin', label: 'Admin', href: '/admin' },
+          { id: 'admin-items', label: 'Admin Items', href: '/admin/items' },
+        ]
       : []),
   ];
 
