@@ -10,9 +10,8 @@ import ProtectedRoute from './components/ProtectedRoute.tsx';
 import AdminRoute from './components/AdminRoute.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Employees from './routes/Employees.tsx';
-import { Toaster } from 'sonner';
+import { Toaster } from '@profiq/ui/components/ui';
 import Profile from './routes/Profile.tsx';
-import VersionInfo from './components/version-info.tsx';
 import Admin from './routes/admin/Admin.tsx';
 import AdminItems from './routes/admin/Items.tsx';
 
@@ -24,23 +23,24 @@ function App() {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <BrowserRouter>
-            <NavigationMenuReference></NavigationMenuReference>
-            <div id='content'>
-              <Routes>
-                <Route path='/' element={<Home />} />
-                <Route path='/login' element={<Login />} />
-                <Route element={<ProtectedRoute />}>
-                  <Route path='/profile' element={<Profile />} />
-                  <Route path='/employees' element={<Employees />} />
-                </Route>
-                <Route element={<AdminRoute />}>
-                  <Route path='/admin' element={<Admin />} />
-                  <Route path='/admin/items' element={<AdminItems />} />
-                </Route>
-              </Routes>
+            <div className='profiq'>
+              <NavigationMenuReference></NavigationMenuReference>
+              <div id='content'>
+                <Routes>
+                  <Route path='/' element={<Home />} />
+                  <Route path='/login' element={<Login />} />
+                  <Route element={<ProtectedRoute />}>
+                    <Route path='/profile' element={<Profile />} />
+                    <Route path='/employees' element={<Employees />} />
+                  </Route>
+                  <Route element={<AdminRoute />}>
+                    <Route path='/admin' element={<Admin />} />
+                    <Route path='/admin/items' element={<AdminItems />} />
+                  </Route>
+                </Routes>
+              </div>
+              <Toaster />
             </div>
-            <VersionInfo />
-            <Toaster />
           </BrowserRouter>
         </AuthProvider>
       </QueryClientProvider>

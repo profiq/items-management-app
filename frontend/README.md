@@ -30,8 +30,6 @@ Use component imports from the package entry point:
 import { Alert, Button, NavigationMenu, Table, Text } from '@profiq/ui';
 ```
 
-See `../docs/profiq-ui-component-mapping.md` for the current shadcn-to-profiq-ui mapping and migration gaps.
-
 Currently, two official plugins are available:
 
 - [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh

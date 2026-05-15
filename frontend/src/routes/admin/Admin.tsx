@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { ColumnDef } from '@tanstack/react-table';
 import { StatusSpinning } from '@/components/status/status-spinning';
 import { toast } from 'sonner';
-import { Alert, Button, Table, Text } from '@profiq/ui';
+import { Alert, Button, Table, Text, type TableProps } from '@profiq/ui';
 import {
   getTables,
   getTableData,
@@ -14,6 +13,8 @@ import {
 import type { User } from '@/lib/contexts.tsx';
 
 type AdminTableRow = Record<string, unknown>;
+type AdminTableColumns = TableProps<AdminTableRow, unknown>['columns'];
+type AdminTableColumn = AdminTableColumns[number];
 
 const formatCellValue = (value: unknown): string => {
   if (value === null || value === undefined) {
@@ -29,9 +30,9 @@ const createColumns = (
   row: AdminTableRow,
   onDelete: (item: AdminTableRow) => void,
   isDeleting: boolean
-): ColumnDef<AdminTableRow>[] => [
+): AdminTableColumns => [
   ...Object.keys(row).map(
-    (key): ColumnDef<AdminTableRow> => ({
+    (key): AdminTableColumn => ({
       accessorKey: key,
       header: key,
       cell: ({ getValue }) => formatCellValue(getValue()),
