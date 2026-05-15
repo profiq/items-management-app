@@ -54,7 +54,7 @@ export function HoverInfo({
               <Link
                 to={{
                   pathname:
-                    'https://gitlab.com/profiq/all/infra/profiq-reference-app',
+                    'https://gitlab.com/profiq/all/infra/items-management-app',
                   hash: readmeSection.id,
                 }}
                 target='_blank'

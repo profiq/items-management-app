@@ -4,7 +4,7 @@ import { useAuth } from '@/lib/providers/auth/useAuth';
 export function NavigationMenuReference() {
   const { user, role } = useAuth();
   const items = [
-    { id: 'main', label: 'Main page', href: '/' },
+    { id: 'main', label: 'Home', href: '/' },
     { id: 'login', label: 'Login', href: '/login' },
     ...(user
       ? [

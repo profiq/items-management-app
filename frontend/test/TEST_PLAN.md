@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document outlines the testing strategy and test coverage for the Profiq Reference App frontend application. The frontend uses a multi-layered testing approach with unit tests, component tests, and end-to-end (E2E) tests.
+This document outlines the testing strategy and test coverage for the Items Management App frontend application. The frontend uses a multi-layered testing approach with unit tests, component tests, and end-to-end (E2E) tests.
 
 ## Testing Framework & Tools
 
@@ -193,7 +193,7 @@ All E2E tests use the Page Object Model pattern for maintainability and reusabil
 
 **Public Fixtures** (`fixtures/public.ts`)
 
-- Provides page objects for public pages (Home)
+- Provides page objects for public pages
 - No authentication required
 
 **Auth Fixtures** (`fixtures/auth.ts`)

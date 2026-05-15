@@ -24,7 +24,7 @@ describe('Testing nav menu', () => {
       </MemoryRouter>
     );
 
-    expect(getByText('Main page')).toBeInTheDocument();
+    expect(getByText('Home')).toBeInTheDocument();
     expect(getByText('Protected Page')).not.toBeInTheDocument();
   });
   it('should show link to protected', async () => {
@@ -40,7 +40,7 @@ describe('Testing nav menu', () => {
       </MemoryRouter>
     );
 
-    expect(getByText('Main page')).toBeInTheDocument();
+    expect(getByText('Home')).toBeInTheDocument();
     expect(getByText('Profile Page')).toBeInTheDocument();
   });
 });
