@@ -16,10 +16,13 @@ import type { User } from '@/lib/contexts.tsx';
 type AdminTableRow = Record<string, unknown>;
 
 const formatCellValue = (value: unknown): string => {
+  if (value === null || value === undefined) {
+    return '';
+  }
   if (typeof value === 'string' || typeof value === 'number') {
     return String(value);
   }
-  return JSON.stringify(value);
+  return JSON.stringify(value) ?? '';
 };
 
 const createColumns = (
