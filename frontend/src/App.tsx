@@ -10,9 +10,10 @@ import ProtectedRoute from './components/ProtectedRoute.tsx';
 import AdminRoute from './components/AdminRoute.tsx';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import Employees from './routes/Employees.tsx';
-import { Toaster } from '@profiq/ui';
+import { Toaster } from '@profiq/ui/components/ui';
 import Profile from './routes/Profile.tsx';
 import Admin from './routes/admin/Admin.tsx';
+import AdminItems from './routes/admin/Items.tsx';
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ function App() {
                   </Route>
                   <Route element={<AdminRoute />}>
                     <Route path='/admin' element={<Admin />} />
+                    <Route path='/admin/items' element={<AdminItems />} />
                   </Route>
                 </Routes>
               </div>
