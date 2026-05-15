@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { render } from 'vitest-browser-react';
 import { NavigationMenuReference } from './navigation-menu-reference';
 import { MemoryRouter } from 'react-router';
-import { faker } from '@faker-js/faker';
 
 describe('Testing nav menu', () => {
   const mocks = vi.hoisted(() => {
@@ -13,7 +12,7 @@ describe('Testing nav menu', () => {
   vi.mock(import('@/lib/providers/auth/useAuth'), () => ({
     useAuth: mocks.useAuth,
   }));
-  it('should not show link to protected', async () => {
+  it('should show public links only for non-admin users', async () => {
     mocks.useAuth.mockReturnValue({
       loading: true,
     });
@@ -24,14 +23,14 @@ describe('Testing nav menu', () => {
       </MemoryRouter>
     );
 
-    expect(getByText('Main page')).toBeInTheDocument();
-    expect(getByText('Protected Page')).not.toBeInTheDocument();
+    expect(getByText('Home')).toBeInTheDocument();
+    expect(getByText('Login')).toBeInTheDocument();
+    expect(getByText('Admin')).not.toBeInTheDocument();
   });
-  it('should show link to protected', async () => {
-    const email = faker.internet.email();
+  it('should show admin link for admin users', async () => {
     mocks.useAuth.mockReturnValue({
       loading: true,
-      user: { email },
+      role: 'admin',
     });
     // MemoryRouter due to the Link in nav menu
     const { getByText } = await render(
@@ -40,7 +39,24 @@ describe('Testing nav menu', () => {
       </MemoryRouter>
     );
 
-    expect(getByText('Main page')).toBeInTheDocument();
-    expect(getByText('Profile Page')).toBeInTheDocument();
+    expect(getByText('Home')).toBeInTheDocument();
+    expect(getByText('Login')).toBeInTheDocument();
+    expect(getByText('Admin')).toBeInTheDocument();
+  });
+  it('should show logout link for authenticated users', async () => {
+    mocks.useAuth.mockReturnValue({
+      loading: false,
+      user: { email: 'user@profiq.com' },
+    });
+    // MemoryRouter due to the Link in nav menu
+    const { getByText } = await render(
+      <MemoryRouter>
+        <NavigationMenuReference />
+      </MemoryRouter>
+    );
+
+    expect(getByText('Home')).toBeInTheDocument();
+    expect(getByText('Logout')).toBeInTheDocument();
+    expect(getByText('Login')).not.toBeInTheDocument();
   });
 });
