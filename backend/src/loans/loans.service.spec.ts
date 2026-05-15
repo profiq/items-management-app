@@ -1,39 +1,54 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import {
+  BadRequestException,
+  ConflictException,
+  NotFoundException,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { NotFoundException } from '@nestjs/common';
-import { Repository } from 'typeorm';
+import { IsNull, LessThan, MoreThanOrEqual, Not, Repository } from 'typeorm';
 import { LoansService } from './loans.service';
 import { Loan } from './entities/loan.entity';
-import { CreateLoanDto } from './dto/create-loan.dto';
-import { UpdateLoanDto } from './dto/update-loan.dto';
+import { ItemCopy } from '@/item-copies/entities/item-copy.entity';
 import { UserRole } from '@/user/user.entity';
+import { FindLoansQueryDto, LoanStatus } from './dto/find-loans-query.dto';
 
 const mockLoan: Loan = {
   id: 1,
   copy: { id: 1 } as Loan['copy'],
   copy_id: 1,
-  user: {
-    id: 1,
-    name: 'John',
-    employee_id: 'emp1',
-    role: UserRole.User,
-  },
-  user_id: 1,
-  borrowed_at: new Date('2026-04-01T10:00:00Z'),
-  due_date: '2026-04-15',
+  user: { id: 2, name: 'Alice', employee_id: 'emp2', role: UserRole.User },
+  user_id: 2,
+  borrowed_at: new Date('2026-05-01T10:00:00Z'),
+  due_date: '2026-05-15',
   returned_at: null,
   returned_by_user: null,
   returned_by_user_id: null,
 };
 
-const mockRepository: jest.Mocked<
-  Pick<Repository<Loan>, 'create' | 'save' | 'find' | 'findOneBy' | 'remove'>
+const mockCopy = {
+  id: 1,
+  item_id: 1,
+  item: { id: 1, default_loan_days: 14 },
+  location_id: 1,
+  condition: 'good',
+  archived_at: null,
+} as unknown as ItemCopy;
+
+const mockLoanRepository: jest.Mocked<
+  Pick<Repository<Loan>, 'create' | 'save' | 'find' | 'findOneBy' | 'findOne'>
 > = {
   create: jest.fn(),
   save: jest.fn(),
   find: jest.fn(),
   findOneBy: jest.fn(),
-  remove: jest.fn(),
+  findOne: jest.fn(),
+};
+
+const mockItemCopyRepository: jest.Mocked<
+  Pick<Repository<ItemCopy>, 'findOne'>
+> = {
+  findOne: jest.fn(),
 };
 
 describe('LoansService', (): void => {
@@ -43,132 +58,215 @@ describe('LoansService', (): void => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         LoansService,
+        { provide: getRepositoryToken(Loan), useValue: mockLoanRepository },
         {
-          provide: getRepositoryToken(Loan),
-          useValue: mockRepository,
+          provide: getRepositoryToken(ItemCopy),
+          useValue: mockItemCopyRepository,
         },
       ],
     }).compile();
-
     service = module.get<LoansService>(LoansService);
     jest.clearAllMocks();
   });
 
-  describe('create', (): void => {
-    it('should create and return a loan with borrowed_at set to now', async (): Promise<void> => {
-      const dto: CreateLoanDto = {
-        copy_id: 1,
-        user_id: 1,
-        due_date: '2026-04-15',
-      };
-      mockRepository.create.mockReturnValue(mockLoan);
-      mockRepository.save.mockResolvedValue(mockLoan);
+  describe('findOne', (): void => {
+    it('returns a loan by id', async (): Promise<void> => {
+      mockLoanRepository.findOneBy.mockResolvedValue(mockLoan);
+      const result = await service.findOne(1);
+      expect(mockLoanRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
+      expect(result).toEqual(mockLoan);
+    });
 
-      const result: Loan = await service.create(dto);
+    it('throws NotFoundException when loan does not exist', async (): Promise<void> => {
+      mockLoanRepository.findOneBy.mockResolvedValue(null);
+      await expect(service.findOne(99)).rejects.toThrow(NotFoundException);
+    });
+  });
 
-      expect(mockRepository.create).toHaveBeenCalledWith(
+  describe('borrow', (): void => {
+    it('creates a loan with auto-calculated due_date', async (): Promise<void> => {
+      mockItemCopyRepository.findOne.mockResolvedValue(mockCopy);
+      mockLoanRepository.findOne.mockResolvedValue(null);
+      mockLoanRepository.create.mockReturnValue(mockLoan);
+      mockLoanRepository.save.mockResolvedValue(mockLoan);
+
+      const result = await service.borrow(1, 2);
+
+      expect(mockItemCopyRepository.findOne).toHaveBeenCalledWith({
+        where: { id: 1 },
+        relations: ['item'],
+      });
+      expect(mockLoanRepository.create).toHaveBeenCalledWith(
         expect.objectContaining({
           copy_id: 1,
-          user_id: 1,
-          due_date: '2026-04-15',
+          user_id: 2,
           returned_at: null,
           returned_by_user_id: null,
         })
       );
-      expect(mockRepository.create).toHaveBeenCalledWith(
-        expect.objectContaining({ borrowed_at: expect.any(Date) })
-      );
-      expect(mockRepository.save).toHaveBeenCalledWith(mockLoan);
       expect(result).toEqual(mockLoan);
+    });
+
+    it('throws NotFoundException when copy does not exist', async (): Promise<void> => {
+      mockItemCopyRepository.findOne.mockResolvedValue(null);
+      await expect(service.borrow(99, 2)).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws UnprocessableEntityException when copy is archived', async (): Promise<void> => {
+      mockItemCopyRepository.findOne.mockResolvedValue({
+        ...mockCopy,
+        archived_at: new Date(),
+      } as unknown as ItemCopy);
+      await expect(service.borrow(1, 2)).rejects.toThrow(
+        UnprocessableEntityException
+      );
+    });
+
+    it('throws ConflictException when copy already has an active loan', async (): Promise<void> => {
+      mockItemCopyRepository.findOne.mockResolvedValue(mockCopy);
+      mockLoanRepository.findOne.mockResolvedValue(mockLoan);
+      await expect(service.borrow(1, 2)).rejects.toThrow(ConflictException);
+    });
+
+    it('maps the active-loan unique constraint to ConflictException', async (): Promise<void> => {
+      mockItemCopyRepository.findOne.mockResolvedValue(mockCopy);
+      mockLoanRepository.findOne.mockResolvedValue(null);
+      mockLoanRepository.create.mockReturnValue(mockLoan);
+      mockLoanRepository.save.mockRejectedValue(
+        new Error('SQLITE_CONSTRAINT: UNIQUE constraint failed: loan.copy_id')
+      );
+
+      await expect(service.borrow(1, 2)).rejects.toThrow(ConflictException);
+    });
+  });
+
+  describe('getMyLoans', (): void => {
+    it('returns all loans for a user ordered by borrowed_at DESC', async (): Promise<void> => {
+      mockLoanRepository.find.mockResolvedValue([mockLoan]);
+      const result = await service.getMyLoans(2);
+      expect(mockLoanRepository.find).toHaveBeenCalledWith({
+        where: { user_id: 2 },
+        order: { borrowed_at: 'DESC' },
+      });
+      expect(result).toEqual([mockLoan]);
+    });
+  });
+
+  describe('returnLoan', (): void => {
+    it('marks loan as returned', async (): Promise<void> => {
+      mockLoanRepository.findOneBy.mockResolvedValue(mockLoan);
+      const returned: Loan = {
+        ...mockLoan,
+        returned_at: new Date(),
+        returned_by_user_id: 3,
+      };
+      mockLoanRepository.save.mockResolvedValue(returned);
+
+      const result = await service.returnLoan(1, 3);
+
+      expect(mockLoanRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({
+          returned_by_user_id: 3,
+          returned_at: expect.any(Date) as Date,
+        })
+      );
+      expect(result).toEqual(returned);
+    });
+
+    it('throws NotFoundException when loan does not exist', async (): Promise<void> => {
+      mockLoanRepository.findOneBy.mockResolvedValue(null);
+      await expect(service.returnLoan(99, 3)).rejects.toThrow(
+        NotFoundException
+      );
+    });
+
+    it('throws ConflictException when loan is already returned', async (): Promise<void> => {
+      mockLoanRepository.findOneBy.mockResolvedValue({
+        ...mockLoan,
+        returned_at: new Date(),
+      });
+      await expect(service.returnLoan(1, 3)).rejects.toThrow(ConflictException);
     });
   });
 
   describe('findAll', (): void => {
-    it('should return all loans', async (): Promise<void> => {
-      const loans: Loan[] = [mockLoan];
-      mockRepository.find.mockResolvedValue(loans);
-
-      const result: Loan[] = await service.findAll();
-
-      expect(mockRepository.find).toHaveBeenCalled();
-      expect(result).toEqual(loans);
+    it('returns all loans when no status filter', async (): Promise<void> => {
+      mockLoanRepository.find.mockResolvedValue([mockLoan]);
+      const result = await service.findAll({} as FindLoansQueryDto);
+      expect(mockLoanRepository.find).toHaveBeenCalledWith();
+      expect(result).toEqual([mockLoan]);
     });
 
-    it('should return empty array when no loans exist', async (): Promise<void> => {
-      mockRepository.find.mockResolvedValue([]);
-
-      const result: Loan[] = await service.findAll();
-
-      expect(result).toEqual([]);
-    });
-  });
-
-  describe('findOne', (): void => {
-    it('should return a loan by id', async (): Promise<void> => {
-      mockRepository.findOneBy.mockResolvedValue(mockLoan);
-
-      const result: Loan = await service.findOne(1);
-
-      expect(mockRepository.findOneBy).toHaveBeenCalledWith({ id: 1 });
-      expect(result).toEqual(mockLoan);
-    });
-
-    it('should throw NotFoundException when loan does not exist', async (): Promise<void> => {
-      mockRepository.findOneBy.mockResolvedValue(null);
-
-      await expect(service.findOne(99)).rejects.toThrow(NotFoundException);
-      await expect(service.findOne(99)).rejects.toThrow('Loan #99 not found');
-    });
-  });
-
-  describe('update', (): void => {
-    it('should mark loan as returned', async (): Promise<void> => {
-      const returnedAt = new Date('2026-04-10T12:00:00Z');
-      const dto: UpdateLoanDto = {
-        returned_at: returnedAt,
-        returned_by_user_id: 2,
-      };
-      const updated: Loan = {
-        ...mockLoan,
-        returned_at: returnedAt,
-        returned_by_user_id: 2,
-      };
-      mockRepository.findOneBy.mockResolvedValue(mockLoan);
-      mockRepository.save.mockResolvedValue(updated);
-
-      const result: Loan = await service.update(1, dto);
-
-      expect(mockRepository.save).toHaveBeenCalledWith({
-        ...mockLoan,
-        returned_at: returnedAt,
-        returned_by_user_id: 2,
+    it('filters active loans (not returned, due_date >= today)', async (): Promise<void> => {
+      mockLoanRepository.find.mockResolvedValue([mockLoan]);
+      await service.findAll({ status: LoanStatus.Active });
+      expect(mockLoanRepository.find).toHaveBeenCalledWith({
+        where: {
+          returned_at: IsNull(),
+          due_date: MoreThanOrEqual(expect.any(String)),
+        },
       });
-      expect(result).toEqual(updated);
     });
 
-    it('should throw NotFoundException when loan does not exist', async (): Promise<void> => {
-      mockRepository.findOneBy.mockResolvedValue(null);
+    it('filters returned loans', async (): Promise<void> => {
+      mockLoanRepository.find.mockResolvedValue([]);
+      await service.findAll({ status: LoanStatus.Returned });
+      expect(mockLoanRepository.find).toHaveBeenCalledWith({
+        where: { returned_at: Not(IsNull()) },
+      });
+    });
 
-      await expect(
-        service.update(99, { returned_at: new Date() })
-      ).rejects.toThrow(NotFoundException);
+    it('filters overdue loans (not returned, due_date < today)', async (): Promise<void> => {
+      mockLoanRepository.find.mockResolvedValue([]);
+      await service.findAll({ status: LoanStatus.Overdue });
+      expect(mockLoanRepository.find).toHaveBeenCalledWith({
+        where: {
+          returned_at: IsNull(),
+          due_date: LessThan(expect.any(String)),
+        },
+      });
     });
   });
 
-  describe('remove', (): void => {
-    it('should remove the loan', async (): Promise<void> => {
-      mockRepository.findOneBy.mockResolvedValue(mockLoan);
-      mockRepository.remove.mockResolvedValue(mockLoan);
+  describe('extendLoan', (): void => {
+    it('extends due_date by given number of days', async (): Promise<void> => {
+      mockLoanRepository.findOneBy.mockResolvedValue({
+        ...mockLoan,
+        due_date: '2026-05-15',
+        returned_at: null,
+      });
+      const extended: Loan = { ...mockLoan, due_date: '2026-05-29' };
+      mockLoanRepository.save.mockResolvedValue(extended);
 
-      await service.remove(1);
+      const result = await service.extendLoan(1, 14);
 
-      expect(mockRepository.remove).toHaveBeenCalledWith(mockLoan);
+      expect(mockLoanRepository.save).toHaveBeenCalledWith(
+        expect.objectContaining({ due_date: '2026-05-29' })
+      );
+      expect(result).toEqual(extended);
     });
 
-    it('should throw NotFoundException when loan does not exist', async (): Promise<void> => {
-      mockRepository.findOneBy.mockResolvedValue(null);
+    it('throws BadRequestException when dueDays is not positive', async (): Promise<void> => {
+      await expect(service.extendLoan(1, 0)).rejects.toThrow(
+        BadRequestException
+      );
+      expect(mockLoanRepository.findOneBy).not.toHaveBeenCalled();
+      expect(mockLoanRepository.save).not.toHaveBeenCalled();
+    });
 
-      await expect(service.remove(99)).rejects.toThrow(NotFoundException);
+    it('throws NotFoundException when loan does not exist', async (): Promise<void> => {
+      mockLoanRepository.findOneBy.mockResolvedValue(null);
+      await expect(service.extendLoan(99, 7)).rejects.toThrow(
+        NotFoundException
+      );
+    });
+
+    it('throws ConflictException when loan is already returned', async (): Promise<void> => {
+      mockLoanRepository.findOneBy.mockResolvedValue({
+        ...mockLoan,
+        returned_at: new Date(),
+      });
+      await expect(service.extendLoan(1, 7)).rejects.toThrow(ConflictException);
     });
   });
 });

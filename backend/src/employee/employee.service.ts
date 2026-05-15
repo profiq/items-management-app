@@ -103,6 +103,9 @@ export class EmployeeService {
       user.name = employee.name;
       return true;
     });
+    if (usersToSave.length === 0) {
+      return;
+    }
     await this.userService.saveUsers(usersToSave);
   }
 }

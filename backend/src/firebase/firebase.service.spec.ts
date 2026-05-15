@@ -1,4 +1,6 @@
-import { DeleteException } from '@/lib/errors';
+import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
+import { DeleteException, UploadException } from '@/lib/errors';
 import { FirebaseService } from './firebase.service';
 
 type Deferred<T> = {
@@ -19,13 +21,77 @@ function createDeferred<T>(): Deferred<T> {
 }
 
 describe('FirebaseService', (): void => {
-  describe('delete', (): void => {
-    let service: FirebaseService;
-    let deleteFile: jest.Mock;
-    let file: jest.Mock;
+  let module: TestingModule;
+  let service: FirebaseService;
+  let file: jest.Mock;
+  const originalFirebaseAuthEmulatorHost =
+    process.env.FIREBASE_AUTH_EMULATOR_HOST;
+
+  beforeEach(async (): Promise<void> => {
+    process.env.FIREBASE_AUTH_EMULATOR_HOST = 'localhost:9099';
+    file = jest.fn();
+    module = await Test.createTestingModule({
+      providers: [
+        FirebaseService,
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string): string => {
+              const values: Record<string, string> = {
+                'google.storage_bucket': 'test-bucket',
+                'google.project_id': 'test-project',
+                'google.client_email': 'firebase@example.test',
+                'google.private_key': 'test-private-key',
+              };
+              return values[key];
+            }),
+          },
+        },
+      ],
+    }).compile();
+
+    service = module.get(FirebaseService);
+    jest.spyOn(service, 'getBucket').mockReturnValue({
+      file,
+    } as never);
+  });
+
+  afterEach(async (): Promise<void> => {
+    await service?.getApp().delete();
+    await module?.close();
+    if (originalFirebaseAuthEmulatorHost === undefined) {
+      delete process.env.FIREBASE_AUTH_EMULATOR_HOST;
+    } else {
+      process.env.FIREBASE_AUTH_EMULATOR_HOST =
+        originalFirebaseAuthEmulatorHost;
+    }
+    jest.clearAllMocks();
+  });
+
+  describe('upload', (): void => {
+    let saveFile: jest.Mock;
 
     beforeEach((): void => {
-      service = Object.create(FirebaseService.prototype) as FirebaseService;
+      saveFile = jest.fn();
+      file.mockReturnValue({ save: saveFile });
+    });
+
+    it('should expose storage upload failures with the original cause', async (): Promise<void> => {
+      const storageError = new Error('storage unavailable');
+      saveFile.mockRejectedValue(storageError);
+      const result = service.upload('items/image.png', 'contents');
+
+      await expect(result).rejects.toThrow(UploadException);
+      await expect(result).rejects.toMatchObject({
+        cause: storageError,
+      });
+    });
+  });
+
+  describe('delete', (): void => {
+    let deleteFile: jest.Mock;
+
+    beforeEach((): void => {
       deleteFile = jest.fn();
       file = jest.fn().mockReturnValue({ delete: deleteFile });
       jest.spyOn(service, 'getBucket').mockReturnValue({
@@ -53,12 +119,21 @@ describe('FirebaseService', (): void => {
       expect(settled).toBe(true);
     });
 
-    it('should expose storage delete failures', async (): Promise<void> => {
-      deleteFile.mockRejectedValue(new Error('storage unavailable'));
+    it('should treat missing storage objects as already deleted', async (): Promise<void> => {
+      deleteFile.mockRejectedValue({ code: 404 });
 
-      await expect(service.delete('items/image.png')).rejects.toThrow(
-        DeleteException
-      );
+      await expect(service.delete('items/image.png')).resolves.toBeUndefined();
+    });
+
+    it('should expose storage delete failures with the original cause', async (): Promise<void> => {
+      const storageError = new Error('storage unavailable');
+      deleteFile.mockRejectedValue(storageError);
+      const result = service.delete('items/image.png');
+
+      await expect(result).rejects.toThrow(DeleteException);
+      await expect(result).rejects.toMatchObject({
+        cause: storageError,
+      });
     });
   });
 });

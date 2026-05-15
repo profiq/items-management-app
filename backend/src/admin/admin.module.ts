@@ -10,12 +10,14 @@ import { TagsModule } from '@/tags/tags.module';
 import { CitiesModule } from '@/cities/cities.module';
 import { LocationsModule } from '@/locations/locations.module';
 import { ItemCopiesModule } from '@/item-copies/item-copies.module';
+import { LoansModule } from '@/loans/loans.module';
 import { ItemsAdminController } from './items.admin.controller';
 import { CategoriesAdminController } from './categories.admin.controller';
 import { TagsAdminController } from './tags.admin.controller';
 import { CitiesAdminController } from './cities.admin.controller';
 import { LocationsAdminController } from './locations.admin.controller';
 import { ItemCopiesAdminController } from './item-copies.admin.controller';
+import { LoansAdminController } from './loans.admin.controller';
 
 @Module({
   imports: [
@@ -27,6 +29,7 @@ import { ItemCopiesAdminController } from './item-copies.admin.controller';
     CitiesModule,
     LocationsModule,
     ItemCopiesModule,
+    LoansModule,
   ],
   controllers: [
     AdminController,
@@ -36,6 +39,7 @@ import { ItemCopiesAdminController } from './item-copies.admin.controller';
     CitiesAdminController,
     LocationsAdminController,
     ItemCopiesAdminController,
+    LoansAdminController,
   ],
   providers: [AdminService, RolesGuard],
 })
