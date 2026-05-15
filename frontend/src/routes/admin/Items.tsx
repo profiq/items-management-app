@@ -36,6 +36,7 @@ import {
 } from '@/services/admin/items';
 
 const PAGE_SIZE = 10;
+const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
 
 type ItemFormState = {
   name: string;
@@ -344,9 +345,16 @@ export default function AdminItems() {
   });
 
   const handleImageUpload = async (file: File) => {
+    if (file.size > MAX_IMAGE_SIZE) {
+      toast.error('Image must be 5 MB or smaller');
+      return;
+    }
+
+    const safeFileName = file.name.replace(/[^A-Za-z0-9._-]/g, '_') || 'image';
+
     setIsUploadingImage(true);
     try {
-      const storageRef = ref(storage, `items/${Date.now()}-${file.name}`);
+      const storageRef = ref(storage, `items/${Date.now()}-${safeFileName}`);
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
       setForm(f => ({ ...f, imageUrl: url }));
