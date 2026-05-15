@@ -14,6 +14,7 @@ import { Toaster } from 'sonner';
 import Profile from './routes/Profile.tsx';
 import VersionInfo from './components/version-info.tsx';
 import Admin from './routes/admin/Admin.tsx';
+import AdminItems from './routes/admin/Items.tsx';
 
 const queryClient = new QueryClient();
 
@@ -34,6 +35,7 @@ function App() {
                 </Route>
                 <Route element={<AdminRoute />}>
                   <Route path='/admin' element={<Admin />} />
+                  <Route path='/admin/items' element={<AdminItems />} />
                 </Route>
               </Routes>
             </div>

@@ -34,12 +34,15 @@ export class ItemsAdminController {
   findAll(
     @Query() query: FindItemsQueryDto
   ): Promise<PaginatedItemsResponseDto> {
-    return this.itemsService.findAll(query);
+    return this.itemsService.findAll(query, {
+      includeArchived: true,
+      includeAvailabilityCounts: true,
+    });
   }
 
   @Get(':id')
   findOne(@Param('id', ParseIntPipe) id: number): Promise<Item> {
-    return this.itemsService.findOne(id);
+    return this.itemsService.findOne(id, { includeArchived: true });
   }
 
   @Post()
@@ -52,11 +55,13 @@ export class ItemsAdminController {
     @Param('id', ParseIntPipe) id: number,
     @Body() updateItemDto: UpdateItemDto
   ): Promise<Item> {
-    return this.itemsService.update(id, updateItemDto);
+    return this.itemsService.update(id, updateItemDto, {
+      includeArchived: true,
+    });
   }
 
   @Delete(':id')
   remove(@Param('id', ParseIntPipe) id: number): Promise<void> {
-    return this.itemsService.remove(id);
+    return this.itemsService.remove(id, { includeArchived: true });
   }
 }
