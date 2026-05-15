@@ -43,4 +43,20 @@ describe('Testing nav menu', () => {
     expect(getByText('Login')).toBeInTheDocument();
     expect(getByText('Admin')).toBeInTheDocument();
   });
+  it('should show logout link for authenticated users', async () => {
+    mocks.useAuth.mockReturnValue({
+      loading: false,
+      user: { email: 'user@profiq.com' },
+    });
+    // MemoryRouter due to the Link in nav menu
+    const { getByText } = await render(
+      <MemoryRouter>
+        <NavigationMenuReference />
+      </MemoryRouter>
+    );
+
+    expect(getByText('Home')).toBeInTheDocument();
+    expect(getByText('Logout')).toBeInTheDocument();
+    expect(getByText('Login')).not.toBeInTheDocument();
+  });
 });
