@@ -1,7 +1,9 @@
-import { useCallback, useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useMemo, useRef, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Archive, Pencil, Plus } from 'lucide-react';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { storage } from '@/firebase';
 import { toast } from 'sonner';
 import {
   Alert,
@@ -15,7 +17,9 @@ import {
   Text,
 } from '@profiq/ui';
 import { Checkbox, Label, Textarea } from '@profiq/ui/components/ui/form';
+import { Separator } from '@profiq/ui/components/ui/layout';
 import { StatusSpinning } from '@/components/status/status-spinning';
+import { CopiesSection } from './CopiesSection';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import type { User } from '@/lib/contexts';
 import {
@@ -110,8 +114,10 @@ type ItemEditorProps = {
   categories: AdminCategory[];
   tags: AdminTag[];
   isSaving: boolean;
+  isUploading: boolean;
   onChange: (form: ItemFormState) => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+  onImageUpload: (file: File) => void;
 };
 
 function ItemEditor({
@@ -120,9 +126,14 @@ function ItemEditor({
   categories,
   tags,
   isSaving,
+  isUploading,
   onChange,
   onSubmit,
+  onImageUpload,
 }: ItemEditorProps) {
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const isDisabled = isSaving || isUploading;
+
   const setField = (field: keyof ItemFormState, value: string | number[]) => {
     onChange({ ...form, [field]: value });
   };
@@ -137,7 +148,7 @@ function ItemEditor({
         value={form.name}
         onChange={value => setField('name', value)}
         isRequired
-        isDisabled={isSaving}
+        isDisabled={isDisabled}
       />
       <InputField
         fieldLabel='Default loan days'
@@ -147,17 +158,53 @@ function ItemEditor({
         value={form.defaultLoanDays}
         onChange={value => setField('defaultLoanDays', value)}
         isRequired
-        isDisabled={isSaving}
+        isDisabled={isDisabled}
       />
-      <InputField
-        fieldLabel='Image URL'
-        fieldPlaceholder='https://example.com/image.jpg'
-        fieldDescription=''
-        type='url'
-        value={form.imageUrl}
-        onChange={value => setField('imageUrl', value)}
-        isDisabled={isSaving}
-      />
+      <div className='space-y-2'>
+        <div className='flex items-end gap-2'>
+          <div className='flex-1'>
+            <InputField
+              fieldLabel='Image URL'
+              fieldPlaceholder='https://example.com/image.jpg'
+              fieldDescription=''
+              type='url'
+              value={form.imageUrl}
+              onChange={value => setField('imageUrl', value)}
+              isDisabled={isDisabled}
+            />
+          </div>
+          <Button
+            type='button'
+            variant='outline'
+            size='sm'
+            disabled={isDisabled}
+            onClick={() => imageInputRef.current?.click()}
+          >
+            {isUploading ? 'Uploading…' : 'Upload'}
+          </Button>
+        </div>
+        {form.imageUrl && (
+          <img
+            src={form.imageUrl}
+            alt='Item preview'
+            className='h-24 w-24 rounded-md border object-cover'
+            onError={e => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}
+          />
+        )}
+        <input
+          ref={imageInputRef}
+          type='file'
+          accept='image/png,image/jpeg,image/webp'
+          className='hidden'
+          onChange={e => {
+            const file = e.target.files?.[0];
+            if (file) onImageUpload(file);
+            e.target.value = '';
+          }}
+        />
+      </div>
       <div className='space-y-2'>
         <Label htmlFor='admin-item-description'>Description</Label>
         <Textarea
@@ -165,7 +212,7 @@ function ItemEditor({
           value={form.description}
           onChange={event => setField('description', event.target.value)}
           placeholder='Item description'
-          disabled={isSaving}
+          disabled={isDisabled}
         />
       </div>
       <fieldset className='space-y-2'>
@@ -181,7 +228,7 @@ function ItemEditor({
                 id={`admin-item-category-${category.id}`}
                 name='categoryIds'
                 checked={form.categoryIds.includes(category.id)}
-                disabled={isSaving}
+                disabled={isDisabled}
                 onCheckedChange={checked =>
                   setField(
                     'categoryIds',
@@ -214,7 +261,7 @@ function ItemEditor({
                 id={`admin-item-tag-${tag.id}`}
                 name='tagIds'
                 checked={form.tagIds.includes(tag.id)}
-                disabled={isSaving}
+                disabled={isDisabled}
                 onCheckedChange={checked =>
                   setField(
                     'tagIds',
@@ -250,6 +297,7 @@ export default function AdminItems() {
   const [editingItem, setEditingItem] = useState<AdminItem | null>(null);
   const [form, setForm] = useState<ItemFormState>(emptyForm);
   const [itemToArchive, setItemToArchive] = useState<AdminItem | null>(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const itemsQuery = useQuery({
     queryKey: ['admin-items', page, PAGE_SIZE],
@@ -294,6 +342,21 @@ export default function AdminItems() {
       toast.error(error.message);
     },
   });
+
+  const handleImageUpload = async (file: File) => {
+    setIsUploadingImage(true);
+    try {
+      const storageRef = ref(storage, `items/${Date.now()}-${file.name}`);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      setForm(f => ({ ...f, imageUrl: url }));
+      toast.success('Image uploaded');
+    } catch {
+      toast.error('Image upload failed');
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
 
   const openCreateEditor = () => {
     setEditingItem(null);
@@ -447,6 +510,7 @@ export default function AdminItems() {
           if (!open) {
             setEditingItem(null);
             setForm(emptyForm);
+            setIsUploadingImage(false);
           }
         }}
         title={
@@ -462,14 +526,14 @@ export default function AdminItems() {
               type='button'
               variant='outline'
               onClick={() => setEditorOpen(false)}
-              disabled={saveMutation.isPending}
+              disabled={saveMutation.isPending || isUploadingImage}
             >
               Cancel
             </Button>
             <Button
               type='submit'
               form='admin-item-editor-form'
-              disabled={saveMutation.isPending}
+              disabled={saveMutation.isPending || isUploadingImage}
             >
               {saveMutation.isPending ? 'Saving...' : 'Save'}
             </Button>
@@ -487,15 +551,25 @@ export default function AdminItems() {
           />
         )}
         {categoriesQuery.data && tagsQuery.data && (
-          <ItemEditor
-            form={form}
-            item={editingItem}
-            categories={categoriesQuery.data}
-            tags={tagsQuery.data}
-            isSaving={saveMutation.isPending}
-            onChange={setForm}
-            onSubmit={handleSubmit}
-          />
+          <>
+            <ItemEditor
+              form={form}
+              item={editingItem}
+              categories={categoriesQuery.data}
+              tags={tagsQuery.data}
+              isSaving={saveMutation.isPending}
+              isUploading={isUploadingImage}
+              onChange={setForm}
+              onSubmit={handleSubmit}
+              onImageUpload={handleImageUpload}
+            />
+            {editingItem && (
+              <>
+                <Separator />
+                <CopiesSection itemId={editingItem.id} />
+              </>
+            )}
+          </>
         )}
       </Dialog>
 
