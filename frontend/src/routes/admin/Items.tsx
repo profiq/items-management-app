@@ -1,4 +1,4 @@
-import { useMemo, useState, type FormEvent } from 'react';
+import { useCallback, useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
 import { Archive, Pencil, Plus } from 'lucide-react';
@@ -301,11 +301,11 @@ export default function AdminItems() {
     setEditorOpen(true);
   };
 
-  const openEditEditor = (item: AdminItem) => {
+  const openEditEditor = useCallback((item: AdminItem) => {
     setEditingItem(item);
     setForm(formFromItem(item));
     setEditorOpen(true);
-  };
+  }, []);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -383,7 +383,7 @@ export default function AdminItems() {
         ),
       },
     ],
-    [archiveMutation.isPending]
+    [archiveMutation.isPending, openEditEditor]
   );
 
   const total = itemsQuery.data?.total ?? 0;
