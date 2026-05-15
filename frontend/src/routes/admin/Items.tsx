@@ -37,6 +37,12 @@ import {
 
 const PAGE_SIZE = 10;
 const MAX_IMAGE_SIZE = 5 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+const IMAGE_EXTENSIONS: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+};
 
 type ItemFormState = {
   name: string;
@@ -72,14 +78,35 @@ function formFromItem(item: AdminItem): ItemFormState {
 }
 
 function toPayload(form: ItemFormState): AdminItemPayload {
+  const imageUrl = form.imageUrl.trim();
+
   return {
     name: form.name.trim(),
     description: form.description.trim() || null,
-    image_url: form.imageUrl.trim() || null,
+    image_url: imageUrl || null,
     default_loan_days: Number(form.defaultLoanDays),
     categoryIds: form.categoryIds,
     tagIds: form.tagIds,
   };
+}
+
+function isHttpImageUrl(url: string): boolean {
+  if (!url) {
+    return false;
+  }
+
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.protocol === 'https:' || parsedUrl.protocol === 'http:';
+  } catch {
+    return false;
+  }
+}
+
+function buildStorageObjectName(file: File): string {
+  const extension = IMAGE_EXTENSIONS[file.type] ?? 'img';
+
+  return `items/${crypto.randomUUID()}.${extension}`;
 }
 
 function toggleId(ids: number[], id: number, checked: boolean): number[] {
@@ -184,7 +211,7 @@ function ItemEditor({
             {isUploading ? 'Uploading…' : 'Upload'}
           </Button>
         </div>
-        {form.imageUrl && (
+        {isHttpImageUrl(form.imageUrl.trim()) && (
           <img
             src={form.imageUrl}
             alt='Item preview'
@@ -300,6 +327,17 @@ export default function AdminItems() {
   const [itemToArchive, setItemToArchive] = useState<AdminItem | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
 
+  const resetEditorState = () => {
+    setEditingItem(null);
+    setForm(emptyForm);
+    setIsUploadingImage(false);
+  };
+
+  const closeEditor = () => {
+    setEditorOpen(false);
+    resetEditorState();
+  };
+
   const itemsQuery = useQuery({
     queryKey: ['admin-items', page, PAGE_SIZE],
     queryFn: () => getAdminItems(user as User, { page, limit: PAGE_SIZE }),
@@ -322,9 +360,7 @@ export default function AdminItems() {
         : createAdminItem(user as User, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-items'] });
-      setEditorOpen(false);
-      setEditingItem(null);
-      setForm(emptyForm);
+      closeEditor();
       toast.success(editingItem ? 'Item updated' : 'Item created');
     },
     onError: (error: Error) => {
@@ -350,11 +386,14 @@ export default function AdminItems() {
       return;
     }
 
-    const safeFileName = file.name.replace(/[^A-Za-z0-9._-]/g, '_') || 'image';
+    if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
+      toast.error('Image must be a PNG, JPEG, or WebP file');
+      return;
+    }
 
     setIsUploadingImage(true);
     try {
-      const storageRef = ref(storage, `items/${Date.now()}-${safeFileName}`);
+      const storageRef = ref(storage, buildStorageObjectName(file));
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
       setForm(f => ({ ...f, imageUrl: url }));
@@ -367,8 +406,7 @@ export default function AdminItems() {
   };
 
   const openCreateEditor = () => {
-    setEditingItem(null);
-    setForm(emptyForm);
+    resetEditorState();
     setEditorOpen(true);
   };
 
@@ -384,6 +422,11 @@ export default function AdminItems() {
 
     if (!payload.name) {
       toast.error('Name is required');
+      return;
+    }
+
+    if (payload.image_url && !isHttpImageUrl(payload.image_url)) {
+      toast.error('Image URL must start with http:// or https://');
       return;
     }
 
@@ -516,9 +559,7 @@ export default function AdminItems() {
         onOpenChange={open => {
           setEditorOpen(open);
           if (!open) {
-            setEditingItem(null);
-            setForm(emptyForm);
-            setIsUploadingImage(false);
+            resetEditorState();
           }
         }}
         title={
@@ -533,7 +574,7 @@ export default function AdminItems() {
             <Button
               type='button'
               variant='outline'
-              onClick={() => setEditorOpen(false)}
+              onClick={closeEditor}
               disabled={saveMutation.isPending || isUploadingImage}
             >
               Cancel

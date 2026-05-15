@@ -130,9 +130,7 @@ export function CopiesSection({ itemId }: CopiesSectionProps) {
 
   const handleArchiveCopy = useCallback(
     (copyId: number) => archiveMutation.mutate(copyId),
-    // archiveMutation.mutate is stable across renders
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    []
+    [archiveMutation]
   );
 
   const handleSubmit = () => {
