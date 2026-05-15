@@ -16,7 +16,6 @@ export function StatusSpinning(props: StatusSpinningProps) {
           role='progressbar'
           aria-label='Loading'
           aria-busy='true'
-          aria-valuetext='Loading'
         >
           <div className='h-full w-[65%] animate-pulse rounded-full bg-primary' />
         </div>
