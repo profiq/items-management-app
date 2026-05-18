@@ -1,5 +1,5 @@
 function Home() {
-  return <div data-testid='home-page' className='min-h-px' />;
+  return <div data-testid='home-page' />;
 }
 
 export default Home;
