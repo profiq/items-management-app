@@ -3,12 +3,14 @@ import {
   forwardRef,
   Inject,
   Injectable,
+  Logger,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { User, UserRole } from './user.entity';
 import { CreateUserRequest } from './dto/create_user';
 import { EmployeeService } from '@/employee/employee.service';
+import { FirebaseService } from '@/firebase/firebase.service';
 
 export type UpsertResult =
   | { user: User }
@@ -16,11 +18,14 @@ export type UpsertResult =
 
 @Injectable()
 export class UserService {
+  private readonly logger = new Logger(UserService.name);
+
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
     @Inject(forwardRef(() => EmployeeService))
-    private employeeService: EmployeeService
+    private employeeService: EmployeeService,
+    private firebaseService: FirebaseService
   ) {}
 
   async getUsers(): Promise<User[]> {
@@ -128,6 +133,9 @@ export class UserService {
       }
       throw e;
     }
+    await this.firebaseService
+      .setUserClaims(token.uid, { role: user.role })
+      .catch(e => this.logger.error('Failed to set Firebase custom claims', e));
     return { user };
   }
 
@@ -153,6 +161,16 @@ export class UserService {
     }
     user.role = role;
     await this.userRepository.save(user);
+    const firebaseUid = await this.firebaseService.getFirebaseUidByGoogleUid(
+      user.employee_id
+    );
+    if (firebaseUid) {
+      await this.firebaseService
+        .setUserClaims(firebaseUid, { role })
+        .catch(e =>
+          this.logger.error('Failed to set Firebase custom claims', e)
+        );
+    }
     return user;
   }
 

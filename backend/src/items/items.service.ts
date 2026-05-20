@@ -120,9 +120,7 @@ export class ItemsService {
       );
     }
 
-    if (includeArchived) {
-      qb.where('1 = 1');
-    } else {
+    if (!includeArchived) {
       qb.where('item.archived_at IS NULL');
     }
 
