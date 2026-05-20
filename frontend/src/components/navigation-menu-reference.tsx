@@ -13,7 +13,10 @@ export function NavigationMenuReference() {
         ]
       : []),
     ...(role === 'admin'
-      ? [{ id: 'admin', label: 'Admin', href: '/admin' }]
+      ? [
+          { id: 'admin', label: 'Admin', href: '/admin' },
+          { id: 'admin-items', label: 'Admin Items', href: '/admin/items' },
+        ]
       : []),
   ];
 

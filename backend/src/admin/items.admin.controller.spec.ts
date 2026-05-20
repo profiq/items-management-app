@@ -74,7 +74,10 @@ describe('ItemsAdminController', (): void => {
 
       const result = await controller.findAll(query);
 
-      expect(mockService.findAll).toHaveBeenCalledWith(query);
+      expect(mockService.findAll).toHaveBeenCalledWith(query, {
+        includeArchived: true,
+        includeAvailabilityCounts: true,
+      });
       expect(result).toBe(response);
     });
   });
@@ -85,7 +88,9 @@ describe('ItemsAdminController', (): void => {
 
       const result: Item = await controller.findOne(1);
 
-      expect(mockService.findOne).toHaveBeenCalledWith(1);
+      expect(mockService.findOne).toHaveBeenCalledWith(1, {
+        includeArchived: true,
+      });
       expect(result).toBe(mockItem);
     });
 
@@ -106,7 +111,9 @@ describe('ItemsAdminController', (): void => {
 
       const result: Item = await controller.update(1, dto);
 
-      expect(mockService.update).toHaveBeenCalledWith(1, dto);
+      expect(mockService.update).toHaveBeenCalledWith(1, dto, {
+        includeArchived: true,
+      });
       expect(result).toBe(updated);
     });
 
@@ -127,7 +134,9 @@ describe('ItemsAdminController', (): void => {
 
       await controller.remove(1);
 
-      expect(mockService.remove).toHaveBeenCalledWith(1);
+      expect(mockService.remove).toHaveBeenCalledWith(1, {
+        includeArchived: true,
+      });
     });
 
     it('should propagate NotFoundException when item does not exist', async (): Promise<void> => {

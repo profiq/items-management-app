@@ -158,6 +158,7 @@ describe('ItemsService', (): void => {
       innerJoin: jest.Mock;
       where: jest.Mock;
       andWhere: jest.Mock;
+      loadRelationCountAndMap: jest.Mock;
       orderBy: jest.Mock;
       skip: jest.Mock;
       take: jest.Mock;
@@ -171,6 +172,7 @@ describe('ItemsService', (): void => {
         innerJoin: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
+        loadRelationCountAndMap: jest.fn().mockReturnThis(),
         orderBy: jest.fn().mockReturnThis(),
         skip: jest.fn().mockReturnThis(),
         take: jest.fn().mockReturnThis(),
@@ -267,6 +269,34 @@ describe('ItemsService', (): void => {
       expect(result.page).toBe(3);
       expect(result.limit).toBe(10);
     });
+
+    it('should include archived items and availability counts when requested', async (): Promise<void> => {
+      mockQb.getManyAndCount.mockResolvedValue([[mockItem], 1]);
+
+      await service.findAll({} as FindItemsQueryDto, {
+        includeArchived: true,
+        includeAvailabilityCounts: true,
+      });
+
+      expect(mockQb.leftJoinAndSelect).toHaveBeenCalledWith(
+        'item.categories',
+        'category',
+        undefined
+      );
+      expect(mockQb.where).toHaveBeenCalledWith('1 = 1');
+      expect(mockQb.loadRelationCountAndMap).toHaveBeenCalledWith(
+        'item.copies_count',
+        'item.copies',
+        'copy',
+        expect.any(Function)
+      );
+      expect(mockQb.loadRelationCountAndMap).toHaveBeenCalledWith(
+        'item.available_copies_count',
+        'item.copies',
+        'copy',
+        expect.any(Function)
+      );
+    });
   });
 
   describe('findOne', (): void => {
@@ -296,6 +326,14 @@ describe('ItemsService', (): void => {
 
       await expect(service.findOne(99)).rejects.toThrow(NotFoundException);
       await expect(service.findOne(99)).rejects.toThrow('Item #99 not found');
+    });
+
+    it('should allow archived items when requested', async (): Promise<void> => {
+      const qb = setupFindOneQb({ ...mockItem, archived_at: new Date() });
+
+      await service.findOne(1, { includeArchived: true });
+
+      expect(qb.andWhere).not.toHaveBeenCalledWith('item.archived_at IS NULL');
     });
   });
 
