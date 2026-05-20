@@ -270,6 +270,21 @@ describe('ItemsService', (): void => {
       expect(result.limit).toBe(10);
     });
 
+    it('should apply category filter without archived_at condition when includeArchived is true', async (): Promise<void> => {
+      mockQb.getManyAndCount.mockResolvedValue([[], 0]);
+
+      await service.findAll({ categoryId: 1 } as FindItemsQueryDto, {
+        includeArchived: true,
+      });
+
+      expect(mockQb.innerJoin).toHaveBeenCalledWith(
+        'item.categories',
+        'filterCategory',
+        'filterCategory.id = :categoryId',
+        { categoryId: 1 }
+      );
+    });
+
     it('should include archived items and availability counts when requested', async (): Promise<void> => {
       mockQb.getManyAndCount.mockResolvedValue([[mockItem], 1]);
 

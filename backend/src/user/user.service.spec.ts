@@ -66,6 +66,11 @@ const mockEmployeeService: jest.Mocked<Pick<EmployeeService, 'getEmployee'>> = {
   getEmployee: jest.fn(),
 };
 
+const mockFirebaseService = {
+  setUserClaims: jest.fn().mockResolvedValue(undefined),
+  getFirebaseUidByGoogleUid: jest.fn().mockResolvedValue(null),
+};
+
 describe('UserService', (): void => {
   let service: UserService;
 
@@ -75,13 +80,7 @@ describe('UserService', (): void => {
         UserService,
         { provide: getRepositoryToken(User), useValue: mockRepository },
         { provide: EmployeeService, useValue: mockEmployeeService },
-        {
-          provide: FirebaseService,
-          useValue: {
-            setUserClaims: jest.fn().mockResolvedValue(undefined),
-            getFirebaseUidByGoogleUid: jest.fn().mockResolvedValue(null),
-          },
-        },
+        { provide: FirebaseService, useValue: mockFirebaseService },
       ],
     }).compile();
 
@@ -210,6 +209,61 @@ describe('UserService', (): void => {
       expect(result?.role).toBe(UserRole.Admin);
     });
 
+    it('should sync Firebase claims when firebaseUid is found', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue({ ...mockUser });
+      mockRepository.save.mockResolvedValue({
+        ...mockUser,
+        role: UserRole.Admin,
+      });
+      mockFirebaseService.getFirebaseUidByGoogleUid.mockResolvedValue(
+        'firebase-uid'
+      );
+
+      await service.updateUserRole(1, UserRole.Admin, 2);
+
+      expect(
+        mockFirebaseService.getFirebaseUidByGoogleUid
+      ).toHaveBeenCalledWith(mockUser.employee_id);
+      expect(mockFirebaseService.setUserClaims).toHaveBeenCalledWith(
+        'firebase-uid',
+        { role: UserRole.Admin }
+      );
+    });
+
+    it('should skip Firebase claim sync when firebaseUid is not found', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue({ ...mockUser });
+      mockRepository.save.mockResolvedValue({
+        ...mockUser,
+        role: UserRole.Admin,
+      });
+      mockFirebaseService.getFirebaseUidByGoogleUid.mockResolvedValue(null);
+
+      await service.updateUserRole(1, UserRole.Admin, 2);
+
+      expect(mockFirebaseService.setUserClaims).not.toHaveBeenCalled();
+    });
+
+    it('should revert DB role and rethrow when Firebase sync fails', async (): Promise<void> => {
+      const user = { ...mockUser, role: UserRole.User };
+      mockRepository.findOne.mockResolvedValue(user);
+      mockRepository.save.mockResolvedValue(user);
+      mockFirebaseService.getFirebaseUidByGoogleUid.mockResolvedValue(
+        'firebase-uid'
+      );
+      mockFirebaseService.setUserClaims.mockRejectedValue(
+        new Error('Firebase error')
+      );
+
+      await expect(
+        service.updateUserRole(1, UserRole.Admin, 2)
+      ).rejects.toThrow('Firebase error');
+
+      expect(mockRepository.save).toHaveBeenCalledTimes(2);
+      expect(mockRepository.save).toHaveBeenLastCalledWith(
+        expect.objectContaining({ role: UserRole.User })
+      );
+    });
+
     it('should return null when user not found', async (): Promise<void> => {
       mockRepository.findOne.mockResolvedValue(null);
 
@@ -217,6 +271,43 @@ describe('UserService', (): void => {
 
       expect(mockRepository.save).not.toHaveBeenCalled();
       expect(result).toBeNull();
+    });
+  });
+
+  describe('upsertByGoogleWorkspaceToken', (): void => {
+    it('should set Firebase claims after creating a new user', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue(null);
+      mockEmployeeService.getEmployee.mockResolvedValue({
+        id: 'google-workspace-uid',
+        name: 'Test User',
+        email: 'test@example.com',
+      });
+      mockRepository.save.mockResolvedValue(mockUser);
+
+      const token = {
+        uid: 'firebase-uid',
+        firebase: { identities: { 'google.com': ['google-workspace-uid'] } },
+      };
+
+      await service.upsertByGoogleWorkspaceToken(token);
+
+      expect(mockFirebaseService.setUserClaims).toHaveBeenCalledWith(
+        'firebase-uid',
+        { role: mockUser.role }
+      );
+    });
+
+    it('should not set Firebase claims for an existing user', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue(mockUser);
+
+      const token = {
+        uid: 'firebase-uid',
+        firebase: { identities: { 'google.com': ['google-workspace-uid'] } },
+      };
+
+      await service.upsertByGoogleWorkspaceToken(token);
+
+      expect(mockFirebaseService.setUserClaims).not.toHaveBeenCalled();
     });
   });
 
