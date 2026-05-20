@@ -70,8 +70,11 @@ export class FirebaseService {
         .auth()
         .getUserByProviderUid('google.com', googleUid);
       return record.uid;
-    } catch {
-      return null;
+    } catch (e) {
+      if ((e as { code?: string }).code === 'auth/user-not-found') {
+        return null;
+      }
+      throw e;
     }
   }
 

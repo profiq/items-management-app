@@ -159,17 +159,20 @@ export class UserService {
         throw new ForbiddenException('Cannot remove the last admin');
       }
     }
+    const originalRole = user.role;
     user.role = role;
     await this.userRepository.save(user);
-    const firebaseUid = await this.firebaseService.getFirebaseUidByGoogleUid(
-      user.employee_id
-    );
-    if (firebaseUid) {
-      await this.firebaseService
-        .setUserClaims(firebaseUid, { role })
-        .catch(e =>
-          this.logger.error('Failed to set Firebase custom claims', e)
-        );
+    try {
+      const firebaseUid = await this.firebaseService.getFirebaseUidByGoogleUid(
+        user.employee_id
+      );
+      if (firebaseUid) {
+        await this.firebaseService.setUserClaims(firebaseUid, { role });
+      }
+    } catch (e) {
+      user.role = originalRole;
+      await this.userRepository.save(user);
+      throw e;
     }
     return user;
   }
