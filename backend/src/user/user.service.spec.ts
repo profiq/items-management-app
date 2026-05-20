@@ -5,6 +5,7 @@ import { EntityManager, Repository } from 'typeorm';
 import { UserService } from './user.service';
 import { User, UserRole } from './user.entity';
 import { EmployeeService } from '@/employee/employee.service';
+import { FirebaseService } from '@/firebase/firebase.service';
 
 const mockUser: User = {
   id: 1,
@@ -36,7 +37,8 @@ const mockEntityManager = {
       escape: (value: string) => `"${value}"`,
     },
   },
-  getRepository: () => mockTransactionalRepository as unknown as Repository<User>,
+  getRepository: () =>
+    mockTransactionalRepository as unknown as Repository<User>,
 };
 
 const mockTransaction = jest.fn(
@@ -73,20 +75,40 @@ describe('UserService', (): void => {
         UserService,
         { provide: getRepositoryToken(User), useValue: mockRepository },
         { provide: EmployeeService, useValue: mockEmployeeService },
+        {
+          provide: FirebaseService,
+          useValue: {
+            setUserClaims: jest.fn().mockResolvedValue(undefined),
+            getFirebaseUidByGoogleUid: jest.fn().mockResolvedValue(null),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<UserService>(UserService);
     jest.clearAllMocks();
-    mockAdminDeleteQueryBuilder.delete.mockReturnValue(mockAdminDeleteQueryBuilder);
-    mockAdminDeleteQueryBuilder.from.mockReturnValue(mockAdminDeleteQueryBuilder);
-    mockAdminDeleteQueryBuilder.where.mockReturnValue(mockAdminDeleteQueryBuilder);
-    mockAdminDeleteQueryBuilder.andWhere.mockReturnValue(mockAdminDeleteQueryBuilder);
-    mockAdminDeleteQueryBuilder.setParameter.mockReturnValue(mockAdminDeleteQueryBuilder);
-    mockTransactionalRepository.createQueryBuilder.mockReturnValue(mockAdminDeleteQueryBuilder);
+    mockAdminDeleteQueryBuilder.delete.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
+    mockAdminDeleteQueryBuilder.from.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
+    mockAdminDeleteQueryBuilder.where.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
+    mockAdminDeleteQueryBuilder.andWhere.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
+    mockAdminDeleteQueryBuilder.setParameter.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
+    mockTransactionalRepository.createQueryBuilder.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
     mockTransaction.mockImplementation(
-      async (callback: (manager: typeof mockEntityManager) => Promise<unknown>) =>
-        callback(mockEntityManager)
+      async (
+        callback: (manager: typeof mockEntityManager) => Promise<unknown>
+      ) => callback(mockEntityManager)
     );
   });
 
@@ -234,12 +256,16 @@ describe('UserService', (): void => {
       const result = await service.deleteUser(2, 1);
 
       expect(mockTransaction).toHaveBeenCalledTimes(1);
-      expect(mockTransactionalRepository.delete).toHaveBeenCalledWith({ id: 2 });
+      expect(mockTransactionalRepository.delete).toHaveBeenCalledWith({
+        id: 2,
+      });
       expect(result).toBe(true);
     });
 
     it('should throw ForbiddenException when deleting yourself', async (): Promise<void> => {
-      await expect(service.deleteUser(1, 1)).rejects.toThrow(ForbiddenException);
+      await expect(service.deleteUser(1, 1)).rejects.toThrow(
+        ForbiddenException
+      );
 
       expect(mockTransaction).not.toHaveBeenCalled();
       expect(mockTransactionalRepository.delete).not.toHaveBeenCalled();
@@ -256,7 +282,9 @@ describe('UserService', (): void => {
         raw: {},
       });
 
-      await expect(service.deleteUser(1, 2)).rejects.toThrow(ForbiddenException);
+      await expect(service.deleteUser(1, 2)).rejects.toThrow(
+        ForbiddenException
+      );
 
       expect(mockTransactionalRepository.delete).not.toHaveBeenCalled();
       expect(mockAdminDeleteQueryBuilder.execute).toHaveBeenCalledTimes(1);

@@ -283,7 +283,7 @@ describe('ItemsService', (): void => {
         'category',
         undefined
       );
-      expect(mockQb.where).toHaveBeenCalledWith('1 = 1');
+      expect(mockQb.where).not.toHaveBeenCalled();
       expect(mockQb.loadRelationCountAndMap).toHaveBeenCalledWith(
         'item.copies_count',
         'item.copies',
