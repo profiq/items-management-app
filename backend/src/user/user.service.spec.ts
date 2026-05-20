@@ -291,9 +291,10 @@ describe('UserService', (): void => {
 
       await service.upsertByGoogleWorkspaceToken(token);
 
+      const savedUser = mockRepository.save.mock.calls[0][0] as User;
       expect(mockFirebaseService.setUserClaims).toHaveBeenCalledWith(
         'firebase-uid',
-        { role: mockUser.role }
+        { role: savedUser.role }
       );
     });
 
