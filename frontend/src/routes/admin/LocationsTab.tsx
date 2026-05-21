@@ -112,11 +112,18 @@ export default function LocationsTab() {
     setEditorOpen(true);
   };
 
-  const openEditEditor = useCallback((location: AdminLocation) => {
-    setEditingLocation(location);
-    setForm({ name: location.name, city_id: location.city_id });
-    setEditorOpen(true);
-  }, []);
+  const openEditEditor = useCallback(
+    (location: AdminLocation) => {
+      setEditingLocation(location);
+      const cityIsActive = activeCities.some(c => c.id === location.city_id);
+      setForm({
+        name: location.name,
+        city_id: cityIsActive ? location.city_id : 0,
+      });
+      setEditorOpen(true);
+    },
+    [activeCities]
+  );
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -124,7 +131,7 @@ export default function LocationsTab() {
       toast.error('Název je povinný');
       return;
     }
-    if (!form.city_id) {
+    if (!form.city_id || !activeCities.some(c => c.id === form.city_id)) {
       toast.error('Město je povinné');
       return;
     }
