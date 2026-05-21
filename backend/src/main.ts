@@ -11,10 +11,8 @@ async function bootstrap() {
   // Default is Express.
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
   const config = new DocumentBuilder()
-    .setTitle('Profiq Reference App')
-    .setDescription(
-      'API description of the reference app of Profiq for future student pool members'
-    )
+    .setTitle('Items Management App')
+    .setDescription('Items Management App API')
     .setVersion('0.0.1')
     .addBearerAuth()
     .build();
