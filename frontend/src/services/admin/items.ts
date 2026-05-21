@@ -6,6 +6,8 @@ import {
 import { createError } from '@/lib/errors';
 import type { User } from '@/lib/contexts';
 
+import type { AdminCategory } from '@/services/admin/categories';
+
 export type { AdminCategory } from '@/services/admin/categories';
 export { getAdminCategories } from '@/services/admin/categories';
 
