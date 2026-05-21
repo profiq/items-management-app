@@ -24,6 +24,10 @@ export class CitiesService {
     return this.cityRepository.find({ where: { archived_at: IsNull() } });
   }
 
+  findAllAdmin(): Promise<City[]> {
+    return this.cityRepository.find();
+  }
+
   async findOne(id: number): Promise<City> {
     const city: City | null = await this.cityRepository.findOneBy({
       id,

@@ -20,6 +20,11 @@ export function NavigationMenuReference() {
             label: 'Admin Categories',
             href: '/admin/categories',
           },
+          {
+            id: 'admin-locations',
+            label: 'Admin Locations',
+            href: '/admin/locations',
+          },
         ]
       : []),
   ];

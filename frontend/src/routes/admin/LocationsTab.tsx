@@ -1,0 +1,311 @@
+import { useCallback, useMemo, useState, type FormEvent } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import type { ColumnDef } from '@tanstack/react-table';
+import { Archive, Pencil, Plus } from 'lucide-react';
+import { toast } from 'sonner';
+import {
+  Alert,
+  AlertDialog,
+  Badge,
+  Button,
+  Dialog,
+  InputField,
+  Select,
+  Table,
+  Text,
+} from '@profiq/ui';
+import type { SelectItem } from '@profiq/ui';
+import { StatusSpinning } from '@/components/status/status-spinning';
+import { useAuth } from '@/lib/providers/auth/useAuth';
+import type { User } from '@/lib/contexts';
+import {
+  archiveAdminLocation,
+  createAdminLocation,
+  getAdminCities,
+  getAdminLocations,
+  updateAdminLocation,
+  type AdminCity,
+  type AdminLocation,
+  type AdminLocationPayload,
+} from '@/services/admin/locations';
+
+export default function LocationsTab() {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [editingLocation, setEditingLocation] = useState<AdminLocation | null>(
+    null
+  );
+  const [form, setForm] = useState<AdminLocationPayload>({
+    name: '',
+    city_id: 0,
+  });
+  const [locationToArchive, setLocationToArchive] =
+    useState<AdminLocation | null>(null);
+
+  const resetEditorState = () => {
+    setEditingLocation(null);
+    setForm({ name: '', city_id: 0 });
+  };
+
+  const closeEditor = () => {
+    setEditorOpen(false);
+    resetEditorState();
+  };
+
+  const locationsQuery = useQuery({
+    queryKey: ['admin-locations'],
+    queryFn: () => getAdminLocations(user as User),
+  });
+
+  const citiesQuery = useQuery({
+    queryKey: ['admin-cities'],
+    queryFn: () => getAdminCities(user as User),
+  });
+
+  const activeCities: AdminCity[] = useMemo(
+    () => citiesQuery.data?.filter(c => c.archived_at === null) ?? [],
+    [citiesQuery.data]
+  );
+
+  const citySelectItems: SelectItem[] = useMemo(
+    () => activeCities.map(c => ({ id: String(c.id), value: c.name })),
+    [activeCities]
+  );
+
+  const selectedCityName = useMemo(
+    () => activeCities.find(c => c.id === form.city_id)?.name ?? '',
+    [activeCities, form.city_id]
+  );
+
+  const saveMutation = useMutation({
+    mutationFn: (payload: AdminLocationPayload) =>
+      editingLocation
+        ? updateAdminLocation(user as User, editingLocation.id, payload)
+        : createAdminLocation(user as User, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-locations'] });
+      closeEditor();
+      toast.success(
+        editingLocation ? 'Lokalita aktualizována' : 'Lokalita vytvořena'
+      );
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const archiveMutation = useMutation({
+    mutationFn: (id: number) => archiveAdminLocation(user as User, id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-locations'] });
+      setLocationToArchive(null);
+      toast.success('Lokalita archivována');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message);
+    },
+  });
+
+  const openCreateEditor = () => {
+    resetEditorState();
+    setEditorOpen(true);
+  };
+
+  const openEditEditor = useCallback((location: AdminLocation) => {
+    setEditingLocation(location);
+    setForm({ name: location.name, city_id: location.city_id });
+    setEditorOpen(true);
+  }, []);
+
+  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!form.name.trim()) {
+      toast.error('Název je povinný');
+      return;
+    }
+    if (!form.city_id) {
+      toast.error('Město je povinné');
+      return;
+    }
+    saveMutation.mutate({ name: form.name.trim(), city_id: form.city_id });
+  };
+
+  const columns = useMemo<ColumnDef<AdminLocation>[]>(
+    () => [
+      {
+        accessorKey: 'name',
+        header: 'Název',
+      },
+      {
+        id: 'city',
+        header: 'Město',
+        cell: ({ row }) => row.original.city?.name ?? '—',
+      },
+      {
+        id: 'archived',
+        header: 'Archivováno',
+        cell: ({ row }) => (
+          <Badge
+            variant={row.original.archived_at ? 'secondary' : 'outline'}
+            title={row.original.archived_at ? 'Archivováno' : 'Aktivní'}
+          />
+        ),
+      },
+      {
+        id: 'actions',
+        header: 'Akce',
+        cell: ({ row }) => (
+          <div className='flex justify-end gap-2'>
+            <Button
+              type='button'
+              variant='outline'
+              size='icon-sm'
+              ariaLabel={`Upravit ${row.original.name}`}
+              onClick={() => openEditEditor(row.original)}
+            >
+              <Pencil aria-hidden='true' />
+            </Button>
+            <Button
+              type='button'
+              variant='destructive'
+              size='icon-sm'
+              ariaLabel={`Archivovat ${row.original.name}`}
+              disabled={
+                archiveMutation.isPending || row.original.archived_at !== null
+              }
+              onClick={() => setLocationToArchive(row.original)}
+            >
+              <Archive aria-hidden='true' />
+            </Button>
+          </div>
+        ),
+      },
+    ],
+    [archiveMutation.isPending, openEditEditor]
+  );
+
+  return (
+    <section className='flex flex-col gap-6'>
+      <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
+        <Text as='p' size='sm' className='text-muted-foreground'>
+          Celkem: {locationsQuery.data?.length ?? 0}
+        </Text>
+        <Button type='button' onClick={openCreateEditor}>
+          <Plus aria-hidden='true' />
+          Přidat lokalitu
+        </Button>
+      </div>
+
+      {locationsQuery.isLoading && <StatusSpinning />}
+
+      {locationsQuery.isError && (
+        <Alert
+          variant='destructive'
+          title='Nepodařilo se načíst lokality'
+          description={
+            locationsQuery.error instanceof Error
+              ? locationsQuery.error.message
+              : 'Neznámá chyba'
+          }
+        />
+      )}
+
+      {locationsQuery.data && (
+        <div className='overflow-x-auto rounded-lg border'>
+          <Table
+            columns={columns}
+            data={locationsQuery.data}
+            dataTestId='admin-locations-table'
+          />
+        </div>
+      )}
+
+      <Dialog
+        open={editorOpen}
+        onOpenChange={open => {
+          setEditorOpen(open);
+          if (!open) resetEditorState();
+        }}
+        title={
+          <span className='text-foreground'>
+            {editingLocation ? 'Upravit lokalitu' : 'Přidat lokalitu'}
+          </span>
+        }
+        description='Spravujte název lokality a přiřazené město.'
+        className='text-card-foreground'
+        footer={
+          <>
+            <Button
+              type='button'
+              variant='outline'
+              onClick={closeEditor}
+              disabled={saveMutation.isPending}
+            >
+              Zrušit
+            </Button>
+            <Button
+              type='submit'
+              form='admin-location-editor-form'
+              disabled={saveMutation.isPending}
+            >
+              {saveMutation.isPending ? 'Ukládám...' : 'Uložit'}
+            </Button>
+          </>
+        }
+      >
+        <form
+          id='admin-location-editor-form'
+          onSubmit={handleSubmit}
+          className='flex flex-col gap-4'
+        >
+          <InputField
+            fieldLabel='Název'
+            fieldPlaceholder='Název lokality'
+            fieldDescription=''
+            type='text'
+            value={form.name}
+            onChange={value => setForm(prev => ({ ...prev, name: value }))}
+            isRequired
+            isDisabled={saveMutation.isPending}
+          />
+          <div className='flex flex-col gap-1'>
+            <Text as='label' size='sm' weight='medium'>
+              Město
+            </Text>
+            <Select
+              placeholder='Vyberte město'
+              items={citySelectItems}
+              value={selectedCityName}
+              isDisabled={saveMutation.isPending || citiesQuery.isLoading}
+              onValueChange={cityName => {
+                const city = activeCities.find(c => c.name === cityName);
+                if (city) setForm(prev => ({ ...prev, city_id: city.id }));
+              }}
+            />
+          </div>
+        </form>
+      </Dialog>
+
+      <AlertDialog
+        open={locationToArchive !== null}
+        onOpenChange={open => {
+          if (!open) setLocationToArchive(null);
+        }}
+        title='Archivovat lokalitu'
+        description={
+          locationToArchive
+            ? `Archivovat ${locationToArchive.name}? Lokalita zůstane viditelná v tomto seznamu.`
+            : ''
+        }
+        actionLabel={archiveMutation.isPending ? 'Archivuji...' : 'Archivovat'}
+        cancelLabel='Zrušit'
+        onAction={() => {
+          if (locationToArchive) {
+            archiveMutation.mutate(locationToArchive.id);
+          }
+        }}
+      />
+    </section>
+  );
+}
