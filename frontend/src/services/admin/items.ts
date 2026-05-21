@@ -17,6 +17,27 @@ export type AdminTag = {
   name: string;
 };
 
+export type AdminLocation = {
+  id: number;
+  name: string;
+  city_id: number;
+  archived_at: string | null;
+};
+
+export type AdminCopy = {
+  id: number;
+  item_id: number;
+  location_id: number;
+  condition: 'good' | 'damaged' | 'lost' | null;
+  archived_at: string | null;
+  location?: AdminLocation;
+};
+
+export type AdminCopyPayload = {
+  location_id: number;
+  condition?: 'good' | 'damaged' | 'lost' | null;
+};
+
 export type AdminItem = {
   id: number;
   name: string;
@@ -28,6 +49,10 @@ export type AdminItem = {
   tags: AdminTag[];
   copies_count?: number;
   available_copies_count?: number;
+};
+
+export type AdminItemDetail = AdminItem & {
+  copies: AdminCopy[];
 };
 
 export type AdminItemsResponse = {
@@ -135,6 +160,74 @@ export async function getAdminTags(user: User): Promise<AdminTag[]> {
   const result: APIResponse<AdminTag[]> = await client.fetch(
     HttpMethod.Get,
     '/admin/tags'
+  );
+
+  return throwIfFailed(result);
+}
+
+export async function getAdminItem(
+  user: User,
+  id: number
+): Promise<AdminItemDetail> {
+  const client = new APIClient(user);
+  const result: APIResponse<AdminItemDetail> = await client.fetch(
+    HttpMethod.Get,
+    `/admin/items/${id}`
+  );
+
+  return throwIfFailed(result);
+}
+
+export async function getAdminLocations(user: User): Promise<AdminLocation[]> {
+  const client = new APIClient(user);
+  const result: APIResponse<AdminLocation[]> = await client.fetch(
+    HttpMethod.Get,
+    '/admin/locations'
+  );
+
+  return throwIfFailed(result);
+}
+
+export async function createAdminCopy(
+  user: User,
+  itemId: number,
+  payload: AdminCopyPayload
+): Promise<AdminCopy> {
+  const client = new APIClient(user);
+  const result: APIResponse<AdminCopy> = await client.fetch(
+    HttpMethod.Post,
+    `/admin/items/${itemId}/copies`,
+    payload
+  );
+
+  return throwIfFailed(result);
+}
+
+export async function updateAdminCopy(
+  user: User,
+  itemId: number,
+  copyId: number,
+  payload: AdminCopyPayload
+): Promise<AdminCopy> {
+  const client = new APIClient(user);
+  const result: APIResponse<AdminCopy> = await client.fetch(
+    HttpMethod.Put,
+    `/admin/items/${itemId}/copies/${copyId}`,
+    payload
+  );
+
+  return throwIfFailed(result);
+}
+
+export async function archiveAdminCopy(
+  user: User,
+  itemId: number,
+  copyId: number
+): Promise<AdminCopy> {
+  const client = new APIClient(user);
+  const result: APIResponse<AdminCopy> = await client.fetch(
+    HttpMethod.Delete,
+    `/admin/items/${itemId}/copies/${copyId}`
   );
 
   return throwIfFailed(result);
