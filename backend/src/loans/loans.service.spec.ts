@@ -190,10 +190,12 @@ describe('LoansService', (): void => {
   });
 
   describe('findAll', (): void => {
+    const relations = ['copy', 'copy.item', 'copy.location', 'user'];
+
     it('returns all loans when no status filter', async (): Promise<void> => {
       mockLoanRepository.find.mockResolvedValue([mockLoan]);
       const result = await service.findAll({} as FindLoansQueryDto);
-      expect(mockLoanRepository.find).toHaveBeenCalledWith();
+      expect(mockLoanRepository.find).toHaveBeenCalledWith({ relations });
       expect(result).toEqual([mockLoan]);
     });
 
@@ -205,6 +207,7 @@ describe('LoansService', (): void => {
           returned_at: IsNull(),
           due_date: MoreThanOrEqual(expect.any(String)),
         },
+        relations,
       });
     });
 
@@ -213,6 +216,7 @@ describe('LoansService', (): void => {
       await service.findAll({ status: LoanStatus.Returned });
       expect(mockLoanRepository.find).toHaveBeenCalledWith({
         where: { returned_at: Not(IsNull()) },
+        relations,
       });
     });
 
@@ -224,6 +228,7 @@ describe('LoansService', (): void => {
           returned_at: IsNull(),
           due_date: LessThan(expect.any(String)),
         },
+        relations,
       });
     });
   });

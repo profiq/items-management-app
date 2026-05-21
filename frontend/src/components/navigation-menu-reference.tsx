@@ -25,6 +25,11 @@ export function NavigationMenuReference() {
             label: 'Admin Locations',
             href: '/admin/locations',
           },
+          {
+            id: 'admin-loans',
+            label: 'Admin Loans',
+            href: '/admin/loans',
+          },
         ]
       : []),
   ];

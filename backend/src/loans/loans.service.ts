@@ -101,23 +101,34 @@ export class LoansService {
     return this.loanRepository.save(loan);
   }
 
+  private static readonly LOAN_RELATIONS = [
+    'copy',
+    'copy.item',
+    'copy.location',
+    'user',
+  ];
+
   findAll(query: FindLoansQueryDto): Promise<Loan[]> {
     const today = this.today();
+    const relations = LoansService.LOAN_RELATIONS;
     switch (query.status) {
       case LoanStatus.Active:
         return this.loanRepository.find({
           where: { returned_at: IsNull(), due_date: MoreThanOrEqual(today) },
+          relations,
         });
       case LoanStatus.Returned:
         return this.loanRepository.find({
           where: { returned_at: Not(IsNull()) },
+          relations,
         });
       case LoanStatus.Overdue:
         return this.loanRepository.find({
           where: { returned_at: IsNull(), due_date: LessThan(today) },
+          relations,
         });
       default:
-        return this.loanRepository.find();
+        return this.loanRepository.find({ relations });
     }
   }
 
