@@ -15,6 +15,11 @@ export function NavigationMenuReference() {
       ? [
           { id: 'admin', label: 'Admin', href: '/admin' },
           { id: 'admin-items', label: 'Admin Items', href: '/admin/items' },
+          {
+            id: 'admin-categories',
+            label: 'Admin Categories',
+            href: '/admin/categories',
+          },
         ]
       : []),
   ];

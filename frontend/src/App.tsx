@@ -14,6 +14,7 @@ import { Toaster } from '@profiq/ui/components/ui';
 import Profile from './routes/Profile.tsx';
 import Admin from './routes/admin/Admin.tsx';
 import AdminItems from './routes/admin/Items.tsx';
+import AdminCategories from './routes/admin/Categories.tsx';
 
 const queryClient = new QueryClient();
 
@@ -24,7 +25,7 @@ function App() {
         <AuthProvider>
           <BrowserRouter>
             <div className='profiq'>
-              <NavigationMenuReference></NavigationMenuReference>
+              <NavigationMenuReference />
               <div id='content'>
                 <Routes>
                   <Route path='/' element={<Home />} />
@@ -36,6 +37,10 @@ function App() {
                   <Route element={<AdminRoute />}>
                     <Route path='/admin' element={<Admin />} />
                     <Route path='/admin/items' element={<AdminItems />} />
+                    <Route
+                      path='/admin/categories'
+                      element={<AdminCategories />}
+                    />
                   </Route>
                 </Routes>
               </div>

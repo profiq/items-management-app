@@ -24,6 +24,10 @@ export class CategoriesService {
     return this.categoryRepository.find({ where: { archived_at: IsNull() } });
   }
 
+  findAllAdmin(): Promise<Category[]> {
+    return this.categoryRepository.find();
+  }
+
   async findOne(id: number): Promise<Category> {
     const category: Category | null = await this.categoryRepository.findOneBy({
       id,
