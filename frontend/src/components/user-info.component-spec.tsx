@@ -46,7 +46,7 @@ describe('Testing user info', () => {
     expect(getByTestId('user-phone')).toHaveTextContent(phoneNumber);
   });
 
-  it('should not show photo even when photoURL is provided', async () => {
+  it('should show photo when photoURL is provided', async () => {
     const email = faker.internet.email();
     const displayName = faker.person.fullName();
     const photoURL = faker.internet.url();
@@ -59,7 +59,7 @@ describe('Testing user info', () => {
     const { getByTestId, getByRole } = await render(<UserInfo></UserInfo>);
     expect(getByTestId('user-email')).toHaveTextContent(email);
     expect(getByTestId('user-name')).toHaveTextContent(displayName);
-    expect(getByRole('img')).not.toBeInTheDocument();
+    expect(getByRole('img')).toHaveAttribute('src', photoURL);
   });
 
   it('should show nothing - no user', async () => {
