@@ -9,44 +9,8 @@ function getInitials(displayName: string | null, email: string | null): string {
     }
     return displayName.slice(0, 2).toUpperCase();
   }
-  if (email) {
-    return email[0].toUpperCase();
-  }
+  if (email) return email[0].toUpperCase();
   return '?';
-}
-
-function InfoRow({
-  label,
-  value,
-  testId,
-  mono = false,
-}: {
-  label: string;
-  value: string | null;
-  testId: string;
-  mono?: boolean;
-}) {
-  if (!value) return null;
-  return (
-    <div className='flex flex-col gap-1'>
-      <Text
-        as='span'
-        size='xs'
-        weight='semibold'
-        className='uppercase tracking-wider text-gray-400'
-      >
-        {label}
-      </Text>
-      <Text
-        as='span'
-        size='sm'
-        className={mono ? 'font-mono text-gray-600 break-all' : 'text-gray-800'}
-        dataTestId={testId}
-      >
-        {value}
-      </Text>
-    </div>
-  );
 }
 
 function UserInfo() {
@@ -59,37 +23,38 @@ function UserInfo() {
   return (
     <div
       data-testid='user-info'
-      className='rounded-2xl border border-gray-200 shadow-sm overflow-hidden'
+      className='overflow-hidden rounded-xl border bg-card shadow-sm'
     >
-      <div className='bg-gradient-to-br from-indigo-50 to-blue-100 px-8 py-10 flex flex-col items-center gap-3'>
-        <div className='w-20 h-20 rounded-full bg-indigo-600 flex items-center justify-center shadow-md select-none overflow-hidden'>
+      <div className='h-1.5 bg-primary' />
+
+      <div className='flex flex-col items-center gap-4 bg-primary/5 px-8 py-10'>
+        <div className='flex h-24 w-24 select-none items-center justify-center overflow-hidden rounded-full bg-primary shadow-lg ring-4 ring-background'>
           {user.photoURL ? (
             <img
               src={user.photoURL}
               alt={user.displayName ?? user.email ?? ''}
-              className='w-full h-full object-cover'
+              className='h-full w-full object-cover'
             />
           ) : (
-            <Text as='span' size='xl' weight='bold' className='text-white'>
+            <Text
+              as='span'
+              size='2xl'
+              weight='bold'
+              className='text-primary-foreground'
+            >
               {initials}
             </Text>
           )}
         </div>
 
         <div className='text-center'>
-          <Text
-            as='h2'
-            size='xl'
-            weight='semibold'
-            className='text-gray-900'
-            dataTestId='user-name'
-          >
+          <Text as='h2' size='xl' weight='semibold' dataTestId='user-name'>
             {user.displayName ?? user.email}
           </Text>
           <Text
             as='p'
             size='sm'
-            className='text-gray-500 mt-0.5'
+            className='mt-0.5 text-muted-foreground'
             dataTestId='user-email'
           >
             {user.email}
@@ -98,22 +63,38 @@ function UserInfo() {
 
         {role && (
           <Badge
-            variant={role === 'admin' ? 'outline' : 'secondary'}
+            variant={role === 'admin' ? 'default' : 'secondary'}
             title={role === 'admin' ? 'Admin' : 'Uživatel'}
             isRounded
+            className='px-3 py-0.5'
           />
         )}
       </div>
 
-      <div className='px-8 py-6 flex flex-col items-center gap-5 bg-white'>
+      <div className='divide-y'>
         {user.phoneNumber && (
-          <InfoRow
-            label='Telefon'
-            value={user.phoneNumber}
-            testId='user-phone'
-          />
+          <div className='flex items-center justify-between px-8 py-4'>
+            <Text as='span' size='sm' className='text-muted-foreground'>
+              Telefon
+            </Text>
+            <Text as='span' size='sm' dataTestId='user-phone'>
+              {user.phoneNumber}
+            </Text>
+          </div>
         )}
-        <InfoRow label='UID' value={user.uid} testId='user-uid' mono />
+        <div className='flex items-start justify-between gap-6 px-8 py-4'>
+          <Text as='span' size='sm' className='shrink-0 text-muted-foreground'>
+            UID
+          </Text>
+          <Text
+            as='span'
+            size='xs'
+            className='break-all font-mono text-muted-foreground'
+            dataTestId='user-uid'
+          >
+            {user.uid}
+          </Text>
+        </div>
       </div>
     </div>
   );
