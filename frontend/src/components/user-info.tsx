@@ -48,7 +48,13 @@ function UserInfo() {
         </div>
 
         <div className='text-center'>
-          <Text as='h2' size='xl' weight='semibold' dataTestId='user-name'>
+          <Text
+            as='p'
+            size='2xl'
+            weight='bold'
+            className='text-foreground'
+            dataTestId='user-name'
+          >
             {user.displayName ?? user.email}
           </Text>
           <Text
