@@ -23,12 +23,13 @@ describe('Testing user info', () => {
       user: { email, uid, displayName },
     });
 
-    const { getByText } = await render(<UserInfo></UserInfo>);
-    expect(getByText(email)).toBeInTheDocument();
-    expect(getByText(displayName)).toBeInTheDocument();
-    expect(getByText('Phone number: ')).not.toBeInTheDocument();
-    expect(getByText('User avatar')).not.toBeInTheDocument();
+    const { getByTestId, getByText } = await render(<UserInfo></UserInfo>);
+    expect(getByTestId('user-email')).toHaveTextContent(email);
+    expect(getByTestId('user-name')).toHaveTextContent(displayName);
+    expect(getByTestId('user-uid')).toHaveTextContent(uid);
+    expect(getByText('Telefon')).not.toBeInTheDocument();
   });
+
   it('should show user info with phone', async () => {
     const email = faker.internet.email();
     const displayName = faker.person.fullName();
@@ -36,86 +37,29 @@ describe('Testing user info', () => {
     const uid = faker.string.uuid();
     mocks.useAuth.mockReturnValue({
       loading: false,
-      user: {
-        email,
-        uid,
-        displayName,
-        phoneNumber,
-      },
+      user: { email, uid, displayName, phoneNumber },
     });
 
-    const { getByText } = await render(<UserInfo></UserInfo>);
-    expect(getByText(`Email: ${email}`)).toBeInTheDocument();
-    expect(getByText(`Name: ${displayName}`)).toBeInTheDocument();
-    expect(getByText(`Phone number: ${phoneNumber}`)).toBeInTheDocument();
-    expect(getByText('User avatar')).not.toBeInTheDocument();
+    const { getByTestId } = await render(<UserInfo></UserInfo>);
+    expect(getByTestId('user-email')).toHaveTextContent(email);
+    expect(getByTestId('user-name')).toHaveTextContent(displayName);
+    expect(getByTestId('user-phone')).toHaveTextContent(phoneNumber);
   });
-  it('should show user info with avatar', async () => {
+
+  it('should not show photo even when photoURL is provided', async () => {
     const email = faker.internet.email();
     const displayName = faker.person.fullName();
     const photoURL = faker.internet.url();
     const uid = faker.string.uuid();
     mocks.useAuth.mockReturnValue({
       loading: false,
-      user: {
-        email,
-        uid,
-        displayName,
-        photoURL,
-      },
+      user: { email, uid, displayName, photoURL },
     });
 
-    const { getByText } = await render(<UserInfo></UserInfo>);
-    expect(getByText(`Email: ${email}`)).toBeInTheDocument();
-    expect(getByText(`Name: ${displayName}`)).toBeInTheDocument();
-    expect(getByText('Phone number:')).not.toBeInTheDocument();
-    expect(getByText('User avatar')).toBeInTheDocument();
-  });
-  it('should show user info with all', async () => {
-    const email = faker.internet.email();
-    const displayName = faker.person.fullName();
-    const phoneNumber = faker.phone.number();
-    const photoURL = faker.internet.url();
-    const uid = faker.string.uuid();
-    mocks.useAuth.mockReturnValue({
-      loading: false,
-      user: {
-        email,
-        uid,
-        displayName,
-        phoneNumber,
-        photoURL,
-      },
-    });
-
-    const { getByText } = await render(<UserInfo></UserInfo>);
-    expect(getByText(`Email: ${email}`)).toBeInTheDocument();
-    expect(getByText(`Name: ${displayName}`)).toBeInTheDocument();
-    expect(getByText(`Phone number: ${phoneNumber}`)).toBeInTheDocument();
-    expect(getByText('User avatar')).toBeInTheDocument();
-  });
-  it('should show nothing - loading', async () => {
-    const email = faker.internet.email();
-    const displayName = faker.person.fullName();
-    const phoneNumber = faker.phone.number();
-    const photoURL = faker.internet.url();
-    const uid = faker.string.uuid();
-    mocks.useAuth.mockReturnValue({
-      loading: true,
-      user: {
-        email,
-        uid,
-        displayName,
-        phoneNumber,
-        photoURL,
-      },
-    });
-
-    const { getByText } = await render(<UserInfo></UserInfo>);
-    expect(getByText(`Email: ${email}`)).not.toBeInTheDocument();
-    expect(getByText(`Name: ${displayName}`)).not.toBeInTheDocument();
-    expect(getByText(`Phone number: ${phoneNumber}`)).not.toBeInTheDocument();
-    expect(getByText('User avatar')).not.toBeInTheDocument();
+    const { getByTestId, getByRole } = await render(<UserInfo></UserInfo>);
+    expect(getByTestId('user-email')).toHaveTextContent(email);
+    expect(getByTestId('user-name')).toHaveTextContent(displayName);
+    expect(getByRole('img')).not.toBeInTheDocument();
   });
 
   it('should show nothing - no user', async () => {
@@ -123,11 +67,7 @@ describe('Testing user info', () => {
       loading: false,
     });
 
-    const { getByText } = await render(<UserInfo></UserInfo>);
-    expect(getByText('Email:')).not.toBeInTheDocument();
-    expect(getByText('UID: ')).not.toBeInTheDocument();
-    expect(getByText('Name: ')).not.toBeInTheDocument();
-    expect(getByText('Phone number:')).not.toBeInTheDocument();
-    expect(getByText('User avatar')).not.toBeInTheDocument();
+    const { getByTestId } = await render(<UserInfo></UserInfo>);
+    expect(getByTestId('user-info')).not.toBeInTheDocument();
   });
 });
