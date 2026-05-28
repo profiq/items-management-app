@@ -9,7 +9,7 @@ const loginStateSchema = z.object({ from: z.string() }).partial().nullable();
 
 function getRedirectFrom(state: unknown): string {
   const parsed = loginStateSchema.safeParse(state);
-  return parsed.success ? (parsed.data?.from ?? '/') : '/';
+  return parsed.success ? (parsed.data?.from ?? '/dashboard') : '/dashboard';
 }
 
 function Login() {

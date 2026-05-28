@@ -15,7 +15,9 @@ export class ItemsController {
   findAll(
     @Query() query: FindItemsQueryDto
   ): Promise<PaginatedItemsResponseDto> {
-    return this.itemsService.findAll(query);
+    return this.itemsService.findAll(query, {
+      includeAvailabilityCounts: true,
+    });
   }
 
   @Get(':id')

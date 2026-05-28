@@ -7,6 +7,7 @@ export function NavigationMenuReference() {
     { id: 'login', label: 'Login', href: '/login' },
     ...(user
       ? [
+          { id: 'dashboard', label: 'Dashboard', href: '/dashboard' },
           { id: 'profile', label: 'Profile Page', href: '/profile' },
           { id: 'employees', label: 'List of Employees', href: '/employees' },
         ]

@@ -84,11 +84,43 @@ export class LoansService {
     }
   }
 
+  async borrowItem(itemId: number, userId: number): Promise<Loan> {
+    const copy = await this.itemCopyRepository
+      .createQueryBuilder('copy')
+      .innerJoin('copy.item', 'item')
+      .where('copy.item_id = :itemId', { itemId })
+      .andWhere('copy.archived_at IS NULL')
+      .andWhere('item.archived_at IS NULL')
+      .andWhere(
+        `NOT EXISTS (
+        SELECT 1 FROM loan l
+        WHERE l.copy_id = copy.id
+          AND l.returned_at IS NULL
+      )`
+      )
+      .getOne();
+
+    if (!copy) {
+      throw new UnprocessableEntityException('No available copy for this item');
+    }
+
+    return this.borrow(copy.id, userId);
+  }
+
   getMyLoans(userId: number): Promise<Loan[]> {
-    return this.loanRepository.find({
-      where: { user_id: userId },
-      order: { borrowed_at: 'DESC' },
-    });
+    return this.loanRepository
+      .createQueryBuilder('loan')
+      .leftJoinAndSelect('loan.copy', 'copy')
+      .leftJoinAndSelect('copy.item', 'item')
+      .leftJoinAndSelect(
+        'item.categories',
+        'category',
+        'category.archived_at IS NULL'
+      )
+      .leftJoinAndSelect('copy.location', 'location')
+      .where('loan.user_id = :userId', { userId })
+      .orderBy('loan.borrowed_at', 'DESC')
+      .getMany();
   }
 
   async returnLoan(loanId: number, returnedByUserId: number): Promise<Loan> {
