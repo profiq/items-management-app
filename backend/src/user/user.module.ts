@@ -6,12 +6,14 @@ import { UserController } from './user.controller';
 import { User } from './user.entity';
 import { EmployeeModule } from '@/employee/employee.module';
 import { RolesGuard } from '@/auth/roles.guard';
+import { FirebaseModule } from '@/firebase/firebase.module';
 
 @Module({
   imports: [
     forwardRef(() => AuthModule),
     forwardRef(() => EmployeeModule),
     TypeOrmModule.forFeature([User]),
+    FirebaseModule,
   ],
   providers: [UserService, RolesGuard],
   controllers: [UserController],

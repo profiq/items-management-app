@@ -5,6 +5,7 @@ import { EntityManager, Repository } from 'typeorm';
 import { UserService } from './user.service';
 import { User, UserRole } from './user.entity';
 import { EmployeeService } from '@/employee/employee.service';
+import { FirebaseService } from '@/firebase/firebase.service';
 
 const mockUser: User = {
   id: 1,
@@ -36,7 +37,8 @@ const mockEntityManager = {
       escape: (value: string) => `"${value}"`,
     },
   },
-  getRepository: () => mockTransactionalRepository as unknown as Repository<User>,
+  getRepository: () =>
+    mockTransactionalRepository as unknown as Repository<User>,
 };
 
 const mockTransaction = jest.fn(
@@ -64,6 +66,11 @@ const mockEmployeeService: jest.Mocked<Pick<EmployeeService, 'getEmployee'>> = {
   getEmployee: jest.fn(),
 };
 
+const mockFirebaseService = {
+  setUserClaims: jest.fn().mockResolvedValue(undefined),
+  getFirebaseUidByGoogleUid: jest.fn().mockResolvedValue(null),
+};
+
 describe('UserService', (): void => {
   let service: UserService;
 
@@ -73,20 +80,34 @@ describe('UserService', (): void => {
         UserService,
         { provide: getRepositoryToken(User), useValue: mockRepository },
         { provide: EmployeeService, useValue: mockEmployeeService },
+        { provide: FirebaseService, useValue: mockFirebaseService },
       ],
     }).compile();
 
     service = module.get<UserService>(UserService);
     jest.clearAllMocks();
-    mockAdminDeleteQueryBuilder.delete.mockReturnValue(mockAdminDeleteQueryBuilder);
-    mockAdminDeleteQueryBuilder.from.mockReturnValue(mockAdminDeleteQueryBuilder);
-    mockAdminDeleteQueryBuilder.where.mockReturnValue(mockAdminDeleteQueryBuilder);
-    mockAdminDeleteQueryBuilder.andWhere.mockReturnValue(mockAdminDeleteQueryBuilder);
-    mockAdminDeleteQueryBuilder.setParameter.mockReturnValue(mockAdminDeleteQueryBuilder);
-    mockTransactionalRepository.createQueryBuilder.mockReturnValue(mockAdminDeleteQueryBuilder);
+    mockAdminDeleteQueryBuilder.delete.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
+    mockAdminDeleteQueryBuilder.from.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
+    mockAdminDeleteQueryBuilder.where.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
+    mockAdminDeleteQueryBuilder.andWhere.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
+    mockAdminDeleteQueryBuilder.setParameter.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
+    mockTransactionalRepository.createQueryBuilder.mockReturnValue(
+      mockAdminDeleteQueryBuilder
+    );
     mockTransaction.mockImplementation(
-      async (callback: (manager: typeof mockEntityManager) => Promise<unknown>) =>
-        callback(mockEntityManager)
+      async (
+        callback: (manager: typeof mockEntityManager) => Promise<unknown>
+      ) => callback(mockEntityManager)
     );
   });
 
@@ -188,6 +209,61 @@ describe('UserService', (): void => {
       expect(result?.role).toBe(UserRole.Admin);
     });
 
+    it('should sync Firebase claims when firebaseUid is found', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue({ ...mockUser });
+      mockRepository.save.mockResolvedValue({
+        ...mockUser,
+        role: UserRole.Admin,
+      });
+      mockFirebaseService.getFirebaseUidByGoogleUid.mockResolvedValue(
+        'firebase-uid'
+      );
+
+      await service.updateUserRole(1, UserRole.Admin, 2);
+
+      expect(
+        mockFirebaseService.getFirebaseUidByGoogleUid
+      ).toHaveBeenCalledWith(mockUser.employee_id);
+      expect(mockFirebaseService.setUserClaims).toHaveBeenCalledWith(
+        'firebase-uid',
+        { role: UserRole.Admin }
+      );
+    });
+
+    it('should skip Firebase claim sync when firebaseUid is not found', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue({ ...mockUser });
+      mockRepository.save.mockResolvedValue({
+        ...mockUser,
+        role: UserRole.Admin,
+      });
+      mockFirebaseService.getFirebaseUidByGoogleUid.mockResolvedValue(null);
+
+      await service.updateUserRole(1, UserRole.Admin, 2);
+
+      expect(mockFirebaseService.setUserClaims).not.toHaveBeenCalled();
+    });
+
+    it('should revert DB role and rethrow when Firebase sync fails', async (): Promise<void> => {
+      const user = { ...mockUser, role: UserRole.User };
+      mockRepository.findOne.mockResolvedValue(user);
+      mockRepository.save.mockResolvedValue(user);
+      mockFirebaseService.getFirebaseUidByGoogleUid.mockResolvedValue(
+        'firebase-uid'
+      );
+      mockFirebaseService.setUserClaims.mockRejectedValue(
+        new Error('Firebase error')
+      );
+
+      await expect(
+        service.updateUserRole(1, UserRole.Admin, 2)
+      ).rejects.toThrow('Firebase error');
+
+      expect(mockRepository.save).toHaveBeenCalledTimes(2);
+      expect(mockRepository.save).toHaveBeenLastCalledWith(
+        expect.objectContaining({ role: UserRole.User })
+      );
+    });
+
     it('should return null when user not found', async (): Promise<void> => {
       mockRepository.findOne.mockResolvedValue(null);
 
@@ -195,6 +271,44 @@ describe('UserService', (): void => {
 
       expect(mockRepository.save).not.toHaveBeenCalled();
       expect(result).toBeNull();
+    });
+  });
+
+  describe('upsertByGoogleWorkspaceToken', (): void => {
+    it('should set Firebase claims after creating a new user', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue(null);
+      mockEmployeeService.getEmployee.mockResolvedValue({
+        id: 'google-workspace-uid',
+        name: 'Test User',
+        email: 'test@example.com',
+      });
+      mockRepository.save.mockResolvedValue(mockUser);
+
+      const token = {
+        uid: 'firebase-uid',
+        firebase: { identities: { 'google.com': ['google-workspace-uid'] } },
+      };
+
+      await service.upsertByGoogleWorkspaceToken(token);
+
+      const savedUser = mockRepository.save.mock.calls[0][0] as User;
+      expect(mockFirebaseService.setUserClaims).toHaveBeenCalledWith(
+        'firebase-uid',
+        { role: savedUser.role }
+      );
+    });
+
+    it('should not set Firebase claims for an existing user', async (): Promise<void> => {
+      mockRepository.findOne.mockResolvedValue(mockUser);
+
+      const token = {
+        uid: 'firebase-uid',
+        firebase: { identities: { 'google.com': ['google-workspace-uid'] } },
+      };
+
+      await service.upsertByGoogleWorkspaceToken(token);
+
+      expect(mockFirebaseService.setUserClaims).not.toHaveBeenCalled();
     });
   });
 
@@ -234,12 +348,16 @@ describe('UserService', (): void => {
       const result = await service.deleteUser(2, 1);
 
       expect(mockTransaction).toHaveBeenCalledTimes(1);
-      expect(mockTransactionalRepository.delete).toHaveBeenCalledWith({ id: 2 });
+      expect(mockTransactionalRepository.delete).toHaveBeenCalledWith({
+        id: 2,
+      });
       expect(result).toBe(true);
     });
 
     it('should throw ForbiddenException when deleting yourself', async (): Promise<void> => {
-      await expect(service.deleteUser(1, 1)).rejects.toThrow(ForbiddenException);
+      await expect(service.deleteUser(1, 1)).rejects.toThrow(
+        ForbiddenException
+      );
 
       expect(mockTransaction).not.toHaveBeenCalled();
       expect(mockTransactionalRepository.delete).not.toHaveBeenCalled();
@@ -256,7 +374,9 @@ describe('UserService', (): void => {
         raw: {},
       });
 
-      await expect(service.deleteUser(1, 2)).rejects.toThrow(ForbiddenException);
+      await expect(service.deleteUser(1, 2)).rejects.toThrow(
+        ForbiddenException
+      );
 
       expect(mockTransactionalRepository.delete).not.toHaveBeenCalled();
       expect(mockAdminDeleteQueryBuilder.execute).toHaveBeenCalledTimes(1);

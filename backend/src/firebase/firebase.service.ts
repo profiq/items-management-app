@@ -57,6 +57,27 @@ export class FirebaseService {
     }
   }
 
+  async setUserClaims(
+    firebaseUid: string,
+    claims: Record<string, unknown>
+  ): Promise<void> {
+    await this.firebaseApp.auth().setCustomUserClaims(firebaseUid, claims);
+  }
+
+  async getFirebaseUidByGoogleUid(googleUid: string): Promise<string | null> {
+    try {
+      const record = await this.firebaseApp
+        .auth()
+        .getUserByProviderUid('google.com', googleUid);
+      return record.uid;
+    } catch (e) {
+      if ((e as { code?: string }).code === 'auth/user-not-found') {
+        return null;
+      }
+      throw e;
+    }
+  }
+
   private isStorageNotFoundError(err: unknown): boolean {
     const { code } = err as { code?: unknown };
     return code === 404 || code === '404';

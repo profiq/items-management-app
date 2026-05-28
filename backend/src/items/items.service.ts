@@ -120,9 +120,7 @@ export class ItemsService {
       );
     }
 
-    if (includeArchived) {
-      qb.where('1 = 1');
-    } else {
+    if (!includeArchived) {
       qb.where('item.archived_at IS NULL');
     }
 
@@ -133,10 +131,16 @@ export class ItemsService {
     }
 
     if (categoryId) {
+      const filterCategoryConditions = ['filterCategory.id = :categoryId'];
+
+      if (!includeArchived) {
+        filterCategoryConditions.push('filterCategory.archived_at IS NULL');
+      }
+
       qb.innerJoin(
         'item.categories',
         'filterCategory',
-        'filterCategory.id = :categoryId AND filterCategory.archived_at IS NULL',
+        filterCategoryConditions.join(' AND '),
         { categoryId }
       );
     }
