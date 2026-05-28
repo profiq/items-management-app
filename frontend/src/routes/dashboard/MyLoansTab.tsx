@@ -12,7 +12,7 @@ import {
   Text,
 } from '@profiq/ui';
 import type { TabItem } from '@profiq/ui';
-import type { Item as SelectItem } from '@profiq/ui';
+import type { SelectItem } from '@profiq/ui';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import type { User } from '@/lib/contexts';
 import type { PublicCategory } from '@/services/items/items';
@@ -145,7 +145,7 @@ export function MyLoansTab({ categories }: MyLoansTabProps) {
   const [loanToReturn, setLoanToReturn] = useState<MyLoan | null>(null);
 
   const loansQuery = useQuery({
-    queryKey: ['my-loans'],
+    queryKey: ['my-loans', user?.uid],
     queryFn: () => getMyLoans(user as User),
     enabled: !!user,
   });
@@ -153,7 +153,8 @@ export function MyLoansTab({ categories }: MyLoansTabProps) {
   const returnMutation = useMutation({
     mutationFn: (loanId: number) => returnLoan(user as User, loanId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-loans'] });
+      queryClient.invalidateQueries({ queryKey: ['my-loans', user?.uid] });
+      queryClient.invalidateQueries({ queryKey: ['items'] });
       setLoanToReturn(null);
       toast.success('Položka vrácena');
     },

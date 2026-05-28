@@ -12,7 +12,7 @@ import {
   SwitchField,
   Text,
 } from '@profiq/ui';
-import type { Item as SelectItem } from '@profiq/ui';
+import type { SelectItem } from '@profiq/ui';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import type { User } from '@/lib/contexts';
 import {
@@ -159,7 +159,7 @@ export function CatalogTab({ categories }: CatalogTabProps) {
   const borrowMutation = useMutation({
     mutationFn: (itemId: number) => borrowItem(user as User, itemId),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['my-loans'] });
+      queryClient.invalidateQueries({ queryKey: ['my-loans', user?.uid] });
       queryClient.invalidateQueries({ queryKey: ['items'] });
       setItemToBorrow(null);
       toast.success('Položka zapůjčena');

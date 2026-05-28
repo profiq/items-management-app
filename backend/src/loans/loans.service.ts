@@ -91,13 +91,16 @@ export class LoansService {
       .where('copy.item_id = :itemId', { itemId })
       .andWhere('copy.archived_at IS NULL')
       .andWhere('item.archived_at IS NULL')
-      .andWhere(
-        `NOT EXISTS (
-        SELECT 1 FROM loan l
-        WHERE l.copy_id = copy.id
-          AND l.returned_at IS NULL
-      )`
-      )
+      .andWhere(qb => {
+        const subQuery = qb
+          .subQuery()
+          .select('1')
+          .from(Loan, 'l')
+          .where('l.copy_id = copy.id')
+          .andWhere('l.returned_at IS NULL')
+          .getQuery();
+        return `NOT EXISTS ${subQuery}`;
+      })
       .getOne();
 
     if (!copy) {
