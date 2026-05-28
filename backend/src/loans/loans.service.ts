@@ -15,6 +15,7 @@ import {
   Repository,
 } from 'typeorm';
 import { ItemCopy } from '@/item-copies/entities/item-copy.entity';
+import { SlackNotificationsService } from '@/slack-notifications/slack-notifications.service';
 import { FindLoansQueryDto, LoanStatus } from './dto/find-loans-query.dto';
 import { Loan } from './entities/loan.entity';
 
@@ -37,7 +38,8 @@ export class LoansService {
     @InjectRepository(Loan)
     private readonly loanRepository: Repository<Loan>,
     @InjectRepository(ItemCopy)
-    private readonly itemCopyRepository: Repository<ItemCopy>
+    private readonly itemCopyRepository: Repository<ItemCopy>,
+    private readonly slackNotificationsService: SlackNotificationsService
   ) {}
 
   async findOne(id: number): Promise<Loan> {
@@ -72,7 +74,9 @@ export class LoansService {
     });
 
     try {
-      return await this.loanRepository.save(loan);
+      const saved = await this.loanRepository.save(loan);
+      void this.slackNotificationsService.notifyLoanStarted(saved, copy);
+      return saved;
     } catch (error) {
       if (
         isUniqueViolation(error) ||
