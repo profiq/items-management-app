@@ -24,8 +24,8 @@ describe('Testing nav menu', () => {
       </MemoryRouter>
     );
 
-    expect(getByText('Home')).toBeInTheDocument();
-    expect(getByText('Protected Page')).not.toBeInTheDocument();
+    expect(getByText('Login')).toBeInTheDocument();
+    expect(getByText('Profile Page')).not.toBeInTheDocument();
   });
   it('should show link to protected', async () => {
     const email = faker.internet.email();
@@ -40,7 +40,7 @@ describe('Testing nav menu', () => {
       </MemoryRouter>
     );
 
-    expect(getByText('Home')).toBeInTheDocument();
+    expect(getByText('Login')).toBeInTheDocument();
     expect(getByText('Profile Page')).toBeInTheDocument();
   });
 });

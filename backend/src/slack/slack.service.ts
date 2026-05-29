@@ -9,6 +9,9 @@ export class SlackService {
 
   constructor(private readonly configService: ConfigService) {
     const token = this.configService.get<string>('slack.botToken');
+    if (!token) {
+      throw new Error('Missing SLACK_BOT_TOKEN configuration');
+    }
     this.client = new WebClient(token);
   }
 

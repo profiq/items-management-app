@@ -23,6 +23,8 @@ import { ItemCopiesAdminController } from '@/admin/item-copies.admin.controller'
 import { LoansAdminController } from '@/admin/loans.admin.controller';
 import { AuthGuard } from '@/auth/auth.guard';
 import { RolesGuard } from '@/auth/roles.guard';
+import { SlackService } from '@/slack/slack.service';
+import { SlackNotificationsService } from '@/slack-notifications/slack-notifications.service';
 import { Loan } from '@/loans/entities/loan.entity';
 import { Item } from '@/items/entities/item.entity';
 import { City } from '@/cities/entities/city.entity';
@@ -71,6 +73,10 @@ async function buildApp(): Promise<{
     // Prevent Firebase Admin SDK initialization in unit-style happy-path suite
     .overrideProvider(FirebaseService)
     .useValue({})
+    .overrideProvider(SlackService)
+    .useValue({ sendDm: jest.fn() })
+    .overrideProvider(SlackNotificationsService)
+    .useValue({ notifyLoanStarted: jest.fn(), sendDueReminders: jest.fn() })
     .overrideProvider(AuthService)
     .useValue({ verifyToken: jest.fn() })
     .overrideGuard(AuthGuard)
@@ -469,6 +475,10 @@ describe('LoansModule auth (e2e)', (): void => {
       .useValue({})
       .overrideProvider(AuthService)
       .useValue(authService)
+      .overrideProvider(SlackService)
+      .useValue({ sendDm: jest.fn() })
+      .overrideProvider(SlackNotificationsService)
+      .useValue({ notifyLoanStarted: jest.fn(), sendDueReminders: jest.fn() })
       .compile();
 
     app = moduleFixture.createNestApplication();

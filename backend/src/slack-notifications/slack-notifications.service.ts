@@ -1,7 +1,20 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { Cron } from '@nestjs/schedule';
+
+const UNIQUE_VIOLATION_CODES = new Set([
+  'SQLITE_CONSTRAINT',
+  'SQLITE_CONSTRAINT_UNIQUE',
+  'ER_DUP_ENTRY',
+  '23505',
+]);
+
+function isUniqueViolation(error: unknown): boolean {
+  if (!(error instanceof QueryFailedError)) return false;
+  const driver = error.driverError as { code?: string } | undefined;
+  return !!driver?.code && UNIQUE_VIOLATION_CODES.has(driver.code);
+}
 import {
   SlackNotification,
   SlackNotificationType,
@@ -28,14 +41,6 @@ export class SlackNotificationsService {
 
   async notifyLoanStarted(loan: Loan, copy: ItemCopy): Promise<void> {
     try {
-      const email = await this.getUserEmail(loan.user_id);
-      if (!email) return;
-
-      await this.slackService.sendDm(
-        email,
-        `Půjčil/a sis ${copy.item.name}. Termín vrácení: ${loan.due_date}.`
-      );
-
       await this.slackNotificationRepository.save(
         this.slackNotificationRepository.create({
           loan_id: loan.id,
@@ -43,7 +48,16 @@ export class SlackNotificationsService {
           sent_at: new Date(),
         })
       );
+
+      const email = await this.getUserEmail(loan.user_id);
+      if (!email) return;
+
+      await this.slackService.sendDm(
+        email,
+        `Půjčil/a sis ${copy.item.name}. Termín vrácení: ${loan.due_date}.`
+      );
     } catch (error) {
+      if (isUniqueViolation(error)) return;
       this.logger.error(
         `Failed to send loan started notification for loan #${loan.id}`,
         error
@@ -84,11 +98,13 @@ export class SlackNotificationsService {
     days: number
   ): Promise<void> {
     try {
-      const alreadySent = await this.slackNotificationRepository.findOneBy({
-        loan_id: loan.id,
-        type,
-      });
-      if (alreadySent) return;
+      await this.slackNotificationRepository.save(
+        this.slackNotificationRepository.create({
+          loan_id: loan.id,
+          type,
+          sent_at: new Date(),
+        })
+      );
 
       const email = await this.getUserEmail(loan.user_id);
       if (!email) return;
@@ -98,15 +114,8 @@ export class SlackNotificationsService {
         email,
         this.buildReminderMessage(itemName, loan.due_date, days)
       );
-
-      await this.slackNotificationRepository.save(
-        this.slackNotificationRepository.create({
-          loan_id: loan.id,
-          type,
-          sent_at: new Date(),
-        })
-      );
     } catch (error) {
+      if (isUniqueViolation(error)) return;
       this.logger.error(
         `Failed to send ${type} reminder for loan #${loan.id}`,
         error

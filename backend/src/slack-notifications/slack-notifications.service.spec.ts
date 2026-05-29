@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { QueryFailedError, Repository } from 'typeorm';
 import { SlackNotificationsService } from './slack-notifications.service';
 import {
   SlackNotification,
@@ -129,7 +129,13 @@ describe('SlackNotificationsService', (): void => {
       );
     });
 
-    it('does not save notification and does not throw when SlackService fails', async (): Promise<void> => {
+    it('does not throw when SlackService fails', async (): Promise<void> => {
+      mockSlackNotificationRepository.create.mockReturnValue(
+        mockNotificationRecord
+      );
+      mockSlackNotificationRepository.save.mockResolvedValue(
+        mockNotificationRecord
+      );
       mockUserService.getUserById.mockResolvedValue(mockUser);
       mockEmployeeService.getEmployee.mockResolvedValue(mockEmployee);
       mockSlackService.sendDm.mockRejectedValue(new Error('Slack API error'));
@@ -138,10 +144,16 @@ describe('SlackNotificationsService', (): void => {
         service.notifyLoanStarted(mockLoan, mockCopy as unknown as ItemCopy)
       ).resolves.not.toThrow();
 
-      expect(mockSlackNotificationRepository.save).not.toHaveBeenCalled();
+      expect(mockSlackNotificationRepository.save).toHaveBeenCalled();
     });
 
     it('skips silently when user not found in database', async (): Promise<void> => {
+      mockSlackNotificationRepository.create.mockReturnValue(
+        mockNotificationRecord
+      );
+      mockSlackNotificationRepository.save.mockResolvedValue(
+        mockNotificationRecord
+      );
       mockUserService.getUserById.mockResolvedValue(null);
 
       await service.notifyLoanStarted(
@@ -150,10 +162,15 @@ describe('SlackNotificationsService', (): void => {
       );
 
       expect(mockSlackService.sendDm).not.toHaveBeenCalled();
-      expect(mockSlackNotificationRepository.save).not.toHaveBeenCalled();
     });
 
     it('skips silently when employee not found in directory', async (): Promise<void> => {
+      mockSlackNotificationRepository.create.mockReturnValue(
+        mockNotificationRecord
+      );
+      mockSlackNotificationRepository.save.mockResolvedValue(
+        mockNotificationRecord
+      );
       mockUserService.getUserById.mockResolvedValue(mockUser);
       mockEmployeeService.getEmployee.mockResolvedValue(null);
 
@@ -276,10 +293,10 @@ describe('SlackNotificationsService', (): void => {
         .mockReturnValueOnce(makeLoanQB([]))
         .mockReturnValueOnce(makeLoanQB([loanDue1]));
 
-      mockSlackNotificationRepository.findOneBy.mockResolvedValue({
-        ...mockNotificationRecord,
-        type: SlackNotificationType.Reminder1,
+      const uniqueViolation = new QueryFailedError('INSERT', [], {
+        code: 'SQLITE_CONSTRAINT',
       });
+      mockSlackNotificationRepository.save.mockRejectedValue(uniqueViolation);
 
       await service.sendDueReminders();
 
@@ -296,7 +313,12 @@ describe('SlackNotificationsService', (): void => {
         .mockReturnValueOnce(makeLoanQB([]))
         .mockReturnValueOnce(makeLoanQB([]));
 
-      mockSlackNotificationRepository.findOneBy.mockResolvedValue(null);
+      const reminder7Record = {
+        ...mockNotificationRecord,
+        type: SlackNotificationType.Reminder7,
+      };
+      mockSlackNotificationRepository.create.mockReturnValue(reminder7Record);
+      mockSlackNotificationRepository.save.mockResolvedValue(reminder7Record);
       mockUserService.getUserById.mockRejectedValue(new Error('DB error'));
 
       await expect(service.sendDueReminders()).resolves.not.toThrow();

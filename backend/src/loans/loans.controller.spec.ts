@@ -9,6 +9,8 @@ import { LoansController } from './loans.controller';
 import { LoansService } from './loans.service';
 import { UserService } from '@/user/user.service';
 import { AuthGuard } from '@/auth/auth.guard';
+import { RolesGuard } from '@/auth/roles.guard';
+import { SlackNotificationsService } from '@/slack-notifications/slack-notifications.service';
 import { Loan } from './entities/loan.entity';
 import { BorrowLoanDto } from './dto/borrow-loan.dto';
 import { UserRole } from '@/user/user.entity';
@@ -51,6 +53,12 @@ const mockUserService: jest.Mocked<
   getUserByGoogleWorkspaceUid: jest.fn(),
 };
 
+const mockSlackNotificationsService: jest.Mocked<
+  Pick<SlackNotificationsService, 'sendDueReminders'>
+> = {
+  sendDueReminders: jest.fn(),
+};
+
 describe('LoansController', (): void => {
   let controller: LoansController;
 
@@ -60,13 +68,31 @@ describe('LoansController', (): void => {
       providers: [
         { provide: LoansService, useValue: mockService },
         { provide: UserService, useValue: mockUserService },
+        {
+          provide: SlackNotificationsService,
+          useValue: mockSlackNotificationsService,
+        },
       ],
     })
       .overrideGuard(AuthGuard)
       .useValue({ canActivate: () => true })
+      .overrideGuard(RolesGuard)
+      .useValue({ canActivate: () => true })
       .compile();
     controller = module.get<LoansController>(LoansController);
     jest.clearAllMocks();
+  });
+
+  describe('POST /loans/trigger-due-reminders', (): void => {
+    it('triggers due reminders via the slack notifications service', async (): Promise<void> => {
+      mockSlackNotificationsService.sendDueReminders.mockResolvedValue(
+        undefined
+      );
+
+      await controller.triggerDueReminders();
+
+      expect(mockSlackNotificationsService.sendDueReminders).toHaveBeenCalled();
+    });
   });
 
   describe('GET /loans/my', (): void => {
