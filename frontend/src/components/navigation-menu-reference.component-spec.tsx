@@ -25,7 +25,7 @@ describe('Testing nav menu', () => {
     );
 
     expect(getByText('Login')).toBeInTheDocument();
-    expect(getByText('Profile Page')).not.toBeInTheDocument();
+    await expect.element(getByText('Profile Page')).not.toBeInTheDocument();
   });
   it('should show link to protected', async () => {
     const email = faker.internet.email();

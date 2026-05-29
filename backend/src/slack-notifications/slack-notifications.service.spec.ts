@@ -129,13 +129,7 @@ describe('SlackNotificationsService', (): void => {
       );
     });
 
-    it('does not throw when SlackService fails', async (): Promise<void> => {
-      mockSlackNotificationRepository.create.mockReturnValue(
-        mockNotificationRecord
-      );
-      mockSlackNotificationRepository.save.mockResolvedValue(
-        mockNotificationRecord
-      );
+    it('does not save notification and does not throw when SlackService fails', async (): Promise<void> => {
       mockUserService.getUserById.mockResolvedValue(mockUser);
       mockEmployeeService.getEmployee.mockResolvedValue(mockEmployee);
       mockSlackService.sendDm.mockRejectedValue(new Error('Slack API error'));
@@ -144,16 +138,10 @@ describe('SlackNotificationsService', (): void => {
         service.notifyLoanStarted(mockLoan, mockCopy as unknown as ItemCopy)
       ).resolves.not.toThrow();
 
-      expect(mockSlackNotificationRepository.save).toHaveBeenCalled();
+      expect(mockSlackNotificationRepository.save).not.toHaveBeenCalled();
     });
 
     it('skips silently when user not found in database', async (): Promise<void> => {
-      mockSlackNotificationRepository.create.mockReturnValue(
-        mockNotificationRecord
-      );
-      mockSlackNotificationRepository.save.mockResolvedValue(
-        mockNotificationRecord
-      );
       mockUserService.getUserById.mockResolvedValue(null);
 
       await service.notifyLoanStarted(
@@ -162,15 +150,10 @@ describe('SlackNotificationsService', (): void => {
       );
 
       expect(mockSlackService.sendDm).not.toHaveBeenCalled();
+      expect(mockSlackNotificationRepository.save).not.toHaveBeenCalled();
     });
 
     it('skips silently when employee not found in directory', async (): Promise<void> => {
-      mockSlackNotificationRepository.create.mockReturnValue(
-        mockNotificationRecord
-      );
-      mockSlackNotificationRepository.save.mockResolvedValue(
-        mockNotificationRecord
-      );
       mockUserService.getUserById.mockResolvedValue(mockUser);
       mockEmployeeService.getEmployee.mockResolvedValue(null);
 
@@ -295,7 +278,7 @@ describe('SlackNotificationsService', (): void => {
 
       const uniqueViolation = new QueryFailedError('INSERT', [], {
         code: 'SQLITE_CONSTRAINT',
-      });
+      } as unknown as Error);
       mockSlackNotificationRepository.save.mockRejectedValue(uniqueViolation);
 
       await service.sendDueReminders();
