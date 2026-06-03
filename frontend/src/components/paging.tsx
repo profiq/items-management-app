@@ -6,17 +6,16 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
-} from '@/components/ui/pagination';
-import type { Dispatch, SetStateAction } from 'react';
-import {
   Select,
   SelectContent,
   SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Field, FieldLabel } from '@/components/ui/field';
+  Field,
+  FieldLabel,
+} from '@profiq/ui';
+import type { Dispatch, SetStateAction } from 'react';
 
 export type PagingProps = {
   currentPage: number;
