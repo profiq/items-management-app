@@ -29,7 +29,7 @@ export class LocationsAdminController {
 
   @Get()
   findAll(): Promise<Location[]> {
-    return this.locationsService.findAll();
+    return this.locationsService.findAllAdmin();
   }
 
   @Get(':id')

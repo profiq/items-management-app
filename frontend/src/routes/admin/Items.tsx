@@ -296,8 +296,11 @@ export default function AdminItems() {
   });
 
   const categoriesQuery = useQuery({
-    queryKey: ['admin-categories'],
-    queryFn: () => getAdminCategories(user as User),
+    queryKey: ['admin-categories', 'active'],
+    queryFn: async () => {
+      const categories = await getAdminCategories(user as User);
+      return categories.filter(c => c.archived_at === null);
+    },
   });
 
   const tagsQuery = useQuery({
