@@ -83,6 +83,22 @@ describe('CitiesService', (): void => {
     });
   });
 
+  describe('findAllAdmin', (): void => {
+    it('should return all cities including archived', async (): Promise<void> => {
+      const archivedCity: City = {
+        id: 2,
+        name: 'Brno',
+        archived_at: new Date('2024-01-01'),
+      };
+      mockRepository.find.mockResolvedValue([mockCity, archivedCity]);
+
+      const result: City[] = await service.findAllAdmin();
+
+      expect(mockRepository.find).toHaveBeenCalledWith();
+      expect(result).toEqual([mockCity, archivedCity]);
+    });
+  });
+
   describe('findOne', (): void => {
     it('should return a city by id', async (): Promise<void> => {
       mockRepository.findOneBy.mockResolvedValue(mockCity);

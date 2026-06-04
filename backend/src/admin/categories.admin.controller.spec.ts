@@ -17,11 +17,12 @@ const mockCategory: Category = {
 const mockService: jest.Mocked<
   Pick<
     CategoriesService,
-    'create' | 'findAll' | 'findOne' | 'update' | 'remove'
+    'create' | 'findAll' | 'findAllAdmin' | 'findOne' | 'update' | 'remove'
   >
 > = {
   create: jest.fn(),
   findAll: jest.fn(),
+  findAllAdmin: jest.fn(),
   findOne: jest.fn(),
   update: jest.fn(),
   remove: jest.fn(),
@@ -60,13 +61,21 @@ describe('CategoriesAdminController', (): void => {
   });
 
   describe('findAll', (): void => {
-    it('should return all categories', async (): Promise<void> => {
-      mockService.findAll.mockResolvedValue([mockCategory]);
+    it('should return all categories including archived', async (): Promise<void> => {
+      const archivedCategory: Category = {
+        id: 2,
+        name: 'Archived',
+        archived_at: new Date('2024-01-01'),
+      };
+      mockService.findAllAdmin.mockResolvedValue([
+        mockCategory,
+        archivedCategory,
+      ]);
 
       const result: Category[] = await controller.findAll();
 
-      expect(mockService.findAll).toHaveBeenCalled();
-      expect(result).toEqual([mockCategory]);
+      expect(mockService.findAllAdmin).toHaveBeenCalled();
+      expect(result).toEqual([mockCategory, archivedCategory]);
     });
   });
 

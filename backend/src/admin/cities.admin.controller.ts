@@ -29,7 +29,7 @@ export class CitiesAdminController {
 
   @Get()
   findAll(): Promise<City[]> {
-    return this.citiesService.findAll();
+    return this.citiesService.findAllAdmin();
   }
 
   @Get(':id')

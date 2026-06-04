@@ -130,7 +130,7 @@ describe('APIClient', () => {
       status_code: StatusCodes.UNAUTHORIZED,
       error: {
         statusCode: StatusCodes.UNAUTHORIZED,
-        message: 'refresh failed',
+        message: 'Unauthorized',
         error: 'Unauthorized',
       },
     });

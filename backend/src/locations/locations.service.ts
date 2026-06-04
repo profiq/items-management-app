@@ -39,6 +39,10 @@ export class LocationsService {
     return this.locationRepository.find({ where: { archived_at: IsNull() } });
   }
 
+  findAllAdmin(): Promise<Location[]> {
+    return this.locationRepository.find({ relations: ['city'] });
+  }
+
   async findOne(id: number): Promise<Location> {
     const location: Location | null = await this.locationRepository.findOneBy({
       id,

@@ -15,10 +15,14 @@ const mockCity: City = {
 };
 
 const mockService: jest.Mocked<
-  Pick<CitiesService, 'create' | 'findAll' | 'findOne' | 'update' | 'remove'>
+  Pick<
+    CitiesService,
+    'create' | 'findAll' | 'findAllAdmin' | 'findOne' | 'update' | 'remove'
+  >
 > = {
   create: jest.fn(),
   findAll: jest.fn(),
+  findAllAdmin: jest.fn(),
   findOne: jest.fn(),
   update: jest.fn(),
   remove: jest.fn(),
@@ -55,14 +59,18 @@ describe('CitiesAdminController', (): void => {
   });
 
   describe('findAll', (): void => {
-    it('should return all cities', async (): Promise<void> => {
-      const cities: City[] = [mockCity];
-      mockService.findAll.mockResolvedValue(cities);
+    it('should return all cities including archived', async (): Promise<void> => {
+      const archivedCity: City = {
+        id: 2,
+        name: 'Brno',
+        archived_at: new Date('2024-01-01'),
+      };
+      mockService.findAllAdmin.mockResolvedValue([mockCity, archivedCity]);
 
       const result: City[] = await controller.findAll();
 
-      expect(mockService.findAll).toHaveBeenCalled();
-      expect(result).toBe(cities);
+      expect(mockService.findAllAdmin).toHaveBeenCalled();
+      expect(result).toEqual([mockCity, archivedCity]);
     });
   });
 
