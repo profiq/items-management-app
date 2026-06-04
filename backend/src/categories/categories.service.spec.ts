@@ -86,6 +86,22 @@ describe('CategoriesService', (): void => {
     });
   });
 
+  describe('findAllAdmin', (): void => {
+    it('should return all categories including archived', async (): Promise<void> => {
+      const archivedCategory: Category = {
+        id: 2,
+        name: 'Archived',
+        archived_at: new Date('2024-01-01'),
+      };
+      mockRepository.find.mockResolvedValue([mockCategory, archivedCategory]);
+
+      const result: Category[] = await service.findAllAdmin();
+
+      expect(mockRepository.find).toHaveBeenCalledWith();
+      expect(result).toEqual([mockCategory, archivedCategory]);
+    });
+  });
+
   describe('findOne', (): void => {
     it('should return a category by id', async (): Promise<void> => {
       mockRepository.findOneBy.mockResolvedValue(mockCategory);

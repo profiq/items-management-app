@@ -6,10 +6,10 @@ type PublicPageFixtures = {
 };
 
 export const test = base.extend<PublicPageFixtures>({
-  homePage: async ({ page }, use) => {
+  homePage: async ({ page }, provide) => {
     const homePage = new HomePage(page);
     await homePage.navigate();
-    await use(homePage);
+    await provide(homePage);
   },
 });
 
