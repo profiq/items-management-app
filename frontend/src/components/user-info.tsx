@@ -70,7 +70,7 @@ function UserInfo() {
         {role && (
           <Badge
             variant={role === 'admin' ? 'default' : 'secondary'}
-            title={role === 'admin' ? 'Admin' : 'Uživatel'}
+            title={role === 'admin' ? 'Admin' : 'User'}
             isRounded
             className='px-3 py-0.5'
           />
@@ -81,7 +81,7 @@ function UserInfo() {
         {user.phoneNumber && (
           <div className='flex items-center justify-between px-8 py-4'>
             <Text as='span' size='sm' className='text-muted-foreground'>
-              Telefon
+              Phone
             </Text>
             <Text as='span' size='sm' dataTestId='user-phone'>
               {user.phoneNumber}

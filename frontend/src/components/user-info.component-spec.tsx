@@ -27,7 +27,7 @@ describe('Testing user info', () => {
     expect(getByTestId('user-email')).toHaveTextContent(email);
     expect(getByTestId('user-name')).toHaveTextContent(displayName);
     expect(getByTestId('user-uid')).toHaveTextContent(uid);
-    expect(getByText('Telefon')).not.toBeInTheDocument();
+    expect(getByText('Phone')).not.toBeInTheDocument();
   });
 
   it('should show user info with phone', async () => {
