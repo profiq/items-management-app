@@ -101,6 +101,7 @@ export class LoansService {
           .getQuery();
         return `NOT EXISTS ${subQuery}`;
       })
+      .orderBy('copy.id', 'ASC')
       .getOne();
 
     if (!copy) {

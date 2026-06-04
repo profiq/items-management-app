@@ -153,6 +153,7 @@ describe('LoansService', (): void => {
         innerJoin: jest.fn().mockReturnThis(),
         where: jest.fn().mockReturnThis(),
         andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
         getOne: jest.fn().mockResolvedValue(returnValue),
       };
       return qb as unknown as ReturnType<
@@ -174,6 +175,7 @@ describe('LoansService', (): void => {
       expect(mockItemCopyRepository.createQueryBuilder).toHaveBeenCalledWith(
         'copy'
       );
+
       expect(copyQB.getOne).toHaveBeenCalled();
       expect(result).toEqual(mockLoan);
     });
