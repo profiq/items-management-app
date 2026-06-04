@@ -1,5 +1,5 @@
 import type { Employee } from '@/services/employees/employees';
-import { TableCell, TableRow } from './ui/table';
+import { TableCell, TableRow } from '@profiq/ui/components/ui/layout';
 import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
 
 function EmployeeRow(employee: Employee) {

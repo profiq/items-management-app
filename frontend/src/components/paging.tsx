@@ -6,6 +6,8 @@ import {
   PaginationLink,
   PaginationNext,
   PaginationPrevious,
+} from '@profiq/ui/components/ui/navigation';
+import {
   Select,
   SelectContent,
   SelectGroup,
@@ -14,7 +16,7 @@ import {
   SelectValue,
   Field,
   FieldLabel,
-} from '@profiq/ui';
+} from '@profiq/ui/components/ui/form';
 import type { Dispatch, SetStateAction } from 'react';
 
 export type PagingProps = {
