@@ -126,6 +126,7 @@ export default function AdminCategories() {
               variant='outline'
               size='icon-sm'
               ariaLabel={`Upravit ${row.original.name}`}
+              disabled={row.original.archived_at !== null}
               onClick={() => openEditEditor(row.original)}
             >
               <Pencil aria-hidden='true' />

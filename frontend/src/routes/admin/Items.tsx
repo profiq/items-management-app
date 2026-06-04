@@ -25,15 +25,14 @@ import type { User } from '@/lib/contexts';
 import {
   archiveAdminItem,
   createAdminItem,
-  getAdminCategories,
   getAdminItems,
   getAdminTags,
   updateAdminItem,
-  type AdminCategory,
   type AdminItem,
   type AdminItemPayload,
   type AdminTag,
 } from '@/services/admin/items';
+import { getCategories, type Category } from '@/services/categories';
 import {
   ALLOWED_IMAGE_TYPES,
   buildStorageObjectName,
@@ -69,7 +68,7 @@ function toggleId(ids: number[], id: number, checked: boolean): number[] {
   return ids.filter(itemId => itemId !== id);
 }
 
-function formatCategories(categories: AdminCategory[]): string {
+function formatCategories(categories: Category[]): string {
   if (categories.length === 0) {
     return 'Žádná';
   }
@@ -91,7 +90,7 @@ function formatAvailability(item: AdminItem): string {
 type ItemEditorProps = {
   form: ItemFormState;
   item: AdminItem | null;
-  categories: AdminCategory[];
+  categories: Category[];
   tags: AdminTag[];
   isSaving: boolean;
   isUploading: boolean;
@@ -296,11 +295,8 @@ export default function AdminItems() {
   });
 
   const categoriesQuery = useQuery({
-    queryKey: ['admin-categories', 'active'],
-    queryFn: async () => {
-      const categories = await getAdminCategories(user as User);
-      return categories.filter(c => c.archived_at === null);
-    },
+    queryKey: ['categories'],
+    queryFn: getCategories,
   });
 
   const tagsQuery = useQuery({

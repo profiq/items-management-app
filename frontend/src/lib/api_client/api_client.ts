@@ -109,7 +109,7 @@ async function request<T>(
       } catch {
         // swallow sign-out errors so unauthorizedResponse is always returned
       }
-      return unauthorizedResponse<T>(getErrorMessage(error));
+      return unauthorizedResponse<T>();
     }
   }
 
@@ -189,8 +189,4 @@ function unauthorizedResponse<T>(message = 'Unauthorized'): APIResponse<T> {
       error: 'Unauthorized',
     },
   };
-}
-
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : 'Unauthorized';
 }
