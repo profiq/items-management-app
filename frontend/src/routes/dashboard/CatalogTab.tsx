@@ -68,7 +68,7 @@ function ItemCard({ item, onBorrow, isBorrowing }: ItemCardProps) {
           </div>
         )}
         <Text as='p' size='xs' className='text-muted-foreground'>
-          Dostupné: {available} / {total}
+          Available: {available} / {total}
         </Text>
         <div className='mt-auto pt-2'>
           <Button
@@ -77,7 +77,7 @@ function ItemCard({ item, onBorrow, isBorrowing }: ItemCardProps) {
             disabled={!canBorrow || isBorrowing}
             onClick={() => onBorrow(item)}
           >
-            {canBorrow ? 'Zapůjčit' : 'Nedostupné'}
+            {canBorrow ? 'Borrow' : 'Unavailable'}
           </Button>
         </div>
       </div>
@@ -260,9 +260,9 @@ export function CatalogTab({ categories }: CatalogTabProps) {
         onOpenChange={open => {
           if (!open) setItemToBorrow(null);
         }}
-        title='Zapůjčit položku'
-        description={itemToBorrow ? `Zapůjčit "${itemToBorrow.name}"?` : ''}
-        actionLabel={borrowMutation.isPending ? 'Zapůjčuji…' : 'Zapůjčit'}
+        title='Borrow item'
+        description={itemToBorrow ? `Borrow "${itemToBorrow.name}"?` : ''}
+        actionLabel={borrowMutation.isPending ? 'Borrowing…' : 'Borrow'}
         cancelLabel='Zrušit'
         onAction={() => {
           if (itemToBorrow) borrowMutation.mutate(itemToBorrow.id);

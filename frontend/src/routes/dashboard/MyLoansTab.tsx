@@ -96,7 +96,7 @@ function LoanRow({ loan, onReturn, isReturning }: LoanRowProps) {
             disabled={isReturning}
             onClick={() => onReturn(loan)}
           >
-            Vrátit
+            Return
           </Button>
         )}
       </div>
@@ -315,11 +315,11 @@ export function MyLoansTab({ categories }: MyLoansTabProps) {
         onOpenChange={open => {
           if (!open) setLoanToReturn(null);
         }}
-        title='Vrátit položku'
+        title='Return item'
         description={
-          loanToReturn ? `Vrátit "${loanToReturn.copy.item.name}"?` : ''
+          loanToReturn ? `Return "${loanToReturn.copy.item.name}"?` : ''
         }
-        actionLabel={returnMutation.isPending ? 'Vracím…' : 'Vrátit'}
+        actionLabel={returnMutation.isPending ? 'Returning…' : 'Return'}
         cancelLabel='Zrušit'
         onAction={() => {
           if (loanToReturn) returnMutation.mutate(loanToReturn.id);

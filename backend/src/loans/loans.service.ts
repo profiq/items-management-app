@@ -107,7 +107,16 @@ export class LoansService {
       throw new UnprocessableEntityException('No available copy for this item');
     }
 
-    return this.borrow(copy.id, userId);
+    try {
+      return await this.borrow(copy.id, userId);
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw new UnprocessableEntityException(
+          'No available copy for this item'
+        );
+      }
+      throw error;
+    }
   }
 
   getMyLoans(userId: number): Promise<Loan[]> {
