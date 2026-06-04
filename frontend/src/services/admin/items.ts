@@ -6,11 +6,10 @@ import {
 import { createError } from '@/lib/errors';
 import type { User } from '@/lib/contexts';
 
-export type AdminCategory = {
-  id: number;
-  name: string;
-  archived_at: string | null;
-};
+import type { AdminCategory } from '@/services/admin/categories';
+
+export type { AdminCategory } from '@/services/admin/categories';
+export { getAdminCategories } from '@/services/admin/categories';
 
 export type AdminTag = {
   id: number;
@@ -140,16 +139,6 @@ export async function archiveAdminItem(user: User, id: number): Promise<void> {
   const result: APIResponse<void> = await client.fetch(
     HttpMethod.Delete,
     `/admin/items/${id}`
-  );
-
-  return throwIfFailed(result);
-}
-
-export async function getAdminCategories(user: User): Promise<AdminCategory[]> {
-  const client = new APIClient(user);
-  const result: APIResponse<AdminCategory[]> = await client.fetch(
-    HttpMethod.Get,
-    '/admin/categories'
   );
 
   return throwIfFailed(result);

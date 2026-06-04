@@ -2,13 +2,7 @@ import EmployeeRow from '@/components/employee-row';
 import { HoverInfo } from '@/components/hover-info';
 import Paging from '@/components/paging';
 import { StatusSpinning } from '@/components/status/status-spinning';
-import {
-  Table,
-  TableBody,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableHead, TableHeader, TableRow } from '@profiq/ui';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import { getEmployees } from '@/services/employees/employees';
 import { useQuery } from '@tanstack/react-query';

@@ -29,7 +29,7 @@ export class CategoriesAdminController {
 
   @Get()
   findAll(): Promise<Category[]> {
-    return this.categoriesService.findAll();
+    return this.categoriesService.findAllAdmin();
   }
 
   @Get(':id')
