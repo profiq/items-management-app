@@ -1,5 +1,5 @@
 import { useAuth } from '@/lib/providers/auth/useAuth';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '@profiq/ui';
 
 function UserInfo() {
   const { user, loading } = useAuth();
