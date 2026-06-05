@@ -3,6 +3,7 @@ import {
   ConflictException,
   ForbiddenException,
   NotFoundException,
+  UnprocessableEntityException,
 } from '@nestjs/common';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import { LoansController } from './loans.controller';
@@ -39,12 +40,16 @@ const mockFirebaseReq = {
 };
 
 const mockService: jest.Mocked<
-  Pick<LoansService, 'getMyLoans' | 'borrow' | 'findOne' | 'returnLoan'>
+  Pick<
+    LoansService,
+    'getMyLoans' | 'borrow' | 'findOne' | 'returnLoan' | 'borrowItem'
+  >
 > = {
   getMyLoans: jest.fn(),
   borrow: jest.fn(),
   findOne: jest.fn(),
   returnLoan: jest.fn(),
+  borrowItem: jest.fn(),
 };
 
 const mockUserService: jest.Mocked<
@@ -164,6 +169,29 @@ describe('LoansController', (): void => {
 
       await expect(controller.returnLoan(mockFirebaseReq, 1)).rejects.toThrow(
         ConflictException
+      );
+    });
+  });
+
+  describe('POST /loans/borrow-item/:itemId', (): void => {
+    it('borrows an item for the current user', async (): Promise<void> => {
+      mockUserService.getUserByGoogleWorkspaceUid.mockResolvedValue(mockUser);
+      mockService.borrowItem.mockResolvedValue(mockLoan);
+
+      const result = await controller.borrowItem(mockFirebaseReq, 1);
+
+      expect(mockService.borrowItem).toHaveBeenCalledWith(1, 2);
+      expect(result).toEqual(mockLoan);
+    });
+
+    it('propagates UnprocessableEntityException when no copy available', async (): Promise<void> => {
+      mockUserService.getUserByGoogleWorkspaceUid.mockResolvedValue(mockUser);
+      mockService.borrowItem.mockRejectedValue(
+        new UnprocessableEntityException('No available copy for this item')
+      );
+
+      await expect(controller.borrowItem(mockFirebaseReq, 99)).rejects.toThrow(
+        UnprocessableEntityException
       );
     });
   });

@@ -64,5 +64,6 @@ body {
 }
 
 #root {
-  width: 66%;
+  width: 100%;
+  min-height: 100svh;
 }

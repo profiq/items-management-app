@@ -54,7 +54,9 @@ describe('ItemsController', (): void => {
 
       const result: PaginatedItemsResponseDto = await controller.findAll(query);
 
-      expect(mockService.findAll).toHaveBeenCalledWith(query);
+      expect(mockService.findAll).toHaveBeenCalledWith(query, {
+        includeAvailabilityCounts: true,
+      });
       expect(result).toBe(mockPaginatedResponse);
     });
 
@@ -69,6 +71,10 @@ describe('ItemsController', (): void => {
 
       const result = await controller.findAll({} as FindItemsQueryDto);
 
+      expect(mockService.findAll).toHaveBeenCalledWith(
+        {} as FindItemsQueryDto,
+        { includeAvailabilityCounts: true }
+      );
       expect(result.data).toEqual([]);
       expect(result.total).toBe(0);
     });
