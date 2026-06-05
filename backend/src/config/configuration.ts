@@ -16,6 +16,9 @@ export default () => ({
     private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
     storage_bucket: process.env.GOOGLE_STORAGE_BUCKET,
   },
+  slack: {
+    botToken: process.env.SLACK_BOT_TOKEN,
+  },
   database: {
     type: process.env.NODE_ENV == 'production' ? 'mariadb' : 'sqlite',
     database:

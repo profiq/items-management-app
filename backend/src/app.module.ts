@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
 import { EmployeeModule } from './employee/employee.module';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { UserModule } from './user/user.module';
@@ -14,6 +15,7 @@ import { ItemCopiesModule } from './item-copies/item-copies.module';
 import { LoansModule } from './loans/loans.module';
 import { EmailNotificationsModule } from './email-notifications/email-notifications.module';
 import { AdminModule } from './admin/admin.module';
+import { SlackNotificationsModule } from './slack-notifications/slack-notifications.module';
 
 @Module({
   imports: [
@@ -34,6 +36,8 @@ import { AdminModule } from './admin/admin.module';
     LoansModule,
     EmailNotificationsModule,
     AdminModule,
+    ScheduleModule.forRoot(),
+    SlackNotificationsModule,
   ],
 })
 export class AppModule {}

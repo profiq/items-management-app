@@ -1,4 +1,9 @@
 import { useAuth } from '@/lib/providers/auth/useAuth';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@profiq/ui/components/ui/display';
 import { Text, Badge } from '@profiq/ui';
 
 function getInitials(displayName: string | null, email: string | null): string {

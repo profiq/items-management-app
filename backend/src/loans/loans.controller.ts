@@ -13,11 +13,15 @@ import {
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import type { DecodedIdToken } from 'firebase-admin/auth';
 import { AuthGuard } from '@/auth/auth.guard';
+import { RolesGuard } from '@/auth/roles.guard';
+import { Roles } from '@/auth/roles.decorator';
 import { UnknownUserException } from '@/lib/errors';
+import { UserRole } from '@/user/user.entity';
 import { UserService } from '@/user/user.service';
 import { BorrowLoanDto } from './dto/borrow-loan.dto';
 import { Loan } from './entities/loan.entity';
 import { LoansService } from './loans.service';
+import { SlackNotificationsService } from '@/slack-notifications/slack-notifications.service';
 
 type FirebaseRequest = { firebaseUser: DecodedIdToken };
 
@@ -28,8 +32,16 @@ type FirebaseRequest = { firebaseUser: DecodedIdToken };
 export class LoansController {
   constructor(
     private readonly loansService: LoansService,
-    private readonly userService: UserService
+    private readonly userService: UserService,
+    private readonly slackNotificationsService: SlackNotificationsService
   ) {}
+
+  @Post('trigger-due-reminders')
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.Admin)
+  async triggerDueReminders(): Promise<void> {
+    await this.slackNotificationsService.sendDueReminders();
+  }
 
   @Get('my')
   async getMyLoans(@Req() req: FirebaseRequest): Promise<Loan[]> {

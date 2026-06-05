@@ -12,6 +12,7 @@ import { Loan } from './entities/loan.entity';
 import { ItemCopy } from '@/item-copies/entities/item-copy.entity';
 import { UserRole } from '@/user/user.entity';
 import { FindLoansQueryDto, LoanStatus } from './dto/find-loans-query.dto';
+import { SlackNotificationsService } from '@/slack-notifications/slack-notifications.service';
 
 const mockLoan: Loan = {
   id: 1,
@@ -56,6 +57,12 @@ const mockItemCopyRepository: jest.Mocked<
   createQueryBuilder: jest.fn(),
 };
 
+const mockSlackNotificationsService: jest.Mocked<
+  Pick<SlackNotificationsService, 'notifyLoanStarted'>
+> = {
+  notifyLoanStarted: jest.fn().mockResolvedValue(undefined),
+};
+
 describe('LoansService', (): void => {
   let service: LoansService;
 
@@ -67,6 +74,10 @@ describe('LoansService', (): void => {
         {
           provide: getRepositoryToken(ItemCopy),
           useValue: mockItemCopyRepository,
+        },
+        {
+          provide: SlackNotificationsService,
+          useValue: mockSlackNotificationsService,
         },
       ],
     }).compile();
@@ -145,6 +156,19 @@ describe('LoansService', (): void => {
       );
 
       await expect(service.borrow(1, 2)).rejects.toThrow(ConflictException);
+    });
+
+    it('calls notifyLoanStarted after successful borrow', async (): Promise<void> => {
+      mockItemCopyRepository.findOne.mockResolvedValue(mockCopy);
+      mockLoanRepository.findOne.mockResolvedValue(null);
+      mockLoanRepository.create.mockReturnValue(mockLoan);
+      mockLoanRepository.save.mockResolvedValue(mockLoan);
+
+      await service.borrow(1, 2);
+
+      expect(
+        mockSlackNotificationsService.notifyLoanStarted
+      ).toHaveBeenCalledWith(mockLoan, mockCopy);
     });
   });
 
