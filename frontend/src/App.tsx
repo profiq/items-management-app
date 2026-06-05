@@ -17,6 +17,7 @@ import Admin from './routes/admin/Admin.tsx';
 import AdminItems from './routes/admin/Items.tsx';
 import AdminCategories from './routes/admin/Categories.tsx';
 import AdminLocations from './routes/admin/Locations.tsx';
+import AdminLoans from './routes/admin/Loans.tsx';
 
 const queryClient = new QueryClient();
 
@@ -43,6 +44,7 @@ function App() {
                     element={<AdminCategories />}
                   />
                   <Route path='/admin/locations' element={<AdminLocations />} />
+                  <Route path='/admin/loans' element={<AdminLoans />} />
                 </Route>
               </Route>
             </Routes>
