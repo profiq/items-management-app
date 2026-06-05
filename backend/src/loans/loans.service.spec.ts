@@ -36,18 +36,24 @@ const mockCopy = {
 } as unknown as ItemCopy;
 
 const mockLoanRepository: jest.Mocked<
-  Pick<Repository<Loan>, 'create' | 'save' | 'find' | 'findOne'>
+  Pick<
+    Repository<Loan>,
+    'create' | 'save' | 'find' | 'findOneBy' | 'findOne' | 'createQueryBuilder'
+  >
 > = {
   create: jest.fn(),
   save: jest.fn(),
   find: jest.fn(),
+  findOneBy: jest.fn(),
   findOne: jest.fn(),
+  createQueryBuilder: jest.fn(),
 };
 
 const mockItemCopyRepository: jest.Mocked<
-  Pick<Repository<ItemCopy>, 'findOne'>
+  Pick<Repository<ItemCopy>, 'findOne' | 'createQueryBuilder'>
 > = {
   findOne: jest.fn(),
+  createQueryBuilder: jest.fn(),
 };
 
 describe('LoansService', (): void => {
@@ -142,14 +148,77 @@ describe('LoansService', (): void => {
     });
   });
 
+  describe('borrowItem', (): void => {
+    function makeCopyQB(
+      returnValue: ItemCopy | null
+    ): ReturnType<Repository<ItemCopy>['createQueryBuilder']> {
+      const qb = {
+        innerJoin: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        andWhere: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getOne: jest.fn().mockResolvedValue(returnValue),
+      };
+      return qb as unknown as ReturnType<
+        Repository<ItemCopy>['createQueryBuilder']
+      >;
+    }
+
+    it('finds first available copy and borrows it', async (): Promise<void> => {
+      const copyQB = makeCopyQB(mockCopy);
+      mockItemCopyRepository.createQueryBuilder.mockReturnValue(copyQB);
+      // borrow() path
+      mockItemCopyRepository.findOne.mockResolvedValue(mockCopy);
+      mockLoanRepository.findOne.mockResolvedValue(null);
+      mockLoanRepository.create.mockReturnValue(mockLoan);
+      mockLoanRepository.save.mockResolvedValue(mockLoan);
+
+      const result = await service.borrowItem(1, 2);
+
+      expect(mockItemCopyRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'copy'
+      );
+
+      expect(copyQB.getOne).toHaveBeenCalled();
+      expect(result).toEqual(mockLoan);
+    });
+
+    it('throws UnprocessableEntityException when no available copy exists', async (): Promise<void> => {
+      const copyQB = makeCopyQB(null);
+      mockItemCopyRepository.createQueryBuilder.mockReturnValue(copyQB);
+
+      await expect(service.borrowItem(99, 2)).rejects.toThrow(
+        UnprocessableEntityException
+      );
+    });
+  });
+
   describe('getMyLoans', (): void => {
-    it('returns all loans for a user ordered by borrowed_at DESC', async (): Promise<void> => {
-      mockLoanRepository.find.mockResolvedValue([mockLoan]);
+    it('returns all loans for a user with full relations ordered by borrowed_at DESC', async (): Promise<void> => {
+      const mockLoanQB = {
+        leftJoinAndSelect: jest.fn().mockReturnThis(),
+        where: jest.fn().mockReturnThis(),
+        orderBy: jest.fn().mockReturnThis(),
+        getMany: jest.fn().mockResolvedValue([mockLoan]),
+      };
+      mockLoanRepository.createQueryBuilder.mockReturnValue(
+        mockLoanQB as unknown as ReturnType<
+          Repository<Loan>['createQueryBuilder']
+        >
+      );
+
       const result = await service.getMyLoans(2);
-      expect(mockLoanRepository.find).toHaveBeenCalledWith({
-        where: { user_id: 2 },
-        order: { borrowed_at: 'DESC' },
+
+      expect(mockLoanRepository.createQueryBuilder).toHaveBeenCalledWith(
+        'loan'
+      );
+      expect(mockLoanQB.where).toHaveBeenCalledWith('loan.user_id = :userId', {
+        userId: 2,
       });
+      expect(mockLoanQB.orderBy).toHaveBeenCalledWith(
+        'loan.borrowed_at',
+        'DESC'
+      );
       expect(result).toEqual([mockLoan]);
     });
   });

@@ -87,11 +87,56 @@ export class LoansService {
     }
   }
 
+  async borrowItem(itemId: number, userId: number): Promise<Loan> {
+    const copy = await this.itemCopyRepository
+      .createQueryBuilder('copy')
+      .innerJoin('copy.item', 'item')
+      .where('copy.item_id = :itemId', { itemId })
+      .andWhere('copy.archived_at IS NULL')
+      .andWhere('item.archived_at IS NULL')
+      .andWhere(qb => {
+        const subQuery = qb
+          .subQuery()
+          .select('1')
+          .from(Loan, 'l')
+          .where('l.copy_id = copy.id')
+          .andWhere('l.returned_at IS NULL')
+          .getQuery();
+        return `NOT EXISTS ${subQuery}`;
+      })
+      .orderBy('copy.id', 'ASC')
+      .getOne();
+
+    if (!copy) {
+      throw new UnprocessableEntityException('No available copy for this item');
+    }
+
+    try {
+      return await this.borrow(copy.id, userId);
+    } catch (error) {
+      if (error instanceof ConflictException) {
+        throw new UnprocessableEntityException(
+          'No available copy for this item'
+        );
+      }
+      throw error;
+    }
+  }
+
   getMyLoans(userId: number): Promise<Loan[]> {
-    return this.loanRepository.find({
-      where: { user_id: userId },
-      order: { borrowed_at: 'DESC' },
-    });
+    return this.loanRepository
+      .createQueryBuilder('loan')
+      .leftJoinAndSelect('loan.copy', 'copy')
+      .leftJoinAndSelect('copy.item', 'item')
+      .leftJoinAndSelect(
+        'item.categories',
+        'category',
+        'category.archived_at IS NULL'
+      )
+      .leftJoinAndSelect('copy.location', 'location')
+      .where('loan.user_id = :userId', { userId })
+      .orderBy('loan.borrowed_at', 'DESC')
+      .getMany();
   }
 
   async returnLoan(loanId: number, returnedByUserId: number): Promise<Loan> {

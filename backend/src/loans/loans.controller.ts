@@ -52,6 +52,18 @@ export class LoansController {
     return this.loansService.borrow(body.copyId, user.id);
   }
 
+  @Post('borrow-item/:itemId')
+  async borrowItem(
+    @Req() req: FirebaseRequest,
+    @Param('itemId', ParseIntPipe) itemId: number
+  ): Promise<Loan> {
+    const user = await this.userService.getUserByGoogleWorkspaceUid(
+      req.firebaseUser
+    );
+    if (!user) throw new UnknownUserException();
+    return this.loansService.borrowItem(itemId, user.id);
+  }
+
   @Put(':id/return')
   async returnLoan(
     @Req() req: FirebaseRequest,
