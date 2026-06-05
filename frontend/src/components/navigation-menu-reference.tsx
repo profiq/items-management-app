@@ -17,13 +17,18 @@ export function NavigationMenuReference() {
           { id: 'admin-items', label: 'Admin Items', href: '/admin/items' },
           {
             id: 'admin-categories',
-            label: 'Admin Categories',
+            label: 'Categories',
             href: '/admin/categories',
           },
           {
             id: 'admin-locations',
-            label: 'Admin Locations',
+            label: 'Locations',
             href: '/admin/locations',
+          },
+          {
+            id: 'admin-loans',
+            label: 'Loans',
+            href: '/admin/loans',
           },
         ]
       : []),
