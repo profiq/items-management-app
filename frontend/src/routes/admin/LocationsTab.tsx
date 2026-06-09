@@ -10,11 +10,17 @@ import {
   Button,
   Dialog,
   InputField,
-  Select,
   Table,
   Text,
 } from '@profiq/ui';
-import type { SelectItem } from '@profiq/ui';
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@profiq/ui/components/ui/form';
 import { StatusSpinning } from '@/components/status/status-spinning';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import type { User } from '@/lib/contexts';
@@ -66,16 +72,6 @@ export default function LocationsTab() {
   const activeCities: AdminCity[] = useMemo(
     () => citiesQuery.data?.filter(c => c.archived_at === null) ?? [],
     [citiesQuery.data]
-  );
-
-  const citySelectItems: SelectItem[] = useMemo(
-    () => activeCities.map(c => ({ id: String(c.id), value: c.name })),
-    [activeCities]
-  );
-
-  const selectedCityName = useMemo(
-    () => activeCities.find(c => c.id === form.city_id)?.name ?? '',
-    [activeCities, form.city_id]
   );
 
   const saveMutation = useMutation({
@@ -281,15 +277,25 @@ export default function LocationsTab() {
               Město
             </Text>
             <Select
-              placeholder='Vyberte město'
-              items={citySelectItems}
-              value={selectedCityName}
-              isDisabled={saveMutation.isPending || citiesQuery.isLoading}
-              onValueChange={cityName => {
-                const city = activeCities.find(c => c.name === cityName);
-                if (city) setForm(prev => ({ ...prev, city_id: city.id }));
-              }}
-            />
+              value={String(form.city_id)}
+              onValueChange={cityId =>
+                setForm(prev => ({ ...prev, city_id: Number(cityId) }))
+              }
+              disabled={saveMutation.isPending || citiesQuery.isLoading}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder='Vyberte město' />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {activeCities.map(c => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.name}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
           </div>
         </form>
       </Dialog>
