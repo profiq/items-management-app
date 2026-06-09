@@ -84,7 +84,7 @@ describe('APIClient', () => {
     expect(signOutMock).not.toHaveBeenCalled();
   });
 
-  it('signs out and redirects to login when token refresh fails', async () => {
+  it('signs out and redirects home when token refresh fails', async () => {
     vi.stubEnv('VITE_API_URL', 'https://api.example.test');
     const getIdToken = vi
       .fn<NonNullable<User['getIdToken']>>()
@@ -110,11 +110,6 @@ describe('APIClient', () => {
     const dispatchEvent = vi.fn();
     vi.stubGlobal('fetch', fetchMock);
     vi.stubGlobal('window', {
-      location: {
-        pathname: '/items',
-        search: '?page=2',
-        hash: '#copy-3',
-      },
       history,
       dispatchEvent,
     });
@@ -139,9 +134,9 @@ describe('APIClient', () => {
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(signOutMock).toHaveBeenCalledTimes(1);
     expect(history.replaceState).toHaveBeenCalledWith(
-      { idx: 1, key: 'current', usr: { from: '/items?page=2#copy-3' } },
+      { idx: 1, key: 'current' },
       '',
-      '/login'
+      '/'
     );
     expect(dispatchEvent).toHaveBeenCalledTimes(1);
   });

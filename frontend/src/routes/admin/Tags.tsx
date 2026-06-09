@@ -49,14 +49,23 @@ export default function AdminTags() {
   });
 
   const saveMutation = useMutation({
-    mutationFn: (payload: AdminTagPayload) =>
-      editingTag
-        ? updateAdminTag(user as User, editingTag.id, payload)
+    // Capture the edit target in the mutation variables so onSuccess does not
+    // depend on the mutable `editingTag` state, which could change before the
+    // request resolves.
+    mutationFn: ({
+      tag,
+      payload,
+    }: {
+      tag: AdminTag | null;
+      payload: AdminTagPayload;
+    }) =>
+      tag
+        ? updateAdminTag(user as User, tag.id, payload)
         : createAdminTag(user as User, payload),
-    onSuccess: () => {
+    onSuccess: (_data, { tag }) => {
       queryClient.invalidateQueries({ queryKey: ['admin-tags'] });
       closeEditor();
-      toast.success(editingTag ? 'Tag updated' : 'Tag created');
+      toast.success(tag ? 'Tag updated' : 'Tag created');
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -92,7 +101,10 @@ export default function AdminTags() {
       toast.error('Name is required');
       return;
     }
-    saveMutation.mutate({ name: form.name.trim() });
+    saveMutation.mutate({
+      tag: editingTag,
+      payload: { name: form.name.trim() },
+    });
   };
 
   const columns = useMemo<ColumnDef<AdminTag>[]>(

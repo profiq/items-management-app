@@ -14,8 +14,17 @@ import { getLoanStatus, getMyLoans, type MyLoan } from '@/services/loans/loans';
 
 const DUE_SOON_DAYS = 7;
 
+// Date-only strings (YYYY-MM-DD) parse as UTC midnight, which shifts the
+// calendar day in negative-offset timezones. Build a local date instead.
+function parseLocalDate(dateStr: string): Date {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
+  return match
+    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+    : new Date(dateStr);
+}
+
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('en-US', {
+  return parseLocalDate(dateStr).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',
@@ -25,7 +34,7 @@ function formatDate(dateStr: string): string {
 function daysUntil(dateStr: string): number {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const due = new Date(dateStr);
+  const due = parseLocalDate(dateStr);
   due.setHours(0, 0, 0, 0);
   return Math.round((due.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
 }
