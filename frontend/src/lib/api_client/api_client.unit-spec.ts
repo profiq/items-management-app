@@ -100,7 +100,11 @@ describe('APIClient', () => {
       );
     const history: {
       state: unknown;
-      replaceState: (state: unknown) => void;
+      replaceState: (
+        state: unknown,
+        unused?: unknown,
+        url?: string | null
+      ) => void;
     } = {
       state: { idx: 1, key: 'current' },
       replaceState: vi.fn((state: unknown) => {

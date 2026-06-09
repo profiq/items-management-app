@@ -11,17 +11,9 @@ import {
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import type { User } from '@/lib/contexts';
 import { getLoanStatus, getMyLoans, type MyLoan } from '@/services/loans/loans';
+import { parseLocalDate } from '@/lib/dates';
 
 const DUE_SOON_DAYS = 7;
-
-// Date-only strings (YYYY-MM-DD) parse as UTC midnight, which shifts the
-// calendar day in negative-offset timezones. Build a local date instead.
-function parseLocalDate(dateStr: string): Date {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
-  return match
-    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
-    : new Date(dateStr);
-}
 
 function formatDate(dateStr: string): string {
   return parseLocalDate(dateStr).toLocaleDateString('en-US', {
@@ -151,6 +143,8 @@ export default function Dashboard() {
     [loans]
   );
 
+  const errorNoData = loansQuery.isError && !loansQuery.data;
+
   return (
     <section className='mx-auto flex w-full max-w-7xl flex-col gap-6 p-4'>
       <div className='flex flex-col gap-1'>
@@ -176,71 +170,80 @@ export default function Dashboard() {
         />
       )}
 
-      {loansQuery.isLoading ? (
-        <div className='grid grid-cols-2 gap-4 lg:grid-cols-4'>
-          {[...Array(4)].map((_, i) => (
-            <div
-              key={i}
-              className='h-24 animate-pulse rounded-xl border bg-muted'
-            />
-          ))}
-        </div>
-      ) : (
-        <div className='grid grid-cols-2 gap-4 lg:grid-cols-4'>
-          <StatCard
-            label='Active loans'
-            value={stats.active}
-            icon={<Package className='h-7 w-7' aria-hidden='true' />}
-          />
-          <StatCard
-            label='Overdue'
-            value={stats.overdue}
-            icon={<AlertTriangle className='h-7 w-7' aria-hidden='true' />}
-            accent='danger'
-          />
-          <StatCard
-            label='Due soon'
-            value={stats.dueSoon}
-            icon={<CalendarClock className='h-7 w-7' aria-hidden='true' />}
-            accent='warning'
-          />
-          <StatCard
-            label='Returned'
-            value={stats.returned}
-            icon={<CheckCircle2 className='h-7 w-7' aria-hidden='true' />}
-            accent='success'
-          />
-        </div>
-      )}
-
-      <div className='flex flex-col gap-3'>
-        <div className='flex items-center justify-between'>
-          <Text as='h2' size='lg' weight='semibold' className='heading-accent'>
-            Currently borrowed
-          </Text>
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={() => navigate('/loans')}
-          >
-            Browse catalog
-          </Button>
-        </div>
-
-        {!loansQuery.isLoading && currentlyBorrowed.length === 0 ? (
-          <div className='rounded-lg border bg-card p-8 text-center'>
-            <Text as='p' size='sm' className='text-muted-foreground'>
-              You have no borrowed items. Visit the catalog to borrow something.
-            </Text>
-          </div>
-        ) : (
-          <div className='rounded-lg border bg-card'>
-            {currentlyBorrowed.map(loan => (
-              <BorrowedRow key={loan.id} loan={loan} />
+      {!errorNoData &&
+        (loansQuery.isLoading ? (
+          <div className='grid grid-cols-2 gap-4 lg:grid-cols-4'>
+            {[...Array(4)].map((_, i) => (
+              <div
+                key={i}
+                className='h-24 animate-pulse rounded-xl border bg-muted'
+              />
             ))}
           </div>
-        )}
-      </div>
+        ) : (
+          <div className='grid grid-cols-2 gap-4 lg:grid-cols-4'>
+            <StatCard
+              label='Active loans'
+              value={stats.active}
+              icon={<Package className='h-7 w-7' aria-hidden='true' />}
+            />
+            <StatCard
+              label='Overdue'
+              value={stats.overdue}
+              icon={<AlertTriangle className='h-7 w-7' aria-hidden='true' />}
+              accent='danger'
+            />
+            <StatCard
+              label='Due soon'
+              value={stats.dueSoon}
+              icon={<CalendarClock className='h-7 w-7' aria-hidden='true' />}
+              accent='warning'
+            />
+            <StatCard
+              label='Returned'
+              value={stats.returned}
+              icon={<CheckCircle2 className='h-7 w-7' aria-hidden='true' />}
+              accent='success'
+            />
+          </div>
+        ))}
+
+      {!errorNoData && (
+        <div className='flex flex-col gap-3'>
+          <div className='flex items-center justify-between'>
+            <Text
+              as='h2'
+              size='lg'
+              weight='semibold'
+              className='heading-accent'
+            >
+              Currently borrowed
+            </Text>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => navigate('/loans')}
+            >
+              Browse catalog
+            </Button>
+          </div>
+
+          {!loansQuery.isLoading && currentlyBorrowed.length === 0 ? (
+            <div className='rounded-lg border bg-card p-8 text-center'>
+              <Text as='p' size='sm' className='text-muted-foreground'>
+                You have no borrowed items. Visit the catalog to borrow
+                something.
+              </Text>
+            </div>
+          ) : (
+            <div className='rounded-lg border bg-card'>
+              {currentlyBorrowed.map(loan => (
+                <BorrowedRow key={loan.id} loan={loan} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }

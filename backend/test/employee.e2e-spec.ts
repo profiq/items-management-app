@@ -102,6 +102,8 @@ describe('EmployeeModule', () => {
           photoUrl: 'http://example.com/img.png',
         },
       ]);
+
+    expect(employeeService.getEmployees).toHaveBeenCalledTimes(1);
   });
   it('/employees (GET) (Wrong domain)', async () => {
     return request(app.getHttpServer())

@@ -16,6 +16,7 @@ import type { SelectItem } from '@profiq/ui';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import type { User } from '@/lib/contexts';
 import type { PublicCategory } from '@/services/items/items';
+import { parseLocalDate } from '@/lib/dates';
 import {
   getLoanStatus,
   getMyLoans,
@@ -42,13 +43,7 @@ const STATUS_VARIANTS: Record<
 };
 
 function formatDate(dateStr: string): string {
-  // Date-only strings (YYYY-MM-DD) parse as UTC midnight, which shifts the
-  // displayed day in negative-offset timezones. Build a local date instead.
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateStr);
-  const date = match
-    ? new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
-    : new Date(dateStr);
-  return date.toLocaleDateString('en-US', {
+  return parseLocalDate(dateStr).toLocaleDateString('en-US', {
     year: 'numeric',
     month: 'short',
     day: 'numeric',

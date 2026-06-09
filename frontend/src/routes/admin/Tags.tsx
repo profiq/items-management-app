@@ -49,9 +49,6 @@ export default function AdminTags() {
   });
 
   const saveMutation = useMutation({
-    // Capture the edit target in the mutation variables so onSuccess does not
-    // depend on the mutable `editingTag` state, which could change before the
-    // request resolves.
     mutationFn: ({
       tag,
       payload,
