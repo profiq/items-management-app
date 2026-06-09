@@ -1,6 +1,10 @@
 import type { Employee } from '@/services/employees/employees';
 import { TableCell, TableRow } from '@profiq/ui/components/ui/layout';
-import { Avatar, AvatarFallback, AvatarImage } from '@radix-ui/react-avatar';
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@profiq/ui/components/ui/display';
 
 function EmployeeRow(employee: Employee) {
   // key={employee.id} is due to the fact that React does not react well to a

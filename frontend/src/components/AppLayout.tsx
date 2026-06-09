@@ -1,7 +1,10 @@
-import { Avatar, Button, Text, cn } from '@profiq/ui';
+import { Avatar, Button, DropdownMenu, Sheet, cn } from '@profiq/ui';
+import UserInfo from '@/components/user-info';
+import { LoginDialog } from '@/components/LoginDialog';
 import { useAuth } from '@/lib/providers/auth/useAuth';
-import { Link, Outlet, useLocation } from 'react-router';
-import { Box } from 'lucide-react';
+import { useTheme } from '@/lib/providers/theme/useTheme';
+import { Link, Outlet, useLocation, useNavigate } from 'react-router';
+import { Box, ChevronDown, Moon, Sun } from 'lucide-react';
 
 type NavLinkProps = {
   to: string;
@@ -26,16 +29,51 @@ function NavLink({ to, active, children }: NavLinkProps) {
 }
 
 export function AppLayout() {
-  const { user, role, logout } = useAuth();
+  const { user, role, logout, loading } = useAuth();
+  const { theme, toggle } = useTheme();
   const { pathname } = useLocation();
+  const navigate = useNavigate();
 
   const is = (path: string) => pathname === path;
+  const isAdmin = pathname.startsWith('/admin');
+
+  const adminItems = [
+    { id: 'admin', label: 'Overview', onSelect: () => navigate('/admin') },
+    {
+      id: 'admin-items',
+      label: 'Items',
+      onSelect: () => navigate('/admin/items'),
+    },
+    {
+      id: 'admin-categories',
+      label: 'Categories',
+      onSelect: () => navigate('/admin/categories'),
+    },
+    {
+      id: 'admin-locations',
+      label: 'Locations',
+      onSelect: () => navigate('/admin/locations'),
+    },
+    {
+      id: 'admin-loans',
+      label: 'Loans',
+      onSelect: () => navigate('/admin/loans'),
+    },
+    {
+      id: 'admin-tags',
+      label: 'Tags',
+      onSelect: () => navigate('/admin/tags'),
+    },
+  ];
 
   return (
     <div className='flex min-h-svh flex-col'>
       <header className='sticky top-0 z-50 border-b bg-background/95 shadow-sm backdrop-blur-sm'>
         <div className='flex h-14 items-center gap-4 px-6'>
-          <Link to='/' className='flex shrink-0 items-center gap-2'>
+          <Link
+            to={user ? '/dashboard' : '/'}
+            className='flex shrink-0 items-center gap-2'
+          >
             <Box className='h-5 w-5' />
             <span className='font-semibold text-sm'>Items Manager</span>
           </Link>
@@ -49,62 +87,83 @@ export function AppLayout() {
               </NavLink>
             )}
             {user && (
-              <NavLink to='/profile' active={is('/profile')}>
-                Profil
+              <NavLink to='/loans' active={is('/loans')}>
+                Loans
               </NavLink>
             )}
-            {user && (
+            {user && role === 'admin' && (
               <NavLink to='/employees' active={is('/employees')}>
-                Zaměstnanci
+                Employees
               </NavLink>
             )}
             {user && role === 'admin' && (
-              <NavLink to='/admin' active={is('/admin')}>
-                Admin
-              </NavLink>
-            )}
-            {user && role === 'admin' && (
-              <NavLink to='/admin/items' active={is('/admin/items')}>
-                Admin Items
-              </NavLink>
+              <DropdownMenu
+                trigger={
+                  <button
+                    className={cn(
+                      'flex items-center gap-1 rounded-md px-3 py-1.5 text-sm font-medium transition-colors',
+                      isAdmin
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                    )}
+                  >
+                    Admin
+                    <ChevronDown className='h-3.5 w-3.5' />
+                  </button>
+                }
+                items={adminItems}
+                align='start'
+              />
             )}
           </nav>
 
           <div className='flex-1' />
 
           <div className='flex items-center gap-3'>
-            {user ? (
+            <Button
+              variant='ghost'
+              size='icon-sm'
+              ariaLabel={
+                theme === 'dark'
+                  ? 'Switch to light mode'
+                  : 'Switch to dark mode'
+              }
+              onClick={toggle}
+            >
+              {theme === 'dark' ? (
+                <Sun aria-hidden='true' />
+              ) : (
+                <Moon aria-hidden='true' />
+              )}
+            </Button>
+            {user && (
               <>
-                <div className='hidden flex-col items-end sm:flex'>
-                  {user.displayName && (
-                    <Text as='p' size='xs' weight='medium'>
-                      {user.displayName}
-                    </Text>
-                  )}
-                  <Text as='p' size='xs' className='text-muted-foreground'>
-                    {user.email}
-                  </Text>
-                </div>
-                {user.photoURL && (
-                  <Avatar
-                    isGroup={false}
-                    item={{
-                      id: 'current-user',
-                      imgSource: user.photoURL,
-                      imgAlt: user.displayName ?? 'User',
-                      size: 'sm',
-                    }}
-                    fallback={user.displayName?.[0] ?? '?'}
-                  />
-                )}
+                <Sheet
+                  side='right'
+                  title='Profile'
+                  trigger={
+                    <button className='cursor-pointer rounded-full'>
+                      <Avatar
+                        isGroup={false}
+                        item={{
+                          id: 'current-user',
+                          imgSource: user.photoURL ?? '',
+                          imgAlt: user.displayName ?? 'User',
+                          size: 'lg',
+                        }}
+                        fallback={
+                          user.displayName?.[0] ?? user.email?.[0] ?? '?'
+                        }
+                      />
+                    </button>
+                  }
+                >
+                  <UserInfo />
+                </Sheet>
                 <Button variant='outline' size='sm' onClick={logout}>
-                  Odhlásit
+                  Log out
                 </Button>
               </>
-            ) : (
-              <NavLink to='/login' active={is('/login')}>
-                Přihlásit
-              </NavLink>
             )}
           </div>
         </div>
@@ -113,6 +172,8 @@ export function AppLayout() {
       <main className='flex-1 p-6'>
         <Outlet />
       </main>
+
+      <LoginDialog open={!loading && !user} />
     </div>
   );
 }

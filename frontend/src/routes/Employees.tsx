@@ -1,3 +1,4 @@
+import { AdminBackButton } from '@/components/AdminBackButton';
 import EmployeeRow from '@/components/employee-row';
 import { HoverInfo } from '@/components/hover-info';
 import Paging from '@/components/paging';
@@ -41,6 +42,9 @@ function Employees() {
 
   return (
     <>
+      <div className='mx-auto w-full max-w-7xl p-4'>
+        <AdminBackButton />
+      </div>
       {query.isLoading && <StatusSpinning data-testid='employees-loading' />}
       <div data-testid='employees-page'>
         <h1 data-testid='employees-title'>
@@ -82,6 +86,5 @@ function Employees() {
       </div>
     </>
   );
-  //{query.data?.map((employee) => EmployeeRow(employee))}
 }
 export default Employees;

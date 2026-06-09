@@ -32,9 +32,9 @@ const selectClass =
   'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50';
 
 const CONDITION_LABELS: Record<string, string> = {
-  good: 'Dobrý',
-  damaged: 'Poškozený',
-  lost: 'Ztracený',
+  good: 'Good',
+  damaged: 'Damaged',
+  lost: 'Lost',
 };
 
 function conditionLabel(condition: string | null): string {
@@ -75,7 +75,7 @@ export function CopiesSection({ itemId }: CopiesSectionProps) {
       invalidate();
       setFormVisible(false);
       setCopyForm(emptyCopyForm);
-      toast.success('Kopie přidána');
+      toast.success('Copy added');
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -93,7 +93,7 @@ export function CopiesSection({ itemId }: CopiesSectionProps) {
       setFormVisible(false);
       setEditingCopyId(null);
       setCopyForm(emptyCopyForm);
-      toast.success('Kopie aktualizována');
+      toast.success('Copy updated');
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -103,7 +103,7 @@ export function CopiesSection({ itemId }: CopiesSectionProps) {
       archiveAdminCopy(user as User, itemId, copyId),
     onSuccess: () => {
       invalidate();
-      toast.success('Kopie archivována');
+      toast.success('Copy archived');
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -142,7 +142,7 @@ export function CopiesSection({ itemId }: CopiesSectionProps) {
   const handleSubmit = () => {
     const locationId = Number(copyForm.location_id);
     if (!locationId) {
-      toast.error('Lokace je povinná');
+      toast.error('Location is required');
       return;
     }
     const condition: Condition | null = CONDITIONS.includes(
@@ -168,17 +168,18 @@ export function CopiesSection({ itemId }: CopiesSectionProps) {
     () => [
       {
         id: 'location',
-        header: 'Lokace',
+        header: 'Location',
         cell: ({ row }) =>
           row.original.location?.name ?? `ID ${row.original.location_id}`,
       },
       {
         id: 'condition',
-        header: 'Stav',
+        header: 'Condition',
         cell: ({ row }) => (
           <Badge
             variant='outline'
             title={conditionLabel(row.original.condition)}
+            isRounded
           />
         ),
       },
@@ -191,7 +192,7 @@ export function CopiesSection({ itemId }: CopiesSectionProps) {
               type='button'
               variant='outline'
               size='icon-sm'
-              ariaLabel={`Upravit kopii ${row.original.id}`}
+              ariaLabel={`Edit copy ${row.original.id}`}
               disabled={isMutating}
               onClick={() => openEditForm(row.original)}
             >
@@ -201,7 +202,7 @@ export function CopiesSection({ itemId }: CopiesSectionProps) {
               type='button'
               variant='destructive'
               size='icon-sm'
-              ariaLabel={`Archivovat kopii ${row.original.id}`}
+              ariaLabel={`Archive copy ${row.original.id}`}
               disabled={isMutating}
               onClick={() => handleArchiveCopy(row.original.id)}
             >
@@ -218,7 +219,7 @@ export function CopiesSection({ itemId }: CopiesSectionProps) {
     <div className='space-y-3'>
       <div className='flex items-center justify-between'>
         <Text as='h3' size='sm' weight='semibold'>
-          Kopie ({copies.length})
+          Copies ({copies.length})
         </Text>
         <Button
           type='button'
@@ -227,17 +228,14 @@ export function CopiesSection({ itemId }: CopiesSectionProps) {
           onClick={openAddForm}
         >
           <Plus aria-hidden='true' />
-          Přidat kopii
+          Add copy
         </Button>
       </div>
 
       {itemQuery.isLoading && <StatusSpinning />}
 
       {itemQuery.isError && (
-        <Alert
-          variant='destructive'
-          description='Nepodařilo se načíst kopie.'
-        />
+        <Alert variant='destructive' description='Failed to load copies.' />
       )}
 
       {copies.length > 0 && (
@@ -248,18 +246,18 @@ export function CopiesSection({ itemId }: CopiesSectionProps) {
 
       {copies.length === 0 && !itemQuery.isLoading && (
         <Text as='p' size='sm' className='text-muted-foreground'>
-          Zatím žádné kopie.
+          No copies yet.
         </Text>
       )}
 
       {formVisible && (
         <div className='space-y-3 rounded-lg border p-4'>
           <Text as='h4' size='sm' weight='medium'>
-            {editingCopyId !== null ? 'Upravit kopii' : 'Nová kopie'}
+            {editingCopyId !== null ? 'Edit copy' : 'New copy'}
           </Text>
 
           <div className='space-y-2'>
-            <Label htmlFor='copy-location'>Lokace</Label>
+            <Label htmlFor='copy-location'>Location</Label>
             <select
               id='copy-location'
               value={copyForm.location_id}
@@ -269,7 +267,7 @@ export function CopiesSection({ itemId }: CopiesSectionProps) {
               }
               className={selectClass}
             >
-              <option value=''>Vyberte lokaci…</option>
+              <option value=''>Select a location…</option>
               {locations.map(l => (
                 <option key={l.id} value={l.id}>
                   {l.name}
@@ -279,7 +277,7 @@ export function CopiesSection({ itemId }: CopiesSectionProps) {
           </div>
 
           <div className='space-y-2'>
-            <Label htmlFor='copy-condition'>Stav</Label>
+            <Label htmlFor='copy-condition'>Condition</Label>
             <select
               id='copy-condition'
               value={copyForm.condition}
@@ -289,7 +287,7 @@ export function CopiesSection({ itemId }: CopiesSectionProps) {
               }
               className={selectClass}
             >
-              <option value=''>Bez stavu</option>
+              <option value=''>No condition</option>
               {CONDITIONS.map(c => (
                 <option key={c} value={c}>
                   {CONDITION_LABELS[c] ?? c}
@@ -306,7 +304,7 @@ export function CopiesSection({ itemId }: CopiesSectionProps) {
               disabled={isMutating}
               onClick={closeForm}
             >
-              Zrušit
+              Cancel
             </Button>
             <Button
               type='button'
@@ -314,7 +312,7 @@ export function CopiesSection({ itemId }: CopiesSectionProps) {
               disabled={isMutating}
               onClick={handleSubmit}
             >
-              {isMutating ? 'Ukládám…' : 'Uložit kopii'}
+              {isMutating ? 'Saving…' : 'Save copy'}
             </Button>
           </div>
         </div>

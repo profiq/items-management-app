@@ -7,14 +7,10 @@ import { createError } from '@/lib/errors';
 import type { User } from '@/lib/contexts';
 
 import type { AdminCategory } from '@/services/admin/categories';
+import type { AdminTag } from '@/services/admin/tags';
 
 export type { AdminCategory } from '@/services/admin/categories';
 export { getAdminCategories } from '@/services/admin/categories';
-
-export type AdminTag = {
-  id: number;
-  name: string;
-};
 
 export type AdminLocation = {
   id: number;
@@ -139,16 +135,6 @@ export async function archiveAdminItem(user: User, id: number): Promise<void> {
   const result: APIResponse<void> = await client.fetch(
     HttpMethod.Delete,
     `/admin/items/${id}`
-  );
-
-  return throwIfFailed(result);
-}
-
-export async function getAdminTags(user: User): Promise<AdminTag[]> {
-  const client = new APIClient(user);
-  const result: APIResponse<AdminTag[]> = await client.fetch(
-    HttpMethod.Get,
-    '/admin/tags'
   );
 
   return throwIfFailed(result);

@@ -1,40 +1,40 @@
 import { useCallback, useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { ColumnDef } from '@tanstack/react-table';
-import { Archive, Pencil, Plus } from 'lucide-react';
+import { Pencil, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Alert,
   AlertDialog,
-  Badge,
   Button,
   Dialog,
   InputField,
   Table,
   Text,
 } from '@profiq/ui';
+import { AdminBackButton } from '@/components/AdminBackButton';
 import { StatusSpinning } from '@/components/status/status-spinning';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import type { User } from '@/lib/contexts';
 import {
-  archiveAdminCity,
-  createAdminCity,
-  getAdminCities,
-  updateAdminCity,
-  type AdminCity,
-  type AdminCityPayload,
-} from '@/services/admin/locations';
+  createAdminTag,
+  deleteAdminTag,
+  getAdminTags,
+  updateAdminTag,
+  type AdminTag,
+  type AdminTagPayload,
+} from '@/services/admin/tags';
 
-export default function CitiesTab() {
+export default function AdminTags() {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [editorOpen, setEditorOpen] = useState(false);
-  const [editingCity, setEditingCity] = useState<AdminCity | null>(null);
-  const [form, setForm] = useState<AdminCityPayload>({ name: '' });
-  const [cityToArchive, setCityToArchive] = useState<AdminCity | null>(null);
+  const [editingTag, setEditingTag] = useState<AdminTag | null>(null);
+  const [form, setForm] = useState<AdminTagPayload>({ name: '' });
+  const [tagToDelete, setTagToDelete] = useState<AdminTag | null>(null);
 
   const resetEditorState = () => {
-    setEditingCity(null);
+    setEditingTag(null);
     setForm({ name: '' });
   };
 
@@ -43,32 +43,32 @@ export default function CitiesTab() {
     resetEditorState();
   };
 
-  const citiesQuery = useQuery({
-    queryKey: ['admin-cities'],
-    queryFn: () => getAdminCities(user as User),
+  const tagsQuery = useQuery({
+    queryKey: ['admin-tags'],
+    queryFn: () => getAdminTags(user as User),
   });
 
   const saveMutation = useMutation({
-    mutationFn: (payload: AdminCityPayload) =>
-      editingCity
-        ? updateAdminCity(user as User, editingCity.id, payload)
-        : createAdminCity(user as User, payload),
+    mutationFn: (payload: AdminTagPayload) =>
+      editingTag
+        ? updateAdminTag(user as User, editingTag.id, payload)
+        : createAdminTag(user as User, payload),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-cities'] });
+      queryClient.invalidateQueries({ queryKey: ['admin-tags'] });
       closeEditor();
-      toast.success(editingCity ? 'City updated' : 'City created');
+      toast.success(editingTag ? 'Tag updated' : 'Tag created');
     },
     onError: (error: Error) => {
       toast.error(error.message);
     },
   });
 
-  const archiveMutation = useMutation({
-    mutationFn: (id: number) => archiveAdminCity(user as User, id),
+  const deleteMutation = useMutation({
+    mutationFn: (id: number) => deleteAdminTag(user as User, id),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['admin-cities'] });
-      setCityToArchive(null);
-      toast.success('City archived');
+      queryClient.invalidateQueries({ queryKey: ['admin-tags'] });
+      setTagToDelete(null);
+      toast.success('Tag deleted');
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -80,9 +80,9 @@ export default function CitiesTab() {
     setEditorOpen(true);
   };
 
-  const openEditEditor = useCallback((city: AdminCity) => {
-    setEditingCity(city);
-    setForm({ name: city.name });
+  const openEditEditor = useCallback((tag: AdminTag) => {
+    setEditingTag(tag);
+    setForm({ name: tag.name });
     setEditorOpen(true);
   }, []);
 
@@ -95,22 +95,11 @@ export default function CitiesTab() {
     saveMutation.mutate({ name: form.name.trim() });
   };
 
-  const columns = useMemo<ColumnDef<AdminCity>[]>(
+  const columns = useMemo<ColumnDef<AdminTag>[]>(
     () => [
       {
         accessorKey: 'name',
         header: 'Name',
-      },
-      {
-        id: 'archived',
-        header: 'Archived',
-        cell: ({ row }) => (
-          <Badge
-            variant={row.original.archived_at ? 'secondary' : 'outline'}
-            title={row.original.archived_at ? 'Archived' : 'Active'}
-            isRounded
-          />
-        ),
       },
       {
         id: 'actions',
@@ -130,53 +119,57 @@ export default function CitiesTab() {
               type='button'
               variant='destructive'
               size='icon-sm'
-              ariaLabel={`Archive ${row.original.name}`}
-              disabled={
-                archiveMutation.isPending || row.original.archived_at !== null
-              }
-              onClick={() => setCityToArchive(row.original)}
+              ariaLabel={`Delete ${row.original.name}`}
+              disabled={deleteMutation.isPending}
+              onClick={() => setTagToDelete(row.original)}
             >
-              <Archive aria-hidden='true' />
+              <Trash2 aria-hidden='true' />
             </Button>
           </div>
         ),
       },
     ],
-    [archiveMutation.isPending, openEditEditor]
+    [deleteMutation.isPending, openEditEditor]
   );
 
   return (
-    <section className='flex flex-col gap-6'>
+    <section className='mx-auto flex w-full max-w-7xl flex-col gap-6 p-4'>
+      <AdminBackButton />
       <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
-        <Text as='p' size='sm' className='text-muted-foreground'>
-          Total: {citiesQuery.data?.length ?? 0}
-        </Text>
+        <div>
+          <Text as='h1' size='2xl' weight='bold' className='heading-accent'>
+            Tag management
+          </Text>
+          <Text as='p' size='sm' className='text-muted-foreground'>
+            Total: {tagsQuery.data?.length ?? 0}
+          </Text>
+        </div>
         <Button type='button' onClick={openCreateEditor}>
           <Plus aria-hidden='true' />
-          Add city
+          Add tag
         </Button>
       </div>
 
-      {citiesQuery.isLoading && <StatusSpinning />}
+      {tagsQuery.isLoading && <StatusSpinning />}
 
-      {citiesQuery.isError && (
+      {tagsQuery.isError && (
         <Alert
           variant='destructive'
-          title='Failed to load cities'
+          title='Failed to load tags'
           description={
-            citiesQuery.error instanceof Error
-              ? citiesQuery.error.message
+            tagsQuery.error instanceof Error
+              ? tagsQuery.error.message
               : 'Unknown error'
           }
         />
       )}
 
-      {citiesQuery.data && (
+      {tagsQuery.data && (
         <div className='overflow-x-auto rounded-lg border'>
           <Table
             columns={columns}
-            data={citiesQuery.data}
-            dataTestId='admin-cities-table'
+            data={tagsQuery.data}
+            dataTestId='admin-tags-table'
           />
         </div>
       )}
@@ -189,10 +182,10 @@ export default function CitiesTab() {
         }}
         title={
           <span className='text-foreground'>
-            {editingCity ? 'Edit city' : 'Add city'}
+            {editingTag ? 'Edit tag' : 'Add tag'}
           </span>
         }
-        description='Manage the city name.'
+        description='Manage the tag name.'
         className='text-card-foreground'
         footer={
           <>
@@ -206,7 +199,7 @@ export default function CitiesTab() {
             </Button>
             <Button
               type='submit'
-              form='admin-city-editor-form'
+              form='admin-tag-editor-form'
               disabled={saveMutation.isPending}
             >
               {saveMutation.isPending ? 'Saving...' : 'Save'}
@@ -214,10 +207,10 @@ export default function CitiesTab() {
           </>
         }
       >
-        <form id='admin-city-editor-form' onSubmit={handleSubmit}>
+        <form id='admin-tag-editor-form' onSubmit={handleSubmit}>
           <InputField
             fieldLabel='Name'
-            fieldPlaceholder='City name'
+            fieldPlaceholder='Tag name'
             fieldDescription=''
             type='text'
             value={form.name}
@@ -229,21 +222,21 @@ export default function CitiesTab() {
       </Dialog>
 
       <AlertDialog
-        open={cityToArchive !== null}
+        open={tagToDelete !== null}
         onOpenChange={open => {
-          if (!open) setCityToArchive(null);
+          if (!open) setTagToDelete(null);
         }}
-        title='Archive city'
+        title='Delete tag'
         description={
-          cityToArchive
-            ? `Archive ${cityToArchive.name}? The city will remain visible in this list.`
+          tagToDelete
+            ? `Delete "${tagToDelete.name}"? This will remove the tag from all items.`
             : ''
         }
-        actionLabel={archiveMutation.isPending ? 'Archiving...' : 'Archive'}
+        actionLabel={deleteMutation.isPending ? 'Deleting...' : 'Delete'}
         cancelLabel='Cancel'
         onAction={() => {
-          if (cityToArchive) {
-            archiveMutation.mutate(cityToArchive.id);
+          if (tagToDelete) {
+            deleteMutation.mutate(tagToDelete.id);
           }
         }}
       />
