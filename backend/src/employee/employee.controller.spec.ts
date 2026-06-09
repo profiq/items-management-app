@@ -1,3 +1,6 @@
+import { ConfigService } from '@nestjs/config';
+import { Repository } from 'typeorm';
+import { User } from '@/user/user.entity';
 import { EmployeeService } from './employee.service';
 import { EmployeeController } from './employee.controller';
 import { IEmployee } from './interfaces/employee.interface';
@@ -7,7 +10,10 @@ describe('EmployeeController', () => {
   let employeeService: EmployeeService;
 
   beforeEach(() => {
-    employeeService = new EmployeeService();
+    employeeService = new EmployeeService(
+      {} as ConfigService,
+      {} as unknown as Repository<User>
+    );
     employeeController = new EmployeeController(employeeService);
   });
 

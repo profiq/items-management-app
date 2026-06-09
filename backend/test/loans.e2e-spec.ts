@@ -23,6 +23,7 @@ import { ItemCopiesAdminController } from '@/admin/item-copies.admin.controller'
 import { LoansAdminController } from '@/admin/loans.admin.controller';
 import { AuthGuard } from '@/auth/auth.guard';
 import { RolesGuard } from '@/auth/roles.guard';
+import { RolesModule } from '@/auth/roles.module';
 import { SlackService } from '@/slack/slack.service';
 import { SlackNotificationsService } from '@/slack-notifications/slack-notifications.service';
 import { Loan } from '@/loans/entities/loan.entity';
@@ -462,14 +463,11 @@ describe('LoansModule auth (e2e)', (): void => {
         LocationsModule,
         CitiesModule,
         UserModule,
+        RolesModule,
         TypeOrmModule.forRoot(dbConfig),
       ],
       controllers: [LoansAdminController],
-      providers: [
-        { provide: AuthService, useValue: authService },
-        AuthGuard,
-        RolesGuard,
-      ],
+      providers: [{ provide: AuthService, useValue: authService }, AuthGuard],
     })
       .overrideProvider(FirebaseService)
       .useValue({})

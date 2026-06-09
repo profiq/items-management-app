@@ -1,10 +1,4 @@
-import {
-  ForbiddenException,
-  forwardRef,
-  Inject,
-  Injectable,
-  Logger,
-} from '@nestjs/common';
+import { ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { QueryFailedError, Repository } from 'typeorm';
 import { User, UserRole } from './user.entity';
@@ -23,7 +17,6 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    @Inject(forwardRef(() => EmployeeService))
     private employeeService: EmployeeService,
     private firebaseService: FirebaseService
   ) {}
