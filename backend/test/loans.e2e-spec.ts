@@ -48,6 +48,13 @@ const MOCK_FIREBASE_USER = buildDecodedToken(
 
 type FirebaseRequest = { firebaseUser: DecodedIdToken };
 
+type PaginatedLoans = {
+  data: Loan[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
 async function buildApp(): Promise<{
   app: INestApplication<App>;
   ds: DataSource;
@@ -301,15 +308,47 @@ describe('LoansModule (e2e)', (): void => {
   });
 
   describe('GET /admin/loans', (): void => {
-    it('returns all loans without filter', async (): Promise<void> => {
+    it('returns a paginated list without filter', async (): Promise<void> => {
       await request(app.getHttpServer()).post('/loans').send({ copyId });
 
       await request(app.getHttpServer())
         .get('/admin/loans')
         .expect(StatusCodes.OK)
         .expect((res: Response) => {
-          expect(Array.isArray(res.body)).toBe(true);
-          expect((res.body as Loan[]).length).toBeGreaterThanOrEqual(1);
+          const body = res.body as PaginatedLoans;
+          expect(Array.isArray(body.data)).toBe(true);
+          expect(body.data.length).toBeGreaterThanOrEqual(1);
+          expect(body.total).toBeGreaterThanOrEqual(1);
+          expect(body.page).toBe(1);
+          expect(body.limit).toBe(20);
+        });
+    });
+
+    it('orders loans by borrowed_at DESC', async (): Promise<void> => {
+      await request(app.getHttpServer())
+        .get('/admin/loans')
+        .expect(StatusCodes.OK)
+        .expect((res: Response) => {
+          const { data } = res.body as PaginatedLoans;
+          const borrowedTimes = data.map(loan =>
+            new Date(loan.borrowed_at).getTime()
+          );
+          const sorted = [...borrowedTimes].sort((a, b) => b - a);
+          expect(borrowedTimes).toEqual(sorted);
+        });
+    });
+
+    it('applies page and limit', async (): Promise<void> => {
+      await request(app.getHttpServer()).post('/loans').send({ copyId });
+
+      await request(app.getHttpServer())
+        .get('/admin/loans?page=1&limit=1')
+        .expect(StatusCodes.OK)
+        .expect((res: Response) => {
+          const body = res.body as PaginatedLoans;
+          expect(body.data.length).toBe(1);
+          expect(body.page).toBe(1);
+          expect(body.limit).toBe(1);
         });
     });
 
@@ -320,9 +359,9 @@ describe('LoansModule (e2e)', (): void => {
         .get('/admin/loans?status=active')
         .expect(StatusCodes.OK)
         .expect((res: Response) => {
-          const body = res.body as Loan[];
-          expect(body.length).toBeGreaterThanOrEqual(1);
-          body.forEach(loan => expect(loan.returned_at).toBeNull());
+          const { data } = res.body as PaginatedLoans;
+          expect(data.length).toBeGreaterThanOrEqual(1);
+          data.forEach(loan => expect(loan.returned_at).toBeNull());
         });
     });
 
@@ -338,9 +377,9 @@ describe('LoansModule (e2e)', (): void => {
         .get('/admin/loans?status=returned')
         .expect(StatusCodes.OK)
         .expect((res: Response) => {
-          const body = res.body as Loan[];
-          expect(body.length).toBeGreaterThanOrEqual(1);
-          body.forEach(loan => expectDateTimeString(loan.returned_at));
+          const { data } = res.body as PaginatedLoans;
+          expect(data.length).toBeGreaterThanOrEqual(1);
+          data.forEach(loan => expectDateTimeString(loan.returned_at));
         });
     });
 
@@ -358,9 +397,9 @@ describe('LoansModule (e2e)', (): void => {
         .get('/admin/loans?status=overdue')
         .expect(StatusCodes.OK)
         .expect((res: Response) => {
-          const body = res.body as Loan[];
-          expect(body.map(loan => loan.id)).toContain(created.id);
-          body.forEach(loan => {
+          const { data } = res.body as PaginatedLoans;
+          expect(data.map(loan => loan.id)).toContain(created.id);
+          data.forEach(loan => {
             expect(loan.returned_at).toBeNull();
             expect(loan.due_date < new Date().toISOString().split('T')[0]).toBe(
               true

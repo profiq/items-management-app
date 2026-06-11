@@ -40,6 +40,19 @@ export type AdminLoan = {
 
 export type LoanStatus = 'active' | 'overdue' | 'returned';
 
+export type AdminLoansResponse = {
+  data: AdminLoan[];
+  total: number;
+  page: number;
+  limit: number;
+};
+
+export type AdminLoansQuery = {
+  page: number;
+  limit: number;
+  status?: LoanStatus;
+};
+
 function throwIfFailed<T>(result: APIResponse<T>): T {
   if (!result.success) {
     throw createError(result.status_code, result.error.message);
@@ -47,15 +60,25 @@ function throwIfFailed<T>(result: APIResponse<T>): T {
   return result.data;
 }
 
+function buildQueryString(query: AdminLoansQuery): string {
+  const params = new URLSearchParams({
+    page: String(query.page),
+    limit: String(query.limit),
+  });
+  if (query.status) {
+    params.set('status', query.status);
+  }
+  return params.toString();
+}
+
 export async function getAdminLoans(
   user: User,
-  status?: LoanStatus
-): Promise<AdminLoan[]> {
+  query: AdminLoansQuery
+): Promise<AdminLoansResponse> {
   const client = new APIClient(user);
-  const path = status ? `/admin/loans?status=${status}` : '/admin/loans';
-  const result: APIResponse<AdminLoan[]> = await client.fetch(
+  const result: APIResponse<AdminLoansResponse> = await client.fetch(
     HttpMethod.Get,
-    path
+    `/admin/loans?${buildQueryString(query)}`
   );
   return throwIfFailed(result);
 }

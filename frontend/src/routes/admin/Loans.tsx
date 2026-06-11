@@ -58,8 +58,9 @@ function LoansTableContent({ status }: { status?: LoanStatus }) {
   const [extendDays, setExtendDays] = useState(7);
 
   const loansQuery = useQuery({
-    queryKey: ['admin-loans', status],
-    queryFn: () => getAdminLoans(user as User, status),
+    queryKey: ['admin-loans', status, page],
+    queryFn: () =>
+      getAdminLoans(user as User, { page, limit: PAGE_SIZE, status }),
   });
 
   const returnMutation = useMutation({
@@ -158,17 +159,14 @@ function LoansTableContent({ status }: { status?: LoanStatus }) {
     [isPending]
   );
 
-  const allLoans = loansQuery.data ?? [];
-  const totalPages = Math.max(1, Math.ceil(allLoans.length / PAGE_SIZE));
-  const paginatedLoans = allLoans.slice(
-    (page - 1) * PAGE_SIZE,
-    page * PAGE_SIZE
-  );
+  const loans = loansQuery.data?.data ?? [];
+  const total = loansQuery.data?.total ?? 0;
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <section className='flex flex-col gap-6'>
       <Text as='p' size='sm' className='text-muted-foreground'>
-        Celkem: {allLoans.length}
+        Celkem: {total}
       </Text>
 
       {loansQuery.isLoading && <StatusSpinning />}
@@ -190,7 +188,7 @@ function LoansTableContent({ status }: { status?: LoanStatus }) {
           <div className='overflow-x-auto rounded-lg border'>
             <Table
               columns={columns}
-              data={paginatedLoans}
+              data={loans}
               dataTestId='admin-loans-table'
             />
           </div>

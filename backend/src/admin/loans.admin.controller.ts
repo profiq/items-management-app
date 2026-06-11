@@ -20,6 +20,7 @@ import { UnknownUserException } from '@/lib/errors';
 import { LoansService } from '@/loans/loans.service';
 import { ExtendLoanDto } from '@/loans/dto/extend-loan.dto';
 import { FindLoansQueryDto } from '@/loans/dto/find-loans-query.dto';
+import { PaginatedLoansResponseDto } from '@/loans/dto/paginated-loans-response.dto';
 import { Loan } from '@/loans/entities/loan.entity';
 
 type FirebaseRequest = { firebaseUser: DecodedIdToken };
@@ -36,7 +37,9 @@ export class LoansAdminController {
   ) {}
 
   @Get()
-  findAll(@Query() query: FindLoansQueryDto): Promise<Loan[]> {
+  findAll(
+    @Query() query: FindLoansQueryDto
+  ): Promise<PaginatedLoansResponseDto> {
     return this.loansService.findAll(query);
   }
 

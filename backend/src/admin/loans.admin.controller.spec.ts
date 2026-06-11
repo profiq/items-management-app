@@ -73,15 +73,21 @@ describe('LoansAdminController', (): void => {
   });
 
   describe('GET /admin/loans', (): void => {
-    it('returns all loans without filter', async (): Promise<void> => {
-      mockService.findAll.mockResolvedValue([mockLoan]);
+    it('returns a paginated list without filter', async (): Promise<void> => {
+      const paginated = { data: [mockLoan], total: 1, page: 1, limit: 20 };
+      mockService.findAll.mockResolvedValue(paginated);
       const result = await controller.findAll({} as FindLoansQueryDto);
       expect(mockService.findAll).toHaveBeenCalledWith({});
-      expect(result).toEqual([mockLoan]);
+      expect(result).toEqual(paginated);
     });
 
     it('passes status filter to service', async (): Promise<void> => {
-      mockService.findAll.mockResolvedValue([]);
+      mockService.findAll.mockResolvedValue({
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 20,
+      });
       await controller.findAll({ status: LoanStatus.Active });
       expect(mockService.findAll).toHaveBeenCalledWith({
         status: LoanStatus.Active,

@@ -39,12 +39,19 @@ const mockCopy = {
 const mockLoanRepository: jest.Mocked<
   Pick<
     Repository<Loan>,
-    'create' | 'save' | 'find' | 'findOneBy' | 'findOne' | 'createQueryBuilder'
+    | 'create'
+    | 'save'
+    | 'find'
+    | 'findAndCount'
+    | 'findOneBy'
+    | 'findOne'
+    | 'createQueryBuilder'
   >
 > = {
   create: jest.fn(),
   save: jest.fn(),
   find: jest.fn(),
+  findAndCount: jest.fn(),
   findOneBy: jest.fn(),
   findOne: jest.fn(),
   createQueryBuilder: jest.fn(),
@@ -287,43 +294,82 @@ describe('LoansService', (): void => {
   describe('findAll', (): void => {
     const relations = ['copy', 'copy.item', 'copy.location', 'user'];
 
-    it('returns all loans when no status filter', async (): Promise<void> => {
-      mockLoanRepository.find.mockResolvedValue([mockLoan]);
+    it('returns a paginated, borrowed_at DESC ordered list with defaults', async (): Promise<void> => {
+      mockLoanRepository.findAndCount.mockResolvedValue([[mockLoan], 1]);
       const result = await service.findAll({} as FindLoansQueryDto);
-      expect(mockLoanRepository.find).toHaveBeenCalledWith({ relations });
-      expect(result).toEqual([mockLoan]);
+      expect(mockLoanRepository.findAndCount).toHaveBeenCalledWith({
+        relations,
+        order: { borrowed_at: 'DESC' },
+        skip: 0,
+        take: 20,
+      });
+      expect(result).toEqual({
+        data: [mockLoan],
+        total: 1,
+        page: 1,
+        limit: 20,
+      });
+    });
+
+    it('applies page and limit to skip/take', async (): Promise<void> => {
+      mockLoanRepository.findAndCount.mockResolvedValue([[mockLoan], 45]);
+      const result = await service.findAll({
+        page: 3,
+        limit: 10,
+      } as FindLoansQueryDto);
+      expect(mockLoanRepository.findAndCount).toHaveBeenCalledWith({
+        relations,
+        order: { borrowed_at: 'DESC' },
+        skip: 20,
+        take: 10,
+      });
+      expect(result).toEqual({
+        data: [mockLoan],
+        total: 45,
+        page: 3,
+        limit: 10,
+      });
     });
 
     it('filters active loans (not returned, due_date >= today)', async (): Promise<void> => {
-      mockLoanRepository.find.mockResolvedValue([mockLoan]);
+      mockLoanRepository.findAndCount.mockResolvedValue([[mockLoan], 1]);
       await service.findAll({ status: LoanStatus.Active });
-      expect(mockLoanRepository.find).toHaveBeenCalledWith({
+      expect(mockLoanRepository.findAndCount).toHaveBeenCalledWith({
         where: {
           returned_at: IsNull(),
           due_date: MoreThanOrEqual(expect.any(String)),
         },
         relations,
+        order: { borrowed_at: 'DESC' },
+        skip: 0,
+        take: 20,
       });
     });
 
     it('filters returned loans', async (): Promise<void> => {
-      mockLoanRepository.find.mockResolvedValue([]);
+      mockLoanRepository.findAndCount.mockResolvedValue([[], 0]);
       await service.findAll({ status: LoanStatus.Returned });
-      expect(mockLoanRepository.find).toHaveBeenCalledWith({
+      expect(mockLoanRepository.findAndCount).toHaveBeenCalledWith({
         where: { returned_at: Not(IsNull()) },
         relations,
+        order: { borrowed_at: 'DESC' },
+        skip: 0,
+        take: 20,
       });
     });
 
     it('filters overdue loans (not returned, due_date < today)', async (): Promise<void> => {
-      mockLoanRepository.find.mockResolvedValue([]);
+      mockLoanRepository.findAndCount.mockResolvedValue([[], 0]);
       await service.findAll({ status: LoanStatus.Overdue });
-      expect(mockLoanRepository.find).toHaveBeenCalledWith({
+      expect(mockLoanRepository.findAndCount).toHaveBeenCalledWith({
         where: {
           returned_at: IsNull(),
           due_date: LessThan(expect.any(String)),
         },
         relations,
+        order: { borrowed_at: 'DESC' },
+        skip: 0,
+        take: 20,
       });
     });
   });

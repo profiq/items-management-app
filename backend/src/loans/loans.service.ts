@@ -17,6 +17,7 @@ import {
 import { ItemCopy } from '@/item-copies/entities/item-copy.entity';
 import { SlackNotificationsService } from '@/slack-notifications/slack-notifications.service';
 import { FindLoansQueryDto, LoanStatus } from './dto/find-loans-query.dto';
+import { PaginatedLoansResponseDto } from './dto/paginated-loans-response.dto';
 import { Loan } from './entities/loan.entity';
 
 const UNIQUE_VIOLATION_CODES = new Set([
@@ -160,28 +161,32 @@ export class LoansService {
     'user',
   ];
 
-  findAll(query: FindLoansQueryDto): Promise<Loan[]> {
+  async findAll(query: FindLoansQueryDto): Promise<PaginatedLoansResponseDto> {
+    const { status, page = 1, limit = 20 } = query;
     const today = this.today();
     const relations = LoansService.LOAN_RELATIONS;
-    switch (query.status) {
-      case LoanStatus.Active:
-        return this.loanRepository.find({
-          where: { returned_at: IsNull(), due_date: MoreThanOrEqual(today) },
-          relations,
-        });
-      case LoanStatus.Returned:
-        return this.loanRepository.find({
-          where: { returned_at: Not(IsNull()) },
-          relations,
-        });
-      case LoanStatus.Overdue:
-        return this.loanRepository.find({
-          where: { returned_at: IsNull(), due_date: LessThan(today) },
-          relations,
-        });
-      default:
-        return this.loanRepository.find({ relations });
-    }
+
+    const whereByStatus = {
+      [LoanStatus.Active]: {
+        returned_at: IsNull(),
+        due_date: MoreThanOrEqual(today),
+      },
+      [LoanStatus.Returned]: { returned_at: Not(IsNull()) },
+      [LoanStatus.Overdue]: {
+        returned_at: IsNull(),
+        due_date: LessThan(today),
+      },
+    };
+
+    const [data, total] = await this.loanRepository.findAndCount({
+      ...(status ? { where: whereByStatus[status] } : {}),
+      relations,
+      order: { borrowed_at: 'DESC' },
+      skip: (page - 1) * limit,
+      take: limit,
+    });
+
+    return { data, total, page, limit };
   }
 
   async extendLoan(loanId: number, dueDays: number): Promise<Loan> {
