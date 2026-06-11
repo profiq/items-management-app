@@ -103,7 +103,7 @@ async function request<T>(
         forceRefresh: true,
         retriedAfterUnauthorized: true,
       });
-    } catch (error) {
+    } catch {
       try {
         await signOutAndRedirectToLogin();
       } catch {
@@ -167,15 +167,7 @@ async function signOutAndRedirectToLogin(): Promise<void> {
     return;
   }
 
-  const from = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-  window.history.replaceState(
-    {
-      ...(window.history.state ?? {}),
-      usr: { from },
-    },
-    '',
-    '/login'
-  );
+  window.history.replaceState(window.history.state ?? {}, '', '/');
   window.dispatchEvent(new Event('popstate'));
 }
 

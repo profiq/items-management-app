@@ -18,6 +18,7 @@ import {
 } from '@profiq/ui';
 import { Checkbox, Label, Textarea } from '@profiq/ui/components/ui/form';
 import { Separator } from '@profiq/ui/components/ui/layout';
+import { AdminBackButton } from '@/components/AdminBackButton';
 import { StatusSpinning } from '@/components/status/status-spinning';
 import { CopiesSection } from './CopiesSection';
 import { useAuth } from '@/lib/providers/auth/useAuth';
@@ -26,12 +27,11 @@ import {
   archiveAdminItem,
   createAdminItem,
   getAdminItems,
-  getAdminTags,
   updateAdminItem,
   type AdminItem,
   type AdminItemPayload,
-  type AdminTag,
 } from '@/services/admin/items';
+import { getAdminTags, type AdminTag } from '@/services/admin/tags';
 import { getCategories, type Category } from '@/services/categories';
 import {
   ALLOWED_IMAGE_TYPES,
@@ -70,7 +70,7 @@ function toggleId(ids: number[], id: number, checked: boolean): number[] {
 
 function formatCategories(categories: Category[]): string {
   if (categories.length === 0) {
-    return 'Žádná';
+    return 'None';
   }
 
   return categories.map(category => category.name).join(', ');
@@ -84,7 +84,7 @@ function formatAvailability(item: AdminItem): string {
     return `${item.available_copies_count} / ${item.copies_count}`;
   }
 
-  return 'Neznámá';
+  return 'Unknown';
 }
 
 type ItemEditorProps = {
@@ -120,8 +120,8 @@ function ItemEditor({
   return (
     <form id='admin-item-editor-form' className='space-y-4' onSubmit={onSubmit}>
       <InputField
-        fieldLabel='Název'
-        fieldPlaceholder='Název položky'
+        fieldLabel='Name'
+        fieldPlaceholder='Item name'
         fieldDescription=''
         type='text'
         value={form.name}
@@ -130,7 +130,7 @@ function ItemEditor({
         isDisabled={isDisabled}
       />
       <InputField
-        fieldLabel='Výchozí počet dní výpůjčky'
+        fieldLabel='Default loan days'
         fieldPlaceholder='14'
         fieldDescription=''
         type='number'
@@ -143,7 +143,7 @@ function ItemEditor({
         <div className='flex items-end gap-2'>
           <div className='flex-1'>
             <InputField
-              fieldLabel='URL obrázku'
+              fieldLabel='Image URL'
               fieldPlaceholder='https://example.com/image.jpg'
               fieldDescription=''
               type='url'
@@ -159,13 +159,13 @@ function ItemEditor({
             disabled={isDisabled}
             onClick={() => imageInputRef.current?.click()}
           >
-            {isUploading ? 'Nahrávám…' : 'Nahrát'}
+            {isUploading ? 'Uploading…' : 'Upload'}
           </Button>
         </div>
         {isHttpImageUrl(form.imageUrl.trim()) && (
           <img
             src={form.imageUrl}
-            alt='Náhled položky'
+            alt='Item preview'
             className='h-24 w-24 rounded-md border object-cover'
             onError={e => {
               (e.target as HTMLImageElement).style.display = 'none';
@@ -185,19 +185,19 @@ function ItemEditor({
         />
       </div>
       <div className='space-y-2'>
-        <Label htmlFor='admin-item-description'>Popis</Label>
+        <Label htmlFor='admin-item-description'>Description</Label>
         <Textarea
           id='admin-item-description'
           value={form.description}
           onChange={event => setField('description', event.target.value)}
-          placeholder='Popis položky'
+          placeholder='Item description'
           disabled={isDisabled}
         />
       </div>
       <fieldset className='space-y-2'>
         <legend>
           <Text as='span' size='sm' weight='medium'>
-            Kategorie
+            Categories
           </Text>
         </legend>
         <div className='grid gap-2 sm:grid-cols-2'>
@@ -222,7 +222,7 @@ function ItemEditor({
           ))}
           {categories.length === 0 && (
             <Text as='p' size='sm' className='text-muted-foreground'>
-              Žádné kategorie.
+              No categories.
             </Text>
           )}
         </div>
@@ -230,7 +230,7 @@ function ItemEditor({
       <fieldset className='space-y-2'>
         <legend>
           <Text as='span' size='sm' weight='medium'>
-            Štítky
+            Tags
           </Text>
         </legend>
         <div className='grid gap-2 sm:grid-cols-2'>
@@ -253,7 +253,7 @@ function ItemEditor({
           ))}
           {tags.length === 0 && (
             <Text as='p' size='sm' className='text-muted-foreground'>
-              Žádné štítky.
+              No tags.
             </Text>
           )}
         </div>
@@ -261,7 +261,7 @@ function ItemEditor({
       {item?.archived_at && (
         <Alert
           variant='default'
-          description='Tato položka je archivovaná. Uložením změn zůstane archivovaná.'
+          description='This item is archived. Saving changes will keep it archived.'
         />
       )}
     </form>
@@ -312,9 +312,7 @@ export default function AdminItems() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-items'] });
       closeEditor();
-      toast.success(
-        editingItem ? 'Položka aktualizována' : 'Položka vytvořena'
-      );
+      toast.success(editingItem ? 'Item updated' : 'Item created');
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -326,7 +324,7 @@ export default function AdminItems() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-items'] });
       setItemToArchive(null);
-      toast.success('Položka archivována');
+      toast.success('Item archived');
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -335,12 +333,12 @@ export default function AdminItems() {
 
   const handleImageUpload = async (file: File) => {
     if (file.size > MAX_IMAGE_SIZE) {
-      toast.error('Obrázek musí být maximálně 5 MB');
+      toast.error('Image must be at most 5 MB');
       return;
     }
 
     if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
-      toast.error('Obrázek musí být PNG, JPEG nebo WebP soubor');
+      toast.error('Image must be a PNG, JPEG or WebP file');
       return;
     }
 
@@ -351,9 +349,9 @@ export default function AdminItems() {
       await uploadBytes(storageRef, file);
       const url = await getDownloadURL(storageRef);
       setForm(f => ({ ...f, imageUrl: url }));
-      toast.success('Obrázek nahrán');
+      toast.success('Image uploaded');
     } catch {
-      toast.error('Nahrání obrázku selhalo');
+      toast.error('Image upload failed');
     } finally {
       setIsUploadingImage(false);
     }
@@ -375,12 +373,12 @@ export default function AdminItems() {
     const payload = toPayload(form);
 
     if (!payload.name) {
-      toast.error('Název je povinný');
+      toast.error('Name is required');
       return;
     }
 
     if (payload.image_url && !isHttpImageUrl(payload.image_url)) {
-      toast.error('URL obrázku musí začínat http:// nebo https://');
+      toast.error('Image URL must start with http:// or https://');
       return;
     }
 
@@ -388,7 +386,7 @@ export default function AdminItems() {
       !Number.isInteger(payload.default_loan_days) ||
       payload.default_loan_days < 1
     ) {
-      toast.error('Výchozí počet dní výpůjčky musí být kladné celé číslo');
+      toast.error('Default loan days must be a positive integer');
       return;
     }
 
@@ -399,38 +397,39 @@ export default function AdminItems() {
     () => [
       {
         accessorKey: 'name',
-        header: 'Název',
+        header: 'Name',
       },
       {
         id: 'categories',
-        header: 'Kategorie',
+        header: 'Categories',
         cell: ({ row }) => formatCategories(row.original.categories),
       },
       {
         id: 'availability',
-        header: 'Dostupnost',
+        header: 'Availability',
         cell: ({ row }) => formatAvailability(row.original),
       },
       {
         id: 'archived',
-        header: 'Archivováno',
+        header: 'Archived',
         cell: ({ row }) => (
           <Badge
             variant={row.original.archived_at ? 'secondary' : 'outline'}
-            title={row.original.archived_at ? 'Archivováno' : 'Aktivní'}
+            title={row.original.archived_at ? 'Archived' : 'Active'}
+            isRounded
           />
         ),
       },
       {
         id: 'actions',
-        header: 'Akce',
+        header: 'Actions',
         cell: ({ row }) => (
           <div className='flex justify-end gap-2'>
             <Button
               type='button'
               variant='outline'
               size='icon-sm'
-              ariaLabel={`Upravit ${row.original.name}`}
+              ariaLabel={`Edit ${row.original.name}`}
               onClick={() => openEditEditor(row.original)}
             >
               <Pencil aria-hidden='true' />
@@ -439,7 +438,7 @@ export default function AdminItems() {
               type='button'
               variant='destructive'
               size='icon-sm'
-              ariaLabel={`Archivovat ${row.original.name}`}
+              ariaLabel={`Archive ${row.original.name}`}
               disabled={
                 archiveMutation.isPending || row.original.archived_at !== null
               }
@@ -459,18 +458,19 @@ export default function AdminItems() {
 
   return (
     <section className='mx-auto flex w-full max-w-7xl flex-col gap-6 p-4'>
+      <AdminBackButton />
       <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
         <div>
-          <Text as='h1' size='2xl' weight='bold'>
-            Správa položek
+          <Text as='h1' size='2xl' weight='bold' className='heading-accent'>
+            Item management
           </Text>
           <Text as='p' size='sm' className='text-muted-foreground'>
-            Celkem: {total}
+            Total: {total}
           </Text>
         </div>
         <Button type='button' onClick={openCreateEditor}>
           <Plus aria-hidden='true' />
-          Přidat položku
+          Add item
         </Button>
       </div>
 
@@ -479,11 +479,11 @@ export default function AdminItems() {
       {itemsQuery.isError && (
         <Alert
           variant='destructive'
-          title='Nepodařilo se načíst položky'
+          title='Failed to load items'
           description={
             itemsQuery.error instanceof Error
               ? itemsQuery.error.message
-              : 'Neznámá chyba'
+              : 'Unknown error'
           }
         />
       )}
@@ -518,10 +518,10 @@ export default function AdminItems() {
         }}
         title={
           <span className='text-foreground'>
-            {editingItem ? 'Upravit položku' : 'Přidat položku'}
+            {editingItem ? 'Edit item' : 'Add item'}
           </span>
         }
-        description='Spravujte detaily katalogové položky, kategorie a štítky.'
+        description='Manage catalog item details, categories and tags.'
         className='max-h-[90vh] overflow-y-auto text-card-foreground sm:max-w-2xl'
         footer={
           <>
@@ -531,14 +531,14 @@ export default function AdminItems() {
               onClick={closeEditor}
               disabled={saveMutation.isPending || isUploadingImage}
             >
-              Zrušit
+              Cancel
             </Button>
             <Button
               type='submit'
               form='admin-item-editor-form'
               disabled={saveMutation.isPending || isUploadingImage}
             >
-              {saveMutation.isPending ? 'Ukládám...' : 'Uložit'}
+              {saveMutation.isPending ? 'Saving...' : 'Save'}
             </Button>
           </>
         }
@@ -549,8 +549,8 @@ export default function AdminItems() {
         {(categoriesQuery.isError || tagsQuery.isError) && (
           <Alert
             variant='destructive'
-            title='Nepodařilo se načíst data editoru'
-            description='Kategorie nebo štítky nejsou dostupné.'
+            title='Failed to load editor data'
+            description='Categories or tags are unavailable.'
           />
         )}
         {categoriesQuery.data && tagsQuery.data && (
@@ -583,14 +583,14 @@ export default function AdminItems() {
             setItemToArchive(null);
           }
         }}
-        title='Archivovat položku'
+        title='Archive item'
         description={
           itemToArchive
-            ? `Archivovat ${itemToArchive.name}? Položka zůstane viditelná v tomto seznamu.`
+            ? `Archive ${itemToArchive.name}? The item will remain visible in this list.`
             : ''
         }
-        actionLabel={archiveMutation.isPending ? 'Archivuji...' : 'Archivovat'}
-        cancelLabel='Zrušit'
+        actionLabel={archiveMutation.isPending ? 'Archiving...' : 'Archive'}
+        cancelLabel='Cancel'
         onAction={() => {
           if (itemToArchive) {
             archiveMutation.mutate(itemToArchive.id);

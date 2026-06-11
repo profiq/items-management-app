@@ -1,26 +1,16 @@
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import type { ReactNode } from 'react';
-import { Navigate, Outlet, useLocation } from 'react-router';
+import { Outlet } from 'react-router';
 
 type ProtectedRouteProps = {
   children?: ReactNode;
-  redirectUrl?: string;
 };
 
-function ProtectedRoute({
-  children,
-  redirectUrl = '/login',
-}: ProtectedRouteProps) {
+function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
-  const location = useLocation();
 
-  if (loading) {
-    return <></>;
-  }
-  if (!user) {
-    return (
-      <Navigate to={redirectUrl} state={{ from: location.pathname }} replace />
-    );
+  if (loading || !user) {
+    return null;
   }
   return children ? children : <Outlet />;
 }

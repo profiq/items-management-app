@@ -13,6 +13,7 @@ import {
   Table,
   Text,
 } from '@profiq/ui';
+import { AdminBackButton } from '@/components/AdminBackButton';
 import { StatusSpinning } from '@/components/status/status-spinning';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import type { User } from '@/lib/contexts';
@@ -59,9 +60,7 @@ export default function AdminCategories() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
       closeEditor();
-      toast.success(
-        editingCategory ? 'Kategorie aktualizována' : 'Kategorie vytvořena'
-      );
+      toast.success(editingCategory ? 'Category updated' : 'Category created');
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -73,7 +72,7 @@ export default function AdminCategories() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-categories'] });
       setCategoryToArchive(null);
-      toast.success('Kategorie archivována');
+      toast.success('Category archived');
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -94,7 +93,7 @@ export default function AdminCategories() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!form.name.trim()) {
-      toast.error('Název je povinný');
+      toast.error('Name is required');
       return;
     }
     saveMutation.mutate({ name: form.name.trim() });
@@ -104,28 +103,29 @@ export default function AdminCategories() {
     () => [
       {
         accessorKey: 'name',
-        header: 'Název',
+        header: 'Name',
       },
       {
         id: 'archived',
-        header: 'Archivováno',
+        header: 'Archived',
         cell: ({ row }) => (
           <Badge
             variant={row.original.archived_at ? 'secondary' : 'outline'}
-            title={row.original.archived_at ? 'Archivováno' : 'Aktivní'}
+            title={row.original.archived_at ? 'Archived' : 'Active'}
+            isRounded
           />
         ),
       },
       {
         id: 'actions',
-        header: 'Akce',
+        header: 'Actions',
         cell: ({ row }) => (
           <div className='flex justify-end gap-2'>
             <Button
               type='button'
               variant='outline'
               size='icon-sm'
-              ariaLabel={`Upravit ${row.original.name}`}
+              ariaLabel={`Edit ${row.original.name}`}
               disabled={row.original.archived_at !== null}
               onClick={() => openEditEditor(row.original)}
             >
@@ -135,7 +135,7 @@ export default function AdminCategories() {
               type='button'
               variant='destructive'
               size='icon-sm'
-              ariaLabel={`Archivovat ${row.original.name}`}
+              ariaLabel={`Archive ${row.original.name}`}
               disabled={
                 archiveMutation.isPending || row.original.archived_at !== null
               }
@@ -152,18 +152,19 @@ export default function AdminCategories() {
 
   return (
     <section className='mx-auto flex w-full max-w-7xl flex-col gap-6 p-4'>
+      <AdminBackButton />
       <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
         <div>
-          <Text as='h1' size='2xl' weight='bold'>
-            Správa kategorií
+          <Text as='h1' size='2xl' weight='bold' className='heading-accent'>
+            Category management
           </Text>
           <Text as='p' size='sm' className='text-muted-foreground'>
-            Celkem: {categoriesQuery.data?.length ?? 0}
+            Total: {categoriesQuery.data?.length ?? 0}
           </Text>
         </div>
         <Button type='button' onClick={openCreateEditor}>
           <Plus aria-hidden='true' />
-          Přidat kategorii
+          Add category
         </Button>
       </div>
 
@@ -172,11 +173,11 @@ export default function AdminCategories() {
       {categoriesQuery.isError && (
         <Alert
           variant='destructive'
-          title='Nepodařilo se načíst kategorie'
+          title='Failed to load categories'
           description={
             categoriesQuery.error instanceof Error
               ? categoriesQuery.error.message
-              : 'Neznámá chyba'
+              : 'Unknown error'
           }
         />
       )}
@@ -199,10 +200,10 @@ export default function AdminCategories() {
         }}
         title={
           <span className='text-foreground'>
-            {editingCategory ? 'Upravit kategorii' : 'Přidat kategorii'}
+            {editingCategory ? 'Edit category' : 'Add category'}
           </span>
         }
-        description='Spravujte název kategorie.'
+        description='Manage the category name.'
         className='text-card-foreground'
         footer={
           <>
@@ -212,22 +213,22 @@ export default function AdminCategories() {
               onClick={closeEditor}
               disabled={saveMutation.isPending}
             >
-              Zrušit
+              Cancel
             </Button>
             <Button
               type='submit'
               form='admin-category-editor-form'
               disabled={saveMutation.isPending}
             >
-              {saveMutation.isPending ? 'Ukládám...' : 'Uložit'}
+              {saveMutation.isPending ? 'Saving...' : 'Save'}
             </Button>
           </>
         }
       >
         <form id='admin-category-editor-form' onSubmit={handleSubmit}>
           <InputField
-            fieldLabel='Název'
-            fieldPlaceholder='Název kategorie'
+            fieldLabel='Name'
+            fieldPlaceholder='Category name'
             fieldDescription=''
             type='text'
             value={form.name}
@@ -243,14 +244,14 @@ export default function AdminCategories() {
         onOpenChange={open => {
           if (!open) setCategoryToArchive(null);
         }}
-        title='Archivovat kategorii'
+        title='Archive category'
         description={
           categoryToArchive
-            ? `Archivovat ${categoryToArchive.name}? Kategorie zůstane viditelná v tomto seznamu.`
+            ? `Archive ${categoryToArchive.name}? The category will remain visible in this list.`
             : ''
         }
-        actionLabel={archiveMutation.isPending ? 'Archivuji...' : 'Archivovat'}
-        cancelLabel='Zrušit'
+        actionLabel={archiveMutation.isPending ? 'Archiving...' : 'Archive'}
+        cancelLabel='Cancel'
         onAction={() => {
           if (categoryToArchive) {
             archiveMutation.mutate(categoryToArchive.id);

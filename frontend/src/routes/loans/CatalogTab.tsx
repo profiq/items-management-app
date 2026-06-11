@@ -9,9 +9,9 @@ import {
   InputField,
   Pagination,
   Select,
-  SwitchField,
   Text,
 } from '@profiq/ui';
+import { Switch } from '@profiq/ui/components/ui/form';
 import type { SelectItem } from '@profiq/ui';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import type { User } from '@/lib/contexts';
@@ -23,6 +23,7 @@ import {
 import { borrowItem } from '@/services/loans/loans';
 
 const PAGE_SIZE = 12;
+const ALL_CATEGORIES = 'All categories';
 
 type ItemCardProps = {
   item: PublicItem;
@@ -98,7 +99,7 @@ export function CatalogTab({ categories }: CatalogTabProps) {
   const queryClient = useQueryClient();
   const [searchInput, setSearchInput] = useState('');
   const [search, setSearch] = useState('');
-  const [categoryValue, setCategoryValue] = useState('Všechny kategorie');
+  const [categoryValue, setCategoryValue] = useState(ALL_CATEGORIES);
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [page, setPage] = useState(1);
   const [itemToBorrow, setItemToBorrow] = useState<PublicItem | null>(null);
@@ -128,14 +129,14 @@ export function CatalogTab({ categories }: CatalogTabProps) {
 
   const categorySelectItems: SelectItem[] = useMemo(
     () => [
-      { id: 'all', value: 'Všechny kategorie' },
+      { id: 'all', value: ALL_CATEGORIES },
       ...activeCategories.map(c => ({ id: String(c.id), value: c.name })),
     ],
     [activeCategories]
   );
 
   const selectedCategoryId = useMemo(() => {
-    if (categoryValue === 'Všechny kategorie') return undefined;
+    if (categoryValue === ALL_CATEGORIES) return undefined;
     return activeCategories.find(c => c.name === categoryValue)?.id;
   }, [categoryValue, activeCategories]);
 
@@ -162,7 +163,7 @@ export function CatalogTab({ categories }: CatalogTabProps) {
       queryClient.invalidateQueries({ queryKey: ['my-loans', user?.uid] });
       queryClient.invalidateQueries({ queryKey: ['items'] });
       setItemToBorrow(null);
-      toast.success('Položka zapůjčena');
+      toast.success('Item borrowed');
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -178,8 +179,8 @@ export function CatalogTab({ categories }: CatalogTabProps) {
       <div className='flex flex-col gap-3 sm:flex-row sm:items-center'>
         <div className='flex-1'>
           <InputField
-            fieldLabel='Hledat'
-            fieldPlaceholder='Název nebo popis…'
+            fieldLabel='Search'
+            fieldPlaceholder='Name or description…'
             fieldDescription=''
             type='search'
             value={searchInput}
@@ -188,35 +189,35 @@ export function CatalogTab({ categories }: CatalogTabProps) {
         </div>
         <div className='sm:w-56'>
           <Select
-            placeholder='Kategorie'
+            placeholder='Category'
             items={categorySelectItems}
             value={categoryValue}
             onValueChange={handleCategoryChange}
           />
         </div>
-        <SwitchField
-          switchId='only-available'
-          label='Jen dostupné'
-          description=''
-          value={onlyAvailable ? 'on' : 'off'}
-          onChange={handleAvailableChange}
-        />
+        <label className='flex items-center gap-2 text-sm font-medium cursor-pointer'>
+          <Switch
+            checked={onlyAvailable}
+            onCheckedChange={handleAvailableChange}
+          />
+          Available only
+        </label>
       </div>
 
       {itemsQuery.isError && (
         <Alert
           variant='destructive'
-          title='Nepodařilo se načíst položky'
+          title='Failed to load items'
           description={
             itemsQuery.error instanceof Error
               ? itemsQuery.error.message
-              : 'Neznámá chyba'
+              : 'Unknown error'
           }
         />
       )}
 
       {itemsQuery.isLoading && (
-        <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
+        <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
           {[...Array(PAGE_SIZE)].map((_, i) => (
             <SkeletonCard key={i} />
           ))}
@@ -229,13 +230,13 @@ export function CatalogTab({ categories }: CatalogTabProps) {
           size='sm'
           className='py-12 text-center text-muted-foreground'
         >
-          Žádné položky neodpovídají vašemu hledání.
+          No items match your search.
         </Text>
       )}
 
       {itemsQuery.data && itemsQuery.data.data.length > 0 && (
         <>
-          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3'>
+          <div className='grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'>
             {itemsQuery.data.data.map(item => (
               <ItemCard
                 key={item.id}
@@ -263,7 +264,7 @@ export function CatalogTab({ categories }: CatalogTabProps) {
         title='Borrow item'
         description={itemToBorrow ? `Borrow "${itemToBorrow.name}"?` : ''}
         actionLabel={borrowMutation.isPending ? 'Borrowing…' : 'Borrow'}
-        cancelLabel='Zrušit'
+        cancelLabel='Cancel'
         onAction={() => {
           if (itemToBorrow) borrowMutation.mutate(itemToBorrow.id);
         }}
