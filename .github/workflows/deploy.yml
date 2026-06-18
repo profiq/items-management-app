@@ -1,0 +1,159 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: Which half(s) to deploy
+        type: choice
+        options:
+          - both
+          - frontend
+          - backend
+        default: both
+
+permissions:
+  contents: read
+
+jobs:
+  setup:
+    runs-on: ubuntu-latest
+    outputs:
+      environment: ${{ steps.env.outputs.value }}
+      frontend: ${{ steps.decide.outputs.frontend }}
+      backend: ${{ steps.decide.outputs.backend }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine environment
+        id: env
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/* ]]; then
+            echo "value=production" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=dev" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Detect changed paths
+        if: github.event_name == 'push' && github.ref_type == 'branch'
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - 'package.json'
+              - 'package-lock.json'
+            backend:
+              - 'backend/**'
+              - 'package.json'
+              - 'package-lock.json'
+
+      - name: Decide deploy targets
+        id: decide
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            target="${{ inputs.target }}"
+            [[ "$target" == "frontend" || "$target" == "both" ]] && echo "frontend=true" >> "$GITHUB_OUTPUT" || echo "frontend=false" >> "$GITHUB_OUTPUT"
+            [[ "$target" == "backend" || "$target" == "both" ]] && echo "backend=true" >> "$GITHUB_OUTPUT" || echo "backend=false" >> "$GITHUB_OUTPUT"
+          elif [[ "${{ github.ref_type }}" == "tag" ]]; then
+            # Tag (production) release always deploys both halves, like the GitLab tag rules.
+            echo "frontend=true" >> "$GITHUB_OUTPUT"
+            echo "backend=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "frontend=${{ steps.filter.outputs.frontend }}" >> "$GITHUB_OUTPUT"
+            echo "backend=${{ steps.filter.outputs.backend }}" >> "$GITHUB_OUTPUT"
+          fi
+
+  # GitLab: code_quality + test stages, as a gate before deploy.
+  ci:
+    needs: setup
+    if: needs.setup.outputs.frontend == 'true' || needs.setup.outputs.backend == 'true'
+    uses: ./.github/workflows/ci.yml
+
+  # GitLab: build + deploy stages (frontend).
+  deploy-frontend:
+    needs: [setup, ci]
+    if: needs.setup.outputs.frontend == 'true'
+    uses: ./.github/workflows/deploy-frontend.yml
+    with:
+      environment: ${{ needs.setup.outputs.environment }}
+      version: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+    secrets: inherit
+
+  # GitLab: build + deploy stages (backend).
+  deploy-backend:
+    needs: [setup, ci]
+    if: needs.setup.outputs.backend == 'true'
+    uses: ./.github/workflows/deploy-backend.yml
+    with:
+      environment: ${{ needs.setup.outputs.environment }}
+      image_tag: ${{ github.ref_type == 'tag' && github.ref_name || github.sha }}
+    secrets: inherit
+
+  # GitLab: update_changelog (tag only).
+  changelog:
+    needs: [setup, deploy-frontend, deploy-backend]
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      notes: ${{ steps.notes.outputs.path }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.21.1'
+          cache: npm
+      - run: npm ci --workspaces=false
+      - name: Update changelog and re-tag
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git fetch --prune --prune-tags
+          npm version --no-git-tag-version "$TAG"
+          git tag -d "$TAG" || true
+          npm run changelog:update
+          git add .
+          git commit -m "chore(changelog): update changelog to $TAG"
+          git push origin HEAD:main
+          npm run --silent changelog:stdout > changes.md
+          git tag "$TAG"
+          git push --force origin "refs/tags/$TAG"
+      - name: Stash release notes
+        id: notes
+        run: echo "path=changes.md" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-notes
+          path: changes.md
+          retention-days: 1
+
+  # GitLab: update_release_notes (tag only).
+  release:
+    needs: changelog
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-notes
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --notes-file changes.md
