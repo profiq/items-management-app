@@ -4,7 +4,8 @@ import { LoginDialog } from '@/components/LoginDialog';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import { useTheme } from '@/lib/providers/theme/useTheme';
 import { Link, Outlet, useLocation, useNavigate } from 'react-router';
-import { Box, ChevronDown, Moon, Sun } from 'lucide-react';
+import { Box, ChevronDown, Menu, Moon, Sun } from 'lucide-react';
+import { useState } from 'react';
 
 type NavLinkProps = {
   to: string;
@@ -28,48 +29,103 @@ function NavLink({ to, active, children }: NavLinkProps) {
   );
 }
 
+function MobileNavLink({ to, active, children }: NavLinkProps) {
+  return (
+    <Link
+      to={to}
+      className={cn(
+        'rounded-md px-3 py-2 text-sm font-medium transition-colors',
+        active
+          ? 'bg-primary text-primary-foreground'
+          : 'text-foreground hover:bg-accent hover:text-accent-foreground'
+      )}
+    >
+      {children}
+    </Link>
+  );
+}
+
 export function AppLayout() {
   const { user, role, logout, loading } = useAuth();
   const { theme, toggle } = useTheme();
   const { pathname } = useLocation();
   const navigate = useNavigate();
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const is = (path: string) => pathname === path;
   const isAdmin = pathname.startsWith('/admin');
 
   const adminItems = [
-    { id: 'admin', label: 'Overview', onSelect: () => navigate('/admin') },
-    {
-      id: 'admin-items',
-      label: 'Items',
-      onSelect: () => navigate('/admin/items'),
-    },
-    {
-      id: 'admin-categories',
-      label: 'Categories',
-      onSelect: () => navigate('/admin/categories'),
-    },
-    {
-      id: 'admin-locations',
-      label: 'Locations',
-      onSelect: () => navigate('/admin/locations'),
-    },
-    {
-      id: 'admin-loans',
-      label: 'Loans',
-      onSelect: () => navigate('/admin/loans'),
-    },
-    {
-      id: 'admin-tags',
-      label: 'Tags',
-      onSelect: () => navigate('/admin/tags'),
-    },
+    { id: 'admin', label: 'Overview', to: '/admin' },
+    { id: 'admin-items', label: 'Items', to: '/admin/items' },
+    { id: 'admin-categories', label: 'Categories', to: '/admin/categories' },
+    { id: 'admin-locations', label: 'Locations', to: '/admin/locations' },
+    { id: 'admin-loans', label: 'Loans', to: '/admin/loans' },
+    { id: 'admin-tags', label: 'Tags', to: '/admin/tags' },
   ];
+
+  const adminDropdownItems = adminItems.map(item => ({
+    id: item.id,
+    label: item.label,
+    onSelect: () => navigate(item.to),
+  }));
 
   return (
     <div className='flex min-h-svh flex-col'>
       <header className='sticky top-0 z-50 border-b bg-background/95 shadow-sm backdrop-blur-sm'>
-        <div className='flex h-14 items-center gap-4 px-6'>
+        <div className='flex h-14 items-center gap-3 px-4 md:gap-4 md:px-6'>
+          {user && (
+            <Sheet
+              side='left'
+              title='Menu'
+              open={mobileNavOpen}
+              onOpenChange={setMobileNavOpen}
+              trigger={
+                <button
+                  type='button'
+                  className='flex items-center justify-center rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground md:hidden'
+                  aria-label='Open navigation menu'
+                  data-testid='mobile-nav-button'
+                >
+                  <Menu className='h-5 w-5' aria-hidden='true' />
+                </button>
+              }
+            >
+              <nav
+                className='flex flex-col gap-1 p-2'
+                onClick={() => setMobileNavOpen(false)}
+              >
+                <MobileNavLink to='/dashboard' active={is('/dashboard')}>
+                  Dashboard
+                </MobileNavLink>
+                <MobileNavLink to='/loans' active={is('/loans')}>
+                  Loans
+                </MobileNavLink>
+                {role === 'admin' && (
+                  <MobileNavLink to='/employees' active={is('/employees')}>
+                    Employees
+                  </MobileNavLink>
+                )}
+                {role === 'admin' && (
+                  <div className='mt-2 flex flex-col gap-1'>
+                    <span className='px-3 py-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground'>
+                      Admin
+                    </span>
+                    {adminItems.map(item => (
+                      <MobileNavLink
+                        key={item.id}
+                        to={item.to}
+                        active={pathname === item.to}
+                      >
+                        {item.label}
+                      </MobileNavLink>
+                    ))}
+                  </div>
+                )}
+              </nav>
+            </Sheet>
+          )}
+
           <Link
             to={user ? '/dashboard' : '/'}
             className='flex shrink-0 items-center gap-2'
@@ -78,9 +134,12 @@ export function AppLayout() {
             <span className='font-semibold text-sm'>Items Manager</span>
           </Link>
 
-          <div className='h-5 w-px bg-border' />
+          <div className='hidden h-5 w-px bg-border md:block' />
 
-          <nav className='flex items-center gap-1'>
+          <nav
+            className='hidden items-center gap-1 md:flex'
+            data-testid='desktop-nav'
+          >
             {user && (
               <NavLink to='/dashboard' active={is('/dashboard')}>
                 Dashboard
@@ -111,7 +170,7 @@ export function AppLayout() {
                     <ChevronDown className='h-3.5 w-3.5' />
                   </button>
                 }
-                items={adminItems}
+                items={adminDropdownItems}
                 align='start'
               />
             )}
@@ -142,7 +201,10 @@ export function AppLayout() {
                   side='right'
                   title='Profile'
                   trigger={
-                    <button className='cursor-pointer rounded-full'>
+                    <button
+                      className='cursor-pointer rounded-full'
+                      data-testid='profile-button'
+                    >
                       <Avatar
                         isGroup={false}
                         item={{
@@ -160,7 +222,12 @@ export function AppLayout() {
                 >
                   <UserInfo />
                 </Sheet>
-                <Button variant='outline' size='sm' onClick={logout}>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={logout}
+                  data-testid='logout-button'
+                >
                   Log out
                 </Button>
               </>
@@ -169,7 +236,7 @@ export function AppLayout() {
         </div>
       </header>
 
-      <main className='flex-1 p-6'>
+      <main className='flex-1 p-4 md:p-6'>
         <Outlet />
       </main>
 
