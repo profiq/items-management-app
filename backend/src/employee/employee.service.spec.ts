@@ -1,6 +1,6 @@
 import { ConfigService } from '@nestjs/config';
+import { Repository } from 'typeorm';
 import { User, UserRole } from '@/user/user.entity';
-import { UserService } from '@/user/user.service';
 import { EmployeeService } from './employee.service';
 import { IEmployee } from './interfaces/employee.interface';
 
@@ -36,16 +36,25 @@ const mockEmployees: IEmployee[] = [
 
 describe('EmployeeService', (): void => {
   let service: EmployeeService;
-  let mockUserService: jest.Mocked<Pick<UserService, 'getUsers' | 'saveUsers'>>;
+  let managerSave: jest.Mock;
+  let mockRepository: {
+    find: jest.Mock;
+    manager: { transaction: jest.Mock };
+  };
 
   beforeEach((): void => {
-    mockUserService = {
-      getUsers: jest.fn(),
-      saveUsers: jest.fn(),
+    managerSave = jest.fn();
+    mockRepository = {
+      find: jest.fn(),
+      manager: {
+        transaction: jest.fn((cb: (m: { save: jest.Mock }) => unknown) =>
+          cb({ save: managerSave })
+        ),
+      },
     };
     service = new EmployeeService(
       {} as ConfigService,
-      mockUserService as unknown as UserService
+      mockRepository as unknown as Repository<User>
     );
   });
 
@@ -61,8 +70,8 @@ describe('EmployeeService', (): void => {
       const savePromise = new Promise<void>(resolve => {
         resolveSave = resolve;
       });
-      mockUserService.getUsers.mockResolvedValue([user]);
-      mockUserService.saveUsers.mockReturnValue(savePromise);
+      mockRepository.find.mockResolvedValue([user]);
+      managerSave.mockReturnValue(savePromise);
       jest.spyOn(service, 'getEmployees').mockResolvedValue([
         {
           id: 'employee-1',
@@ -81,7 +90,7 @@ describe('EmployeeService', (): void => {
       await Promise.resolve();
 
       expect(user.name).toBe('New Name');
-      expect(mockUserService.saveUsers).toHaveBeenCalledWith([user]);
+      expect(managerSave).toHaveBeenCalledWith(User, [user]);
       expect(syncResolved).toBe(false);
 
       resolveSave!();
@@ -91,15 +100,15 @@ describe('EmployeeService', (): void => {
     });
 
     it('should collect updates and save them once', async (): Promise<void> => {
-      mockUserService.getUsers.mockResolvedValue(
+      mockRepository.find.mockResolvedValue(
         mockUsers.map(user => ({ ...user }))
       );
       jest.spyOn(service, 'getEmployees').mockResolvedValue(mockEmployees);
 
       await service.syncEmployeeNames();
 
-      expect(mockUserService.saveUsers).toHaveBeenCalledTimes(1);
-      expect(mockUserService.saveUsers).toHaveBeenCalledWith([
+      expect(managerSave).toHaveBeenCalledTimes(1);
+      expect(managerSave).toHaveBeenCalledWith(User, [
         expect.objectContaining({ id: 1, name: 'New Name' }),
       ]);
     });
@@ -111,17 +120,17 @@ describe('EmployeeService', (): void => {
         employee_id: 'missing-employee',
         role: UserRole.User,
       };
-      mockUserService.getUsers.mockResolvedValue([user]);
+      mockRepository.find.mockResolvedValue([user]);
       jest.spyOn(service, 'getEmployees').mockResolvedValue(mockEmployees);
 
       await service.syncEmployeeNames();
 
       expect(user.name).toBe('Existing Name');
-      expect(mockUserService.saveUsers).not.toHaveBeenCalled();
+      expect(managerSave).not.toHaveBeenCalled();
     });
 
     it('should not save anything when employee lookup fails', async (): Promise<void> => {
-      mockUserService.getUsers.mockResolvedValue(
+      mockRepository.find.mockResolvedValue(
         mockUsers.map(user => ({ ...user }))
       );
       jest
@@ -131,7 +140,7 @@ describe('EmployeeService', (): void => {
       await expect(service.syncEmployeeNames()).rejects.toThrow(
         'Google Directory unavailable'
       );
-      expect(mockUserService.saveUsers).not.toHaveBeenCalled();
+      expect(managerSave).not.toHaveBeenCalled();
     });
   });
 });

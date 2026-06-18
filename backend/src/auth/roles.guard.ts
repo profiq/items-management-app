@@ -1,6 +1,6 @@
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { UserService } from '@/user/user.service';
+import { IdentityService } from './identity.service';
 import { ROLES_KEY } from './roles.decorator';
 import { UserRole } from '@/user/user.entity';
 import type { DecodedIdToken } from 'firebase-admin/auth';
@@ -9,7 +9,7 @@ import type { DecodedIdToken } from 'firebase-admin/auth';
 export class RolesGuard implements CanActivate {
   constructor(
     private readonly reflector: Reflector,
-    private readonly userService: UserService
+    private readonly identityService: IdentityService
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -27,11 +27,10 @@ export class RolesGuard implements CanActivate {
     if (!firebaseUser) {
       return false;
     }
-    const user =
-      await this.userService.getUserByGoogleWorkspaceUid(firebaseUser);
-    if (!user) {
+    const role = await this.identityService.getRoleByFirebaseUser(firebaseUser);
+    if (role === null) {
       return false;
     }
-    return requiredRoles.includes(user.role);
+    return requiredRoles.includes(role);
   }
 }

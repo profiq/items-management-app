@@ -7,17 +7,18 @@ import { ItemCopy } from '@/item-copies/entities/item-copy.entity';
 import { AuthModule } from '@/auth/auth.module';
 import { UserModule } from '@/user/user.module';
 import { SlackNotificationsModule } from '@/slack-notifications/slack-notifications.module';
-import { RolesGuard } from '@/auth/roles.guard';
+import { RolesModule } from '@/auth/roles.module';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Loan, ItemCopy]),
     AuthModule,
+    RolesModule,
     UserModule,
     SlackNotificationsModule,
   ],
   controllers: [LoansController],
-  providers: [LoansService, RolesGuard],
+  providers: [LoansService],
   exports: [LoansService],
 })
 export class LoansModule {}

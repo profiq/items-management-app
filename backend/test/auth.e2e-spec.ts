@@ -2,7 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import request from 'supertest';
 import { INestApplication, UnauthorizedException } from '@nestjs/common';
 import { App } from 'supertest/types';
-import { AuthModule } from '@/auth/auth.module';
+import { UserModule } from '@/user/user.module';
 import { AuthService } from '@/auth/auth.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User, UserRole } from '@/user/user.entity';
@@ -53,7 +53,7 @@ describe('AuthModule', () => {
     };
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [AuthModule, TypeOrmModule.forRoot(dbConfig)],
+      imports: [UserModule, TypeOrmModule.forRoot(dbConfig)],
     })
       .overrideProvider(AuthService)
       .useValue(authServiceOverride)
