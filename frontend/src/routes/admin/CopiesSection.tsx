@@ -239,7 +239,7 @@ export function CopiesSection({ itemId }: CopiesSectionProps) {
       )}
 
       {copies.length > 0 && (
-        <div className='rounded-lg border'>
+        <div className='overflow-x-auto rounded-lg border'>
           <Table columns={columns} data={copies} />
         </div>
       )}
