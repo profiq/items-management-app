@@ -1,0 +1,71 @@
+name: Deploy Backend
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: Target GitHub Environment (dev or production)
+        type: string
+        required: true
+      image_tag:
+        description: Tag for the backend image
+        type: string
+        required: false
+        default: ''
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options:
+          - dev
+          - production
+        default: dev
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve image tag
+        id: tag
+        run: echo "value=${{ inputs.image_tag || github.sha }}" >> "$GITHUB_OUTPUT"
+
+      # GitLab: docker auth with username "_json_key_base64" + base64 key.
+      - name: Log in to Artifact Registry
+        uses: docker/login-action@v3
+        with:
+          registry: europe-central2-docker.pkg.dev
+          username: _json_key_base64
+          password: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: backend/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ vars.AR_IMAGE }}:${{ steps.tag.outputs.value }}
+            ${{ vars.AR_IMAGE }}:latest
+
+      # GitLab: gcloud auth login --cred-file=<decoded key>.
+      - name: Authenticate gcloud
+        env:
+          GOOGLE_APPLICATION_CREDENTIALS_BASE64: ${{ secrets.GOOGLE_APPLICATION_CREDENTIALS_BASE64 }}
+        run: |
+          echo "$GOOGLE_APPLICATION_CREDENTIALS_BASE64" | base64 -d > "$RUNNER_TEMP/gcloud-key.json"
+          gcloud auth login --cred-file="$RUNNER_TEMP/gcloud-key.json"
+
+      - name: Deploy to Cloud Run
+        run: >-
+          gcloud run services update ${{ vars.CLOUD_RUN_SERVICE }}
+          --project ${{ vars.GCP_PROJECT_ID }}
+          --region ${{ vars.REGION }}
+          --image ${{ vars.AR_IMAGE }}:${{ steps.tag.outputs.value }}
