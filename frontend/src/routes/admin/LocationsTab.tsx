@@ -277,7 +277,7 @@ export default function LocationsTab() {
             </Text>
             <Select
               value={String(form.city_id)}
-              onValueChange={cityId =>
+              onValueChange={(cityId: string) =>
                 setForm(prev => ({ ...prev, city_id: Number(cityId) }))
               }
               disabled={saveMutation.isPending || citiesQuery.isLoading}

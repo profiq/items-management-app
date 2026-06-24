@@ -208,7 +208,7 @@ function ItemEditor({
                 name='categoryIds'
                 checked={form.categoryIds.includes(category.id)}
                 disabled={isDisabled}
-                onCheckedChange={checked =>
+                onCheckedChange={(checked: boolean | 'indeterminate') =>
                   setField(
                     'categoryIds',
                     toggleId(form.categoryIds, category.id, checked === true)
@@ -241,7 +241,7 @@ function ItemEditor({
                 name='tagIds'
                 checked={form.tagIds.includes(tag.id)}
                 disabled={isDisabled}
-                onCheckedChange={checked =>
+                onCheckedChange={(checked: boolean | 'indeterminate') =>
                   setField(
                     'tagIds',
                     toggleId(form.tagIds, tag.id, checked === true)
