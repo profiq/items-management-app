@@ -12,6 +12,8 @@
     "migrations:generate": "npm run typeorm -- migration:generate -d src/datasource.ts src/db/migrations/migration",
     "migrations:run": "npm run typeorm -- migration:run -d src/datasource.ts",
     "migrations:rollback": "npm run typeorm -- migration:revert -d src/datasource.ts",
+    "seed": "ts-node -r tsconfig-paths/register src/db/seed.ts",
+    "seed:prod": "node dist/db/seed.js",
     "start": "nest start",
     "start:dev": "nest start --watch",
     "start:debug": "nest start --debug --watch",
