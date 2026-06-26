@@ -75,6 +75,9 @@ jobs:
       - run: npm ci
       - run: npm run init:playwright -w frontend
       - run: npm run test:e2e -w frontend
+        env:
+          GOOGLE_CLIENT_EMAIL: e2e@example.com
+          GOOGLE_PRIVATE_KEY: e2e-emulator-placeholder
       - uses: actions/upload-artifact@v4
         if: always()
         with:
