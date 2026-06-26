@@ -27,7 +27,7 @@ function UserInfo() {
     >
       <div className='h-1.5 bg-primary' />
 
-      <div className='flex flex-col items-center gap-4 bg-primary/5 px-8 py-10'>
+      <div className='flex flex-col items-center gap-4 bg-primary/5 px-6 py-10 sm:px-8'>
         <div className='flex h-24 w-24 select-none items-center justify-center overflow-hidden rounded-full bg-primary shadow-lg ring-4 ring-background'>
           {user.photoURL ? (
             <img
@@ -47,12 +47,12 @@ function UserInfo() {
           )}
         </div>
 
-        <div className='text-center'>
+        <div className='w-full min-w-0 text-center'>
           <Text
             as='p'
             size='2xl'
             weight='bold'
-            className='text-foreground'
+            className='break-words text-foreground'
             dataTestId='user-name'
           >
             {user.displayName ?? user.email}
@@ -60,7 +60,7 @@ function UserInfo() {
           <Text
             as='p'
             size='sm'
-            className='mt-0.5 text-muted-foreground'
+            className='mt-0.5 break-all text-muted-foreground'
             dataTestId='user-email'
           >
             {user.email}
@@ -79,7 +79,7 @@ function UserInfo() {
 
       <div className='divide-y'>
         {user.phoneNumber && (
-          <div className='flex items-center justify-between px-8 py-4'>
+          <div className='flex items-center justify-between gap-4 px-6 py-4 sm:px-8'>
             <Text as='span' size='sm' className='text-muted-foreground'>
               Phone
             </Text>
@@ -88,7 +88,7 @@ function UserInfo() {
             </Text>
           </div>
         )}
-        <div className='flex items-start justify-between gap-6 px-8 py-4'>
+        <div className='flex items-start justify-between gap-6 px-6 py-4 sm:px-8'>
           <Text as='span' size='sm' className='shrink-0 text-muted-foreground'>
             UID
           </Text>

@@ -2,8 +2,8 @@ import { Module } from '@nestjs/common';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { AuthModule } from '@/auth/auth.module';
+import { RolesModule } from '@/auth/roles.module';
 import { UserModule } from '@/user/user.module';
-import { RolesGuard } from '@/auth/roles.guard';
 import { ItemsModule } from '@/items/items.module';
 import { CategoriesModule } from '@/categories/categories.module';
 import { TagsModule } from '@/tags/tags.module';
@@ -22,6 +22,7 @@ import { LoansAdminController } from './loans.admin.controller';
 @Module({
   imports: [
     AuthModule,
+    RolesModule,
     UserModule,
     ItemsModule,
     CategoriesModule,
@@ -41,6 +42,6 @@ import { LoansAdminController } from './loans.admin.controller';
     ItemCopiesAdminController,
     LoansAdminController,
   ],
-  providers: [AdminService, RolesGuard],
+  providers: [AdminService],
 })
 export class AdminModule {}

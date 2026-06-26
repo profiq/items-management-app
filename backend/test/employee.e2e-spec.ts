@@ -67,8 +67,30 @@ describe('EmployeeModule', () => {
     employeeService.syncEmployeeNames.mockClear();
   });
 
-  it('/employees (GET)', async () => {
-    return request(app.getHttpServer())
+  it('/employees (GET) (Non-admin)', async () => {
+    jest
+      .spyOn(authService, 'verifyToken')
+      .mockResolvedValue(
+        buildDecodedToken('1', 'user@profiq.com', 'firebase-user')
+      );
+
+    await request(app.getHttpServer())
+      .get('/employees')
+      .set('Authorization', `Bearer ${validToken}`)
+      .expect(StatusCodes.FORBIDDEN);
+
+    expect(employeeService.getEmployees).not.toHaveBeenCalled();
+  });
+
+  it('/employees (GET) (Admin)', async () => {
+    await dataSource.getRepository(User).update(1, { role: UserRole.Admin });
+    jest
+      .spyOn(authService, 'verifyToken')
+      .mockResolvedValue(
+        buildDecodedToken('1', 'admin@profiq.com', 'firebase-admin')
+      );
+
+    await request(app.getHttpServer())
       .get('/employees')
       .set('Authorization', `Bearer ${validToken}`)
       .expect(StatusCodes.OK)
@@ -80,6 +102,8 @@ describe('EmployeeModule', () => {
           photoUrl: 'http://example.com/img.png',
         },
       ]);
+
+    expect(employeeService.getEmployees).toHaveBeenCalledTimes(1);
   });
   it('/employees (GET) (Wrong domain)', async () => {
     return request(app.getHttpServer())

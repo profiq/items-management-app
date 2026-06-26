@@ -56,7 +56,7 @@ export default function CitiesTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-cities'] });
       closeEditor();
-      toast.success(editingCity ? 'Město aktualizováno' : 'Město vytvořeno');
+      toast.success(editingCity ? 'City updated' : 'City created');
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -68,7 +68,7 @@ export default function CitiesTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-cities'] });
       setCityToArchive(null);
-      toast.success('Město archivováno');
+      toast.success('City archived');
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -89,7 +89,7 @@ export default function CitiesTab() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!form.name.trim()) {
-      toast.error('Název je povinný');
+      toast.error('Name is required');
       return;
     }
     saveMutation.mutate({ name: form.name.trim() });
@@ -99,28 +99,29 @@ export default function CitiesTab() {
     () => [
       {
         accessorKey: 'name',
-        header: 'Název',
+        header: 'Name',
       },
       {
         id: 'archived',
-        header: 'Archivováno',
+        header: 'Archived',
         cell: ({ row }) => (
           <Badge
             variant={row.original.archived_at ? 'secondary' : 'outline'}
-            title={row.original.archived_at ? 'Archivováno' : 'Aktivní'}
+            title={row.original.archived_at ? 'Archived' : 'Active'}
+            isRounded
           />
         ),
       },
       {
         id: 'actions',
-        header: 'Akce',
+        header: 'Actions',
         cell: ({ row }) => (
           <div className='flex justify-end gap-2'>
             <Button
               type='button'
               variant='outline'
               size='icon-sm'
-              ariaLabel={`Upravit ${row.original.name}`}
+              ariaLabel={`Edit ${row.original.name}`}
               onClick={() => openEditEditor(row.original)}
             >
               <Pencil aria-hidden='true' />
@@ -129,7 +130,7 @@ export default function CitiesTab() {
               type='button'
               variant='destructive'
               size='icon-sm'
-              ariaLabel={`Archivovat ${row.original.name}`}
+              ariaLabel={`Archive ${row.original.name}`}
               disabled={
                 archiveMutation.isPending || row.original.archived_at !== null
               }
@@ -148,11 +149,11 @@ export default function CitiesTab() {
     <section className='flex flex-col gap-6'>
       <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
         <Text as='p' size='sm' className='text-muted-foreground'>
-          Celkem: {citiesQuery.data?.length ?? 0}
+          Total: {citiesQuery.data?.length ?? 0}
         </Text>
         <Button type='button' onClick={openCreateEditor}>
           <Plus aria-hidden='true' />
-          Přidat město
+          Add city
         </Button>
       </div>
 
@@ -161,11 +162,11 @@ export default function CitiesTab() {
       {citiesQuery.isError && (
         <Alert
           variant='destructive'
-          title='Nepodařilo se načíst města'
+          title='Failed to load cities'
           description={
             citiesQuery.error instanceof Error
               ? citiesQuery.error.message
-              : 'Neznámá chyba'
+              : 'Unknown error'
           }
         />
       )}
@@ -188,10 +189,10 @@ export default function CitiesTab() {
         }}
         title={
           <span className='text-foreground'>
-            {editingCity ? 'Upravit město' : 'Přidat město'}
+            {editingCity ? 'Edit city' : 'Add city'}
           </span>
         }
-        description='Spravujte název města.'
+        description='Manage the city name.'
         className='text-card-foreground'
         footer={
           <>
@@ -201,22 +202,22 @@ export default function CitiesTab() {
               onClick={closeEditor}
               disabled={saveMutation.isPending}
             >
-              Zrušit
+              Cancel
             </Button>
             <Button
               type='submit'
               form='admin-city-editor-form'
               disabled={saveMutation.isPending}
             >
-              {saveMutation.isPending ? 'Ukládám...' : 'Uložit'}
+              {saveMutation.isPending ? 'Saving...' : 'Save'}
             </Button>
           </>
         }
       >
         <form id='admin-city-editor-form' onSubmit={handleSubmit}>
           <InputField
-            fieldLabel='Název'
-            fieldPlaceholder='Název města'
+            fieldLabel='Name'
+            fieldPlaceholder='City name'
             fieldDescription=''
             type='text'
             value={form.name}
@@ -232,14 +233,14 @@ export default function CitiesTab() {
         onOpenChange={open => {
           if (!open) setCityToArchive(null);
         }}
-        title='Archivovat město'
+        title='Archive city'
         description={
           cityToArchive
-            ? `Archivovat ${cityToArchive.name}? Město zůstane viditelné v tomto seznamu.`
+            ? `Archive ${cityToArchive.name}? The city will remain visible in this list.`
             : ''
         }
-        actionLabel={archiveMutation.isPending ? 'Archivuji...' : 'Archivovat'}
-        cancelLabel='Zrušit'
+        actionLabel={archiveMutation.isPending ? 'Archiving...' : 'Archive'}
+        cancelLabel='Cancel'
         onAction={() => {
           if (cityToArchive) {
             archiveMutation.mutate(cityToArchive.id);

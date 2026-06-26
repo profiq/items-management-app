@@ -82,9 +82,7 @@ export default function LocationsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-locations'] });
       closeEditor();
-      toast.success(
-        editingLocation ? 'Lokalita aktualizována' : 'Lokalita vytvořena'
-      );
+      toast.success(editingLocation ? 'Location updated' : 'Location created');
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -96,7 +94,7 @@ export default function LocationsTab() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['admin-locations'] });
       setLocationToArchive(null);
-      toast.success('Lokalita archivována');
+      toast.success('Location archived');
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -124,11 +122,11 @@ export default function LocationsTab() {
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!form.name.trim()) {
-      toast.error('Název je povinný');
+      toast.error('Name is required');
       return;
     }
     if (!form.city_id || !activeCities.some(c => c.id === form.city_id)) {
-      toast.error('Město je povinné');
+      toast.error('City is required');
       return;
     }
     saveMutation.mutate({ name: form.name.trim(), city_id: form.city_id });
@@ -138,33 +136,34 @@ export default function LocationsTab() {
     () => [
       {
         accessorKey: 'name',
-        header: 'Název',
+        header: 'Name',
       },
       {
         id: 'city',
-        header: 'Město',
+        header: 'City',
         cell: ({ row }) => row.original.city?.name ?? '—',
       },
       {
         id: 'archived',
-        header: 'Archivováno',
+        header: 'Archived',
         cell: ({ row }) => (
           <Badge
             variant={row.original.archived_at ? 'secondary' : 'outline'}
-            title={row.original.archived_at ? 'Archivováno' : 'Aktivní'}
+            title={row.original.archived_at ? 'Archived' : 'Active'}
+            isRounded
           />
         ),
       },
       {
         id: 'actions',
-        header: 'Akce',
+        header: 'Actions',
         cell: ({ row }) => (
           <div className='flex justify-end gap-2'>
             <Button
               type='button'
               variant='outline'
               size='icon-sm'
-              ariaLabel={`Upravit ${row.original.name}`}
+              ariaLabel={`Edit ${row.original.name}`}
               onClick={() => openEditEditor(row.original)}
             >
               <Pencil aria-hidden='true' />
@@ -173,7 +172,7 @@ export default function LocationsTab() {
               type='button'
               variant='destructive'
               size='icon-sm'
-              ariaLabel={`Archivovat ${row.original.name}`}
+              ariaLabel={`Archive ${row.original.name}`}
               disabled={
                 archiveMutation.isPending || row.original.archived_at !== null
               }
@@ -192,11 +191,11 @@ export default function LocationsTab() {
     <section className='flex flex-col gap-6'>
       <div className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
         <Text as='p' size='sm' className='text-muted-foreground'>
-          Celkem: {locationsQuery.data?.length ?? 0}
+          Total: {locationsQuery.data?.length ?? 0}
         </Text>
         <Button type='button' onClick={openCreateEditor}>
           <Plus aria-hidden='true' />
-          Přidat lokalitu
+          Add location
         </Button>
       </div>
 
@@ -205,11 +204,11 @@ export default function LocationsTab() {
       {locationsQuery.isError && (
         <Alert
           variant='destructive'
-          title='Nepodařilo se načíst lokality'
+          title='Failed to load locations'
           description={
             locationsQuery.error instanceof Error
               ? locationsQuery.error.message
-              : 'Neznámá chyba'
+              : 'Unknown error'
           }
         />
       )}
@@ -232,10 +231,10 @@ export default function LocationsTab() {
         }}
         title={
           <span className='text-foreground'>
-            {editingLocation ? 'Upravit lokalitu' : 'Přidat lokalitu'}
+            {editingLocation ? 'Edit location' : 'Add location'}
           </span>
         }
-        description='Spravujte název lokality a přiřazené město.'
+        description='Manage the location name and assigned city.'
         className='text-card-foreground'
         footer={
           <>
@@ -245,14 +244,14 @@ export default function LocationsTab() {
               onClick={closeEditor}
               disabled={saveMutation.isPending}
             >
-              Zrušit
+              Cancel
             </Button>
             <Button
               type='submit'
               form='admin-location-editor-form'
               disabled={saveMutation.isPending}
             >
-              {saveMutation.isPending ? 'Ukládám...' : 'Uložit'}
+              {saveMutation.isPending ? 'Saving...' : 'Save'}
             </Button>
           </>
         }
@@ -263,8 +262,8 @@ export default function LocationsTab() {
           className='flex flex-col gap-4'
         >
           <InputField
-            fieldLabel='Název'
-            fieldPlaceholder='Název lokality'
+            fieldLabel='Name'
+            fieldPlaceholder='Location name'
             fieldDescription=''
             type='text'
             value={form.name}
@@ -274,17 +273,17 @@ export default function LocationsTab() {
           />
           <div className='flex flex-col gap-1'>
             <Text as='label' size='sm' weight='medium'>
-              Město
+              City
             </Text>
             <Select
               value={String(form.city_id)}
-              onValueChange={cityId =>
+              onValueChange={(cityId: string) =>
                 setForm(prev => ({ ...prev, city_id: Number(cityId) }))
               }
               disabled={saveMutation.isPending || citiesQuery.isLoading}
             >
               <SelectTrigger>
-                <SelectValue placeholder='Vyberte město' />
+                <SelectValue placeholder='Select a city' />
               </SelectTrigger>
               <SelectContent>
                 <SelectGroup>
@@ -305,14 +304,14 @@ export default function LocationsTab() {
         onOpenChange={open => {
           if (!open) setLocationToArchive(null);
         }}
-        title='Archivovat lokalitu'
+        title='Archive location'
         description={
           locationToArchive
-            ? `Archivovat ${locationToArchive.name}? Lokalita zůstane viditelná v tomto seznamu.`
+            ? `Archive ${locationToArchive.name}? The location will remain visible in this list.`
             : ''
         }
-        actionLabel={archiveMutation.isPending ? 'Archivuji...' : 'Archivovat'}
-        cancelLabel='Zrušit'
+        actionLabel={archiveMutation.isPending ? 'Archiving...' : 'Archive'}
+        cancelLabel='Cancel'
         onAction={() => {
           if (locationToArchive) {
             archiveMutation.mutate(locationToArchive.id);

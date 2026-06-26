@@ -1,15 +1,17 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { admin_directory_v1, google } from 'googleapis';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { IEmployee } from './interfaces/employee.interface';
-import { UserService } from '@/user/user.service';
+import { User } from '@/user/user.entity';
 import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class EmployeeService {
   constructor(
     private configService: ConfigService,
-    @Inject(forwardRef(() => UserService))
-    private userService: UserService
+    @InjectRepository(User)
+    private userRepository: Repository<User>
   ) {}
 
   private getAdmin(): admin_directory_v1.Admin {
@@ -86,7 +88,7 @@ export class EmployeeService {
 
   async syncEmployeeNames() {
     const [users, employees] = await Promise.all([
-      this.userService.getUsers(),
+      this.userRepository.find(),
       this.getEmployees(),
     ]);
     const employeesById = new Map(
@@ -106,6 +108,8 @@ export class EmployeeService {
     if (usersToSave.length === 0) {
       return;
     }
-    await this.userService.saveUsers(usersToSave);
+    await this.userRepository.manager.transaction(async manager => {
+      await manager.save(User, usersToSave);
+    });
   }
 }

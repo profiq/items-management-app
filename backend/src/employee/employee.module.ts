@@ -1,18 +1,20 @@
-import { forwardRef, Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
 import { EmployeeService } from './employee.service';
 import { EmployeeController } from './employee.controller';
 import { AuthModule } from '@/auth/auth.module';
-import { UserModule } from '@/user/user.module';
+import { RolesModule } from '@/auth/roles.module';
 import { ConfigModule } from '@nestjs/config';
-import { RolesGuard } from '@/auth/roles.guard';
+import { User } from '@/user/user.entity';
 
 @Module({
   imports: [
-    forwardRef(() => AuthModule),
-    forwardRef(() => UserModule),
+    AuthModule,
+    RolesModule,
     ConfigModule,
+    TypeOrmModule.forFeature([User]),
   ],
-  providers: [EmployeeService, RolesGuard],
+  providers: [EmployeeService],
   controllers: [EmployeeController],
   exports: [EmployeeService],
 })

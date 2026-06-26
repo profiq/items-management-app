@@ -16,6 +16,7 @@ import {
   Text,
 } from '@profiq/ui';
 import type { TabItem } from '@profiq/ui';
+import { AdminBackButton } from '@/components/AdminBackButton';
 import { StatusSpinning } from '@/components/status/status-spinning';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import type { User } from '@/lib/contexts';
@@ -26,11 +27,16 @@ import {
   type AdminLoan,
   type LoanStatus,
 } from '@/services/admin/loans';
+import { parseLocalDate } from '@/lib/dates';
 
 const PAGE_SIZE = 20;
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('cs-CZ');
+  return parseLocalDate(dateStr).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 function deriveLoanStatus(loan: AdminLoan): LoanStatus {
@@ -43,10 +49,10 @@ function deriveLoanStatus(loan: AdminLoan): LoanStatus {
 function LoanStatusBadge({ loan }: { loan: AdminLoan }) {
   const status = deriveLoanStatus(loan);
   if (status === 'returned')
-    return <Badge variant='secondary' title='Vráceno' />;
+    return <Badge variant='secondary' title='Returned' isRounded />;
   if (status === 'overdue')
-    return <Badge variant='destructive' title='Po splatnosti' />;
-  return <Badge variant='outline' title='Aktivní' />;
+    return <Badge variant='destructive' title='Overdue' isRounded />;
+  return <Badge variant='outline' title='Active' isRounded />;
 }
 
 function LoansTableContent({ status }: { status?: LoanStatus }) {
@@ -69,7 +75,7 @@ function LoansTableContent({ status }: { status?: LoanStatus }) {
       queryClient.invalidateQueries({ queryKey: ['admin-loans'] });
       setLoanToReturn(null);
       setPage(1);
-      toast.success('Výpůjčka vrácena');
+      toast.success('Loan returned');
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -81,7 +87,7 @@ function LoansTableContent({ status }: { status?: LoanStatus }) {
       queryClient.invalidateQueries({ queryKey: ['admin-loans'] });
       setLoanToExtend(null);
       setPage(1);
-      toast.success('Výpůjčka prodloužena');
+      toast.success('Loan extended');
     },
     onError: (error: Error) => toast.error(error.message),
   });
@@ -92,27 +98,27 @@ function LoansTableContent({ status }: { status?: LoanStatus }) {
     () => [
       {
         id: 'user',
-        header: 'Uživatel',
+        header: 'User',
         cell: ({ row }) => row.original.user.name,
       },
       {
         id: 'item',
-        header: 'Položka',
+        header: 'Item',
         cell: ({ row }) => row.original.copy.item.name,
       },
       {
         id: 'location',
-        header: 'Lokalita',
+        header: 'Location',
         cell: ({ row }) => row.original.copy.location.name,
       },
       {
         id: 'borrowed_at',
-        header: 'Vypůjčeno',
+        header: 'Borrowed',
         cell: ({ row }) => formatDate(row.original.borrowed_at),
       },
       {
         id: 'due_date',
-        header: 'Splatnost',
+        header: 'Due',
         cell: ({ row }) => formatDate(row.original.due_date),
       },
       {
@@ -122,7 +128,7 @@ function LoansTableContent({ status }: { status?: LoanStatus }) {
       },
       {
         id: 'actions',
-        header: 'Akce',
+        header: 'Actions',
         cell: ({ row }) => {
           const loan = row.original;
           if (loan.returned_at !== null) return null;
@@ -136,7 +142,7 @@ function LoansTableContent({ status }: { status?: LoanStatus }) {
                 onClick={() => setLoanToReturn(loan)}
               >
                 <RotateCcw aria-hidden='true' />
-                Vrátit
+                Return
               </Button>
               <Button
                 type='button'
@@ -149,7 +155,7 @@ function LoansTableContent({ status }: { status?: LoanStatus }) {
                 }}
               >
                 <Clock aria-hidden='true' />
-                Prodloužit
+                Extend
               </Button>
             </div>
           );
@@ -166,7 +172,7 @@ function LoansTableContent({ status }: { status?: LoanStatus }) {
   return (
     <section className='flex flex-col gap-6'>
       <Text as='p' size='sm' className='text-muted-foreground'>
-        Celkem: {total}
+        Total: {total}
       </Text>
 
       {loansQuery.isLoading && <StatusSpinning />}
@@ -174,11 +180,11 @@ function LoansTableContent({ status }: { status?: LoanStatus }) {
       {loansQuery.isError && (
         <Alert
           variant='destructive'
-          title='Nepodařilo se načíst výpůjčky'
+          title='Failed to load loans'
           description={
             loansQuery.error instanceof Error
               ? loansQuery.error.message
-              : 'Neznámá chyba'
+              : 'Unknown error'
           }
         />
       )}
@@ -210,14 +216,14 @@ function LoansTableContent({ status }: { status?: LoanStatus }) {
         onOpenChange={open => {
           if (!open) setLoanToReturn(null);
         }}
-        title='Vrátit výpůjčku'
+        title='Return loan'
         description={
           loanToReturn
-            ? `Vrátit výpůjčku položky „${loanToReturn.copy.item.name}" uživatele ${loanToReturn.user.name}?`
+            ? `Return "${loanToReturn.copy.item.name}" borrowed by ${loanToReturn.user.name}?`
             : ''
         }
-        actionLabel={returnMutation.isPending ? 'Vracím...' : 'Vrátit'}
-        cancelLabel='Zrušit'
+        actionLabel={returnMutation.isPending ? 'Returning...' : 'Return'}
+        cancelLabel='Cancel'
         onAction={() => {
           if (loanToReturn) returnMutation.mutate(loanToReturn.id);
         }}
@@ -228,10 +234,10 @@ function LoansTableContent({ status }: { status?: LoanStatus }) {
         onOpenChange={open => {
           if (!open) setLoanToExtend(null);
         }}
-        title={<span className='text-foreground'>Prodloužit výpůjčku</span>}
+        title={<span className='text-foreground'>Extend loan</span>}
         description={
           loanToExtend
-            ? `Prodloužit výpůjčku položky „${loanToExtend.copy.item.name}" uživatele ${loanToExtend.user.name}`
+            ? `Extend "${loanToExtend.copy.item.name}" borrowed by ${loanToExtend.user.name}`
             : ''
         }
         className='text-card-foreground'
@@ -243,14 +249,14 @@ function LoansTableContent({ status }: { status?: LoanStatus }) {
               onClick={() => setLoanToExtend(null)}
               disabled={extendMutation.isPending}
             >
-              Zrušit
+              Cancel
             </Button>
             <Button
               type='submit'
               form='admin-loan-extend-form'
               disabled={extendMutation.isPending}
             >
-              {extendMutation.isPending ? 'Prodlužuji...' : 'Prodloužit'}
+              {extendMutation.isPending ? 'Extending...' : 'Extend'}
             </Button>
           </>
         }
@@ -266,8 +272,8 @@ function LoansTableContent({ status }: { status?: LoanStatus }) {
           className='flex flex-col gap-4'
         >
           <InputField
-            fieldLabel='Počet dní'
-            fieldPlaceholder='Zadejte počet dní'
+            fieldLabel='Number of days'
+            fieldPlaceholder='Enter number of days'
             fieldDescription=''
             type='number'
             value={String(extendDays)}
@@ -286,28 +292,29 @@ function LoansTableContent({ status }: { status?: LoanStatus }) {
 
 export default function AdminLoans() {
   const tabs: TabItem[] = [
-    { value: 'all', label: 'Vše', content: <LoansTableContent key='all' /> },
+    { value: 'all', label: 'All', content: <LoansTableContent key='all' /> },
     {
       value: 'active',
-      label: 'Aktivní',
+      label: 'Active',
       content: <LoansTableContent key='active' status='active' />,
     },
     {
       value: 'overdue',
-      label: 'Po splatnosti',
+      label: 'Overdue',
       content: <LoansTableContent key='overdue' status='overdue' />,
     },
     {
       value: 'returned',
-      label: 'Vrácené',
+      label: 'Returned',
       content: <LoansTableContent key='returned' status='returned' />,
     },
   ];
 
   return (
     <section className='mx-auto flex w-full max-w-7xl flex-col gap-6 p-4'>
-      <Text as='h1' size='2xl' weight='bold'>
-        Správa výpůjček
+      <AdminBackButton />
+      <Text as='h1' size='2xl' weight='bold' className='heading-accent'>
+        Loan management
       </Text>
       <Tabs items={tabs} defaultValue='all' />
     </section>

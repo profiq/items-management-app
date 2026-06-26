@@ -15,6 +15,8 @@ export class EmployeeController {
   constructor(private employeeService: EmployeeService) {}
 
   @Get()
+  @UseGuards(RolesGuard)
+  @Roles(UserRole.Admin)
   @Header('Cache-Control', 'max-age=10, private')
   @ApiOkResponse({
     type: [EmployeeResponse],

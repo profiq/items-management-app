@@ -16,6 +16,7 @@ import type { SelectItem } from '@profiq/ui';
 import { useAuth } from '@/lib/providers/auth/useAuth';
 import type { User } from '@/lib/contexts';
 import type { PublicCategory } from '@/services/items/items';
+import { parseLocalDate } from '@/lib/dates';
 import {
   getLoanStatus,
   getMyLoans,
@@ -24,10 +25,12 @@ import {
   type MyLoan,
 } from '@/services/loans/loans';
 
+const ALL_CATEGORIES = 'All categories';
+
 const STATUS_LABELS: Record<LoanStatus, string> = {
-  active: 'Aktivní',
-  overdue: 'Po termínu',
-  returned: 'Vráceno',
+  active: 'Active',
+  overdue: 'Overdue',
+  returned: 'Returned',
 };
 
 const STATUS_VARIANTS: Record<
@@ -40,7 +43,11 @@ const STATUS_VARIANTS: Record<
 };
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('cs-CZ');
+  return parseLocalDate(dateStr).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 type LoanRowProps = {
@@ -77,7 +84,7 @@ function LoanRow({ loan, onReturn, isReturning }: LoanRowProps) {
           </Text>
         )}
         <Text as='p' size='xs' className='text-muted-foreground'>
-          Zapůjčeno: {formatDate(loan.borrowed_at)} · Splatnost:{' '}
+          Borrowed: {formatDate(loan.borrowed_at)} · Due:{' '}
           {formatDate(loan.due_date)}
         </Text>
       </div>
@@ -114,7 +121,7 @@ function LoanList({ loans, onReturn, isReturning }: LoanListProps) {
   if (loans.length === 0) {
     return (
       <Text as='p' size='sm' className='py-8 text-center text-muted-foreground'>
-        Žádné výpůjčky.
+        No loans.
       </Text>
     );
   }
@@ -141,7 +148,7 @@ export function MyLoansTab({ categories }: MyLoansTabProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
-  const [categoryValue, setCategoryValue] = useState('Všechny kategorie');
+  const [categoryValue, setCategoryValue] = useState(ALL_CATEGORIES);
   const [loanToReturn, setLoanToReturn] = useState<MyLoan | null>(null);
 
   const loansQuery = useQuery({
@@ -156,7 +163,7 @@ export function MyLoansTab({ categories }: MyLoansTabProps) {
       queryClient.invalidateQueries({ queryKey: ['my-loans', user?.uid] });
       queryClient.invalidateQueries({ queryKey: ['items'] });
       setLoanToReturn(null);
-      toast.success('Položka vrácena');
+      toast.success('Item returned');
     },
     onError: (error: Error) => {
       toast.error(error.message);
@@ -171,7 +178,7 @@ export function MyLoansTab({ categories }: MyLoansTabProps) {
 
   const categorySelectItems: SelectItem[] = useMemo(
     () => [
-      { id: 'all', value: 'Všechny kategorie' },
+      { id: 'all', value: ALL_CATEGORIES },
       ...activeCategories.map(c => ({ id: String(c.id), value: c.name })),
     ],
     [activeCategories]
@@ -180,7 +187,7 @@ export function MyLoansTab({ categories }: MyLoansTabProps) {
   const filteredLoans = useMemo(() => {
     const loans = loansQuery.data ?? [];
     const selectedCategory =
-      categoryValue === 'Všechny kategorie'
+      categoryValue === ALL_CATEGORIES
         ? undefined
         : activeCategories.find(c => c.name === categoryValue);
     return loans.filter(loan => {
@@ -214,7 +221,7 @@ export function MyLoansTab({ categories }: MyLoansTabProps) {
   const statusTabItems: TabItem[] = [
     {
       value: 'all',
-      label: `Vše (${filteredLoans.length})`,
+      label: `All (${filteredLoans.length})`,
       content: (
         <LoanList
           loans={filteredLoans}
@@ -225,7 +232,7 @@ export function MyLoansTab({ categories }: MyLoansTabProps) {
     },
     {
       value: 'active',
-      label: `Aktivní (${activeLoans.length})`,
+      label: `Active (${activeLoans.length})`,
       content: (
         <LoanList
           loans={activeLoans}
@@ -236,7 +243,7 @@ export function MyLoansTab({ categories }: MyLoansTabProps) {
     },
     {
       value: 'overdue',
-      label: `Po termínu (${overdueLoans.length})`,
+      label: `Overdue (${overdueLoans.length})`,
       content: (
         <LoanList
           loans={overdueLoans}
@@ -247,7 +254,7 @@ export function MyLoansTab({ categories }: MyLoansTabProps) {
     },
     {
       value: 'returned',
-      label: `Vráceno (${returnedLoans.length})`,
+      label: `Returned (${returnedLoans.length})`,
       content: (
         <LoanList
           loans={returnedLoans}
@@ -275,11 +282,11 @@ export function MyLoansTab({ categories }: MyLoansTabProps) {
     return (
       <Alert
         variant='destructive'
-        title='Nepodařilo se načíst výpůjčky'
+        title='Failed to load loans'
         description={
           loansQuery.error instanceof Error
             ? loansQuery.error.message
-            : 'Neznámá chyba'
+            : 'Unknown error'
         }
       />
     );
@@ -290,8 +297,8 @@ export function MyLoansTab({ categories }: MyLoansTabProps) {
       <div className='flex flex-col gap-3 sm:flex-row sm:items-center'>
         <div className='flex-1'>
           <InputField
-            fieldLabel='Hledat'
-            fieldPlaceholder='Název položky…'
+            fieldLabel='Search'
+            fieldPlaceholder='Item name…'
             fieldDescription=''
             type='search'
             value={search}
@@ -300,7 +307,7 @@ export function MyLoansTab({ categories }: MyLoansTabProps) {
         </div>
         <div className='sm:w-56'>
           <Select
-            placeholder='Kategorie'
+            placeholder='Category'
             items={categorySelectItems}
             value={categoryValue}
             onValueChange={setCategoryValue}
@@ -320,7 +327,7 @@ export function MyLoansTab({ categories }: MyLoansTabProps) {
           loanToReturn ? `Return "${loanToReturn.copy.item.name}"?` : ''
         }
         actionLabel={returnMutation.isPending ? 'Returning…' : 'Return'}
-        cancelLabel='Zrušit'
+        cancelLabel='Cancel'
         onAction={() => {
           if (loanToReturn) returnMutation.mutate(loanToReturn.id);
         }}
