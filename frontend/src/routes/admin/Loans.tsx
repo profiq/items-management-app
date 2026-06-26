@@ -286,21 +286,21 @@ function LoansTableContent({ status }: { status?: LoanStatus }) {
 
 export default function AdminLoans() {
   const tabs: TabItem[] = [
-    { value: 'all', label: 'Vše', content: <LoansTableContent /> },
+    { value: 'all', label: 'Vše', content: <LoansTableContent key='all' /> },
     {
       value: 'active',
       label: 'Aktivní',
-      content: <LoansTableContent status='active' />,
+      content: <LoansTableContent key='active' status='active' />,
     },
     {
       value: 'overdue',
       label: 'Po splatnosti',
-      content: <LoansTableContent status='overdue' />,
+      content: <LoansTableContent key='overdue' status='overdue' />,
     },
     {
       value: 'returned',
       label: 'Vrácené',
-      content: <LoansTableContent status='returned' />,
+      content: <LoansTableContent key='returned' status='returned' />,
     },
   ];
 
